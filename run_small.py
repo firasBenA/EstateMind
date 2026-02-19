@@ -22,21 +22,21 @@ async def main():
                 SearchParams(
                     transaction=txn,
                     property_type=pt,
-                    max_pages=2,   # increase if you want more
+                    max_pages=500,   # increase if you want more
                 )
             )
 
     listings = await agent.run_once(params_list)
 
-    for listing_id, html in listings:
-        lat, lon = extract_lat_lon_from_div(html)
-        if lat and lon:
-            store.save_lat_lon(listing_id, lat, lon)
 
 
-    for l in listings[:3]:
-        print(l.source_listing_id, "images:", len(l.image_urls))
-        print("sample:", l.image_urls[:2])
+
+    for listing in listings[:3]:
+        print(listing.source_listing_id, "lat/lon:", listing.lat, listing.lon)
+        print("images:", len(listing.image_urls))
+        print("sample images:", listing.image_urls[:2])
+
+
 
     count = await download_images_for_listings(DB_URL, listings)
     print("downloaded images rows:", count)

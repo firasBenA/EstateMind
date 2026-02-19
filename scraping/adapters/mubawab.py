@@ -120,7 +120,7 @@ class MubawabAdapter:
         soup = BeautifulSoup(html, "lxml")
 
         # ✅ Extract latitude and longitude here
-        lat, lon = self.extract_lat_lon_from_div(html)
+        extracted_lat, extracted_lon = self.extract_lat_lon_from_div(html)
 
         image_urls = self._pick_images(soup)
         text = soup.get_text("\n", strip=True)
@@ -204,10 +204,10 @@ class MubawabAdapter:
             poi={},
             posted_at=None,
             scraped_at=datetime.utcnow(),
-            lat=lat,    # added
-            lon=lon     # added
+            lat=extracted_lat,
+            lon=extracted_lon
         )
-        print("LAT:", lat, "LON:", lon)
+        print("LAT:", extracted_lat, "LON:", extracted_lon)
         return listing
 
 
