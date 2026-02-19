@@ -1,0 +1,4 @@
+source,transaction,url,title,price,currency,governorate,city,property_type,surface_m2,rooms,bathrooms,posted_at,scraped_at
+mubawab,rent,https://www.mubawab.tn/fr/a/8292050/un-penthouse-en-s3-%C3%A0-gammarth-avec-une-vue-sur-mer,Un Penthouse en s3 à Gammarth avec une vue sur Mer,6800.0,TND,,La Marsa,Apartment,240.0,4,1,,2026-01-30 22:32:44.221958
+mubawab,sale,https://www.mubawab.tn/fr/pa/8029833/duplex-neuf-de-211m%C2%B2-aux-jardins-de-carthage,Duplex Neuf de 211m² aux jardins de Carthage,,,,Le Kram,Apartment,211.0,3,3,,2026-01-30 22:32:44.221958
+mubawab,sale,https://www.mubawab.tn/fr/pa/8053644/vend-appartement-%C3%A0-rades-a-7-2,Vend appartement à Rades A 7 2,,,,Rades,Apartment,78.0,3,2,,2026-01-30 22:32:44.221958
