@@ -1,0 +1,4561 @@
+2026-02-11 20:11:25.610 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-11 20:11:25.610 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-11 20:11:26.921 | ERROR    | database.mongo_client:__init__:16 - Failed to connect to MongoDB: The DNS query name does not exist: _mongodb._tcp.cluster0.mongodb.net.
+2026-02-11 20:11:26.922 | CRITICAL | __main__:<module>:25 - Unhandled exception: The DNS query name does not exist: _mongodb._tcp.cluster0.mongodb.net.
+2026-02-11 21:37:51.085 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-11 21:37:51.087 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-11 21:37:52.045 | ERROR    | database.mongo_client:__init__:16 - Failed to connect to MongoDB: The DNS query name does not exist: _mongodb._tcp.cluster0.mongodb.net.
+2026-02-11 21:37:52.046 | CRITICAL | __main__:<module>:25 - Unhandled exception: The DNS query name does not exist: _mongodb._tcp.cluster0.mongodb.net.
+2026-02-11 23:27:21.624 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-11 23:27:21.626 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-11 23:27:23.403 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-11 23:27:23.414 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-11 23:27:23.415 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-11 23:27:23.415 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-11 23:27:23.416 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-11 23:27:23.579 | INFO     | core.pipeline:_run_scraper:46 - New listing saved: tayara_1_1 - Appartement S+2 à Tunis
+2026-02-11 23:27:23.744 | INFO     | core.pipeline:_run_scraper:46 - New listing saved: tayara_1_2 - Villa à Sousse
+2026-02-11 23:27:23.896 | INFO     | core.pipeline:_run_scraper:46 - New listing saved: tayara_2_1 - Appartement S+2 à Tunis
+2026-02-11 23:27:24.050 | INFO     | core.pipeline:_run_scraper:46 - New listing saved: tayara_2_2 - Villa à Sousse
+2026-02-11 23:27:24.051 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 4 new listings out of 4 fetched.
+2026-02-11 23:27:24.051 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-11 23:27:24.127 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:29:41.867 | INFO     | scheduler:start_scheduler:18 - Scheduler started. Running every 24 hours.
+2026-02-12 09:31:41.869 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:31:44.947 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:31:44.947 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:31:44.947 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:31:44.948 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:31:44.948 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:31:45.569 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:31:45.569 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:31:45.728 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:33:45.733 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:33:47.763 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:33:47.764 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:33:47.764 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:33:47.775 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:33:47.775 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:33:48.236 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:33:48.237 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:33:48.316 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:35:48.321 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:35:50.309 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:35:50.310 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:35:50.310 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:35:50.311 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:35:50.311 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:35:50.661 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:35:50.661 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:35:50.755 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:37:50.760 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:38:00.300 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:38:00.300 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:38:00.301 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:38:00.301 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:38:00.302 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:38:02.525 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:38:02.525 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:38:02.649 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:40:02.654 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:40:04.705 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:40:04.705 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:40:04.706 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:40:04.706 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:40:04.706 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:40:05.116 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:40:05.116 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:40:05.246 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:42:05.251 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:42:07.461 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:42:07.462 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:42:07.462 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:42:07.462 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:42:07.463 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:42:07.914 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:42:07.915 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:42:07.999 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:44:08.005 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:44:10.094 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:44:10.094 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:44:10.095 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:44:10.095 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:44:10.095 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:44:10.517 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:44:10.518 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:44:10.664 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:46:10.669 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:46:17.632 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:46:17.633 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:46:17.634 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:46:17.634 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:46:17.635 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:46:20.376 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:46:20.376 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:46:21.293 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:48:21.298 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:48:23.423 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:48:23.423 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:48:23.424 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:48:23.424 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:48:23.424 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:48:23.900 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:48:23.900 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:48:24.021 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:50:24.026 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:50:26.076 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:50:26.077 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:50:26.077 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:50:26.078 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:50:26.078 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:50:26.616 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:50:26.616 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:50:26.792 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:52:26.796 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:52:29.036 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:52:29.036 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:52:29.037 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:52:29.037 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:52:29.038 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:52:29.462 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:52:29.462 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:52:29.650 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:54:29.655 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:54:31.656 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:54:31.657 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:54:31.657 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:54:31.658 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:54:31.658 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:54:32.211 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:54:32.212 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:54:32.281 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:56:32.286 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:56:34.399 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:56:34.400 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:56:34.400 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:56:34.400 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:56:34.401 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:56:34.730 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:56:34.731 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:56:34.858 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 09:58:34.863 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 09:58:36.966 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 09:58:36.966 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 09:58:36.966 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 09:58:36.967 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 09:58:36.967 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 09:58:37.566 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 09:58:37.566 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 09:58:37.632 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:00:37.637 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:00:40.206 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:00:40.207 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:00:40.207 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:00:40.208 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:00:40.209 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:00:40.962 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:00:40.962 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:00:41.162 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:02:41.167 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:02:43.313 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:02:43.314 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:02:43.314 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:02:43.315 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:02:43.315 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:02:43.677 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:02:43.677 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:02:43.837 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:04:43.842 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:04:46.163 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:04:46.163 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:04:46.164 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:04:46.164 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:04:46.164 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:04:46.575 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:04:46.575 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:04:46.673 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:06:46.678 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:06:48.714 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:06:48.715 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:06:48.715 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:06:48.716 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:06:48.716 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:06:49.069 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:06:49.070 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:06:49.154 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:08:49.159 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:08:51.789 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:08:51.790 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:08:51.790 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:08:51.791 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:08:51.791 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:08:52.193 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:08:52.193 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:08:52.295 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:10:52.299 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:10:54.820 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:10:54.821 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:10:54.821 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:10:54.822 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:10:54.822 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:10:55.254 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:10:55.254 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:10:55.334 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:12:55.338 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:12:57.531 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:12:57.532 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:12:57.532 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:12:57.532 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:12:57.533 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:12:57.905 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:12:57.905 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:12:58.124 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:14:58.129 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:15:00.148 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:15:00.148 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:15:00.149 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:15:00.149 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:15:00.150 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:15:00.723 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:15:00.724 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:15:00.904 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:17:00.908 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:17:02.834 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:17:02.834 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:17:02.835 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:17:02.835 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:17:02.836 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:17:03.397 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:17:03.397 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:17:03.512 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:19:03.517 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:19:05.734 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:19:05.735 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:19:05.735 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:19:05.735 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:19:05.736 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:19:06.229 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:19:06.230 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:19:06.338 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:21:06.343 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:21:09.412 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:21:09.412 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:21:09.413 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:21:09.413 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:21:09.413 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:21:09.827 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:21:09.827 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:21:10.103 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:23:10.108 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:23:12.194 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:23:12.195 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:23:12.195 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:23:12.196 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:23:12.196 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:23:12.704 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:23:12.704 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:23:12.851 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:25:12.856 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:25:15.179 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:25:15.180 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:25:15.180 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:25:15.180 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:25:15.181 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:25:15.608 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:25:15.608 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:25:15.820 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:27:15.825 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:27:18.068 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:27:18.069 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:27:18.069 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:27:18.069 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:27:18.070 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings...
+2026-02-12 10:27:18.461 | INFO     | core.pipeline:_run_scraper:48 - Finished tayara: 0 new listings out of 4 fetched.
+2026-02-12 10:27:18.461 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:27:18.578 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:28:03.261 | INFO     | __main__:<module>:22 - Stopping...
+2026-02-12 10:40:50.359 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-12 10:40:50.360 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:40:53.057 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:40:53.058 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:40:53.058 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:40:53.058 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:40:53.059 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings (Simulated)...
+2026-02-12 10:40:53.261 | INFO     | core.pipeline:_run_scraper:49 - New listing saved: tayara_1_0_801bf9d8 - Appartement S+4 à Ariana
+2026-02-12 10:40:53.466 | INFO     | core.pipeline:_run_scraper:49 - New listing saved: tayara_1_1_f1a0510d - Appartement S+2 à Sousse
+2026-02-12 10:40:53.881 | INFO     | core.pipeline:_run_scraper:49 - New listing saved: tayara_2_0_058e43a5 - Appartement S+3 à Tunis
+2026-02-12 10:40:54.189 | INFO     | core.pipeline:_run_scraper:49 - New listing saved: tayara_2_1_dbcb166a - Appartement S+1 à Ariana
+2026-02-12 10:40:54.189 | INFO     | core.pipeline:_run_scraper:51 - Finished tayara: 4 new listings out of 4 fetched.
+2026-02-12 10:40:54.190 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:40:54.264 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 10:53:20.216 | INFO     | scheduler:start_scheduler:18 - Scheduler started. Running every 24 hours.
+2026-02-12 10:53:20.218 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 10:53:23.227 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 10:53:23.227 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 10:53:23.228 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 10:53:23.228 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 10:53:23.228 | INFO     | scrapers.tayara:fetch_listings:14 - Fetching Tayara listings (REAL)...
+2026-02-12 10:53:23.230 | INFO     | scrapers.tayara:fetch_listings:23 - Scraping page 1: https://www.tayara.tn/ads/c/Immobilier?page=1
+2026-02-12 10:53:25.366 | WARNING  | scrapers.tayara:fetch_listings:74 - No listings found in JSON for page 1. Checking alternative...
+2026-02-12 10:53:25.367 | INFO     | scrapers.tayara:fetch_listings:23 - Scraping page 2: https://www.tayara.tn/ads/c/Immobilier?page=2
+2026-02-12 10:53:27.362 | WARNING  | scrapers.tayara:fetch_listings:74 - No listings found in JSON for page 2. Checking alternative...
+2026-02-12 10:53:27.363 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 0 fetched.
+2026-02-12 10:53:27.363 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 10:53:27.469 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 11:34:42.017 | INFO     | scheduler:start_scheduler:18 - Scheduler started. Running every 24 hours.
+2026-02-12 11:34:42.019 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 11:34:44.859 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 11:34:44.859 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 11:34:44.860 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 11:34:44.860 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 11:34:44.861 | INFO     | scrapers.tayara:fetch_listings:29 - Starting Tayara Scraper with Selenium...
+2026-02-12 11:34:45.586 | INFO     | scrapers.tayara:fetch_listings:35 - Navigating to https://www.tayara.tn/ads/c/Immobilier?page=1
+2026-02-12 11:35:13.056 | INFO     | scrapers.tayara:fetch_listings:49 - Found 105 articles on page 1
+2026-02-12 11:35:13.325 | INFO     | core.pipeline:_run_scraper:66 - New listing saved:  - منطقة فيلات طريق السلطنية كلم 10
+2026-02-12 11:35:25.649 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.657 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.663 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.669 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.677 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.684 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.692 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.698 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.705 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.711 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.717 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.722 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.728 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.735 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.743 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.748 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.754 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.761 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.768 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.776 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.782 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.788 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.796 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.802 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.809 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.815 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.820 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.829 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.834 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.840 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.846 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.852 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.859 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.865 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.871 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.877 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.883 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.888 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.896 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.901 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.908 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.914 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.921 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.927 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.932 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.937 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.944 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.950 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.957 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.964 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.971 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.977 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.983 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.990 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:25.997 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.002 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.009 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.015 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.020 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.027 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.033 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.039 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.046 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.052 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.060 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.065 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.070 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.077 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.082 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.088 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.094 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.100 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.105 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.111 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.116 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.123 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.131 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:26.133 | INFO     | scrapers.tayara:fetch_listings:35 - Navigating to https://www.tayara.tn/ads/c/Immobilier?page=2
+2026-02-12 11:35:32.895 | INFO     | scrapers.tayara:fetch_listings:49 - Found 75 articles on page 2
+2026-02-12 11:35:33.165 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.273 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.279 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.285 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.293 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.298 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.305 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.311 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.317 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.324 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.330 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.335 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.344 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.349 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.354 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.360 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.366 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.372 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.378 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.383 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.389 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.395 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.401 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.408 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.413 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.419 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.426 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.432 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.437 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.443 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.450 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.455 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.461 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.466 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.473 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.480 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.486 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.493 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.499 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.506 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.512 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.518 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.526 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.532 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.540 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.546 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.552 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.559 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.565 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.571 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.577 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.583 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.589 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.595 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.603 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.610 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.617 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.624 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.631 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.637 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.644 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.651 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.658 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.666 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.672 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.679 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.686 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.692 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.700 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.706 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.715 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.721 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.728 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.735 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:33.742 | ERROR    | scrapers.tayara:fetch_listings:112 - Error extracting article: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff707daf3d5
+	0x7ff707daf430
+	0x7ff707b510bd
+	0x7ff707b59021
+	0x7ff707b5c4de
+	0x7ff707bfb0ed
+	0x7ff707bd589a
+	0x7ff707bf9d08
+	0x7ff707b9cb0c
+	0x7ff707b9da53
+	0x7ff70808b470
+	0x7ff70808586d
+	0x7ff7080a621a
+	0x7ff707dcb235
+	0x7ff707dd3a5c
+	0x7ff707db8844
+	0x7ff707db89f6
+	0x7ff707d9eb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 11:35:35.914 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 1 new listings out of 28 fetched.
+2026-02-12 11:35:35.915 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 11:35:36.027 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 11:38:29.004 | INFO     | __main__:<module>:22 - Stopping...
+2026-02-12 12:12:35.515 | INFO     | scheduler:start_scheduler:18 - Scheduler started. Running every 2 minutes.
+2026-02-12 12:12:35.517 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:12:38.241 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:12:38.242 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:12:38.242 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:12:38.243 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:12:38.243 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Snapshot Strategy)...
+2026-02-12 12:12:40.497 | INFO     | scrapers.tayara:fetch_listings:38 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:12:46.471 | INFO     | scrapers.tayara:fetch_listings:58 - Captured 105 article snapshots on page 1
+2026-02-12 12:13:39.429 | INFO     | scrapers.tayara:fetch_listings:38 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:13:58.868 | INFO     | scrapers.tayara:fetch_listings:58 - Captured 75 article snapshots on page 2
+2026-02-12 12:14:12.520 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 180 fetched.
+2026-02-12 12:14:12.521 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:14:12.815 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:14:35.830 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:14:37.702 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:14:37.703 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:14:37.703 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:14:37.704 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:14:37.704 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Snapshot Strategy)...
+2026-02-12 12:14:38.425 | INFO     | scrapers.tayara:fetch_listings:38 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:14:55.597 | INFO     | scrapers.tayara:fetch_listings:58 - Captured 105 article snapshots on page 1
+2026-02-12 12:15:31.996 | INFO     | scrapers.tayara:fetch_listings:38 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:15:33.556 | ERROR    | scrapers.tayara:fetch_listings:60 - Error capturing snapshots: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff6dd9ef3d5
+	0x7ff6dd9ef430
+	0x7ff6dd7910bd
+	0x7ff6dd799021
+	0x7ff6dd79c4de
+	0x7ff6dd83b0ed
+	0x7ff6dd81589a
+	0x7ff6dd839d08
+	0x7ff6dd7dcb0c
+	0x7ff6dd7dda53
+	0x7ff6ddccb470
+	0x7ff6ddcc586d
+	0x7ff6ddce621a
+	0x7ff6dda0b235
+	0x7ff6dda13a5c
+	0x7ff6dd9f8844
+	0x7ff6dd9f89f6
+	0x7ff6dd9deb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 12:15:35.680 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 105 fetched.
+2026-02-12 12:15:35.681 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:15:35.773 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:17:35.840 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:17:37.739 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:17:37.740 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:17:37.740 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:17:37.740 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:17:37.740 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Snapshot Strategy)...
+2026-02-12 12:17:38.469 | INFO     | scrapers.tayara:fetch_listings:38 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:17:53.762 | INFO     | scrapers.tayara:fetch_listings:58 - Captured 105 article snapshots on page 1
+2026-02-12 12:18:42.334 | INFO     | scrapers.tayara:fetch_listings:38 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:20:42.341 | ERROR    | scrapers.tayara:fetch_listings:120 - Selenium fatal error: HTTPConnectionPool(host='localhost', port=63540): Read timed out. (read timeout=120)
+2026-02-12 12:23:11.715 | INFO     | __main__:<module>:22 - Stopping...
+2026-02-12 12:24:53.007 | INFO     | scheduler:start_scheduler:18 - Scheduler started. Running every 2 minutes.
+2026-02-12 12:24:53.009 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:24:59.966 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:24:59.967 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:24:59.967 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:24:59.968 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:24:59.968 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:27:03.594 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:27:11.798 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 12:28:12.885 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:28:48.738 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 12:29:26.268 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 180 fetched.
+2026-02-12 12:29:26.268 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:29:27.463 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:29:27.468 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:29:30.900 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:29:30.901 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:29:30.901 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:29:30.901 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:29:30.902 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:29:31.545 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:29:36.451 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 12:30:44.262 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:30:53.804 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 12:31:29.857 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 180 fetched.
+2026-02-12 12:31:29.858 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:31:29.944 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:33:30.011 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:33:37.998 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:33:37.999 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:33:37.999 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:33:37.999 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:33:38.000 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:33:38.638 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:34:04.968 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 12:35:47.307 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:36:02.006 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 12:37:03.518 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 180 fetched.
+2026-02-12 12:37:03.519 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:37:04.373 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:39:04.433 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:39:16.325 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:39:16.326 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:39:16.326 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:39:16.326 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:39:16.327 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:39:16.991 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:39:43.747 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 12:40:48.553 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:41:00.671 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 12:41:01.055 | ERROR    | scrapers.tayara:fetch_listings:152 - Error processing article at index 0: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff6dd9ef3d5
+	0x7ff6dd9ef430
+	0x7ff6dd7910bd
+	0x7ff6dd799021
+	0x7ff6dd79c4de
+	0x7ff6dd83b0ed
+	0x7ff6dd81589a
+	0x7ff6dd839d08
+	0x7ff6dd7dcb0c
+	0x7ff6dd7dda53
+	0x7ff6ddccb470
+	0x7ff6ddcc586d
+	0x7ff6ddce621a
+	0x7ff6dda0b235
+	0x7ff6dda13a5c
+	0x7ff6dd9f8844
+	0x7ff6dd9f89f6
+	0x7ff6dd9deb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 12:41:33.716 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 179 fetched.
+2026-02-12 12:41:33.716 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:41:34.398 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:43:34.457 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:43:36.830 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:43:36.831 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:43:36.831 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:43:36.832 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:43:36.832 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:43:37.474 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:43:43.451 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 12:44:13.316 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:44:21.358 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 12:44:21.667 | ERROR    | scrapers.tayara:fetch_listings:152 - Error processing article at index 0: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff6dd9ef3d5
+	0x7ff6dd9ef430
+	0x7ff6dd7910bd
+	0x7ff6dd799021
+	0x7ff6dd79c4de
+	0x7ff6dd83b0ed
+	0x7ff6dd81589a
+	0x7ff6dd839d08
+	0x7ff6dd7dcb0c
+	0x7ff6dd7dda53
+	0x7ff6ddccb470
+	0x7ff6ddcc586d
+	0x7ff6ddce621a
+	0x7ff6dda0b235
+	0x7ff6dda13a5c
+	0x7ff6dd9f8844
+	0x7ff6dd9f89f6
+	0x7ff6dd9deb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 12:45:03.438 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 179 fetched.
+2026-02-12 12:45:03.439 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:45:03.610 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:47:03.673 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:47:07.056 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:47:07.057 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:47:07.057 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:47:07.058 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:47:07.058 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:47:07.797 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:47:19.946 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 12:48:10.104 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:48:12.497 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 12:48:55.925 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 180 fetched.
+2026-02-12 12:48:55.925 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:48:56.052 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:50:56.109 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:50:58.595 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:50:58.595 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:50:58.596 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:50:58.596 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:50:58.596 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:50:59.336 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:51:02.013 | INFO     | scrapers.tayara:fetch_listings:70 - Found 106 articles on page 1
+2026-02-12 12:51:39.521 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:51:42.744 | INFO     | scrapers.tayara:fetch_listings:70 - Found 76 articles on page 2
+2026-02-12 12:51:43.106 | ERROR    | scrapers.tayara:fetch_listings:152 - Error processing article at index 0: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff6dd9ef3d5
+	0x7ff6dd9ef430
+	0x7ff6dd7910bd
+	0x7ff6dd799021
+	0x7ff6dd79c4de
+	0x7ff6dd83b0ed
+	0x7ff6dd81589a
+	0x7ff6dd839d08
+	0x7ff6dd7dcb0c
+	0x7ff6dd7dda53
+	0x7ff6ddccb470
+	0x7ff6ddcc586d
+	0x7ff6ddce621a
+	0x7ff6dda0b235
+	0x7ff6dda13a5c
+	0x7ff6dd9f8844
+	0x7ff6dd9f89f6
+	0x7ff6dd9deb87
+	0x7ffd48547374
+	0x7ffd49d7cc91
+
+2026-02-12 12:52:32.850 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 181 fetched.
+2026-02-12 12:52:32.850 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:52:32.947 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:54:33.007 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:54:35.216 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:54:35.218 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:54:35.218 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:54:35.218 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:54:35.219 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:54:35.877 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:54:43.517 | INFO     | scrapers.tayara:fetch_listings:70 - Found 106 articles on page 1
+2026-02-12 12:55:02.958 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 12:55:42.523 | INFO     | scrapers.tayara:fetch_listings:70 - Found 76 articles on page 2
+2026-02-12 12:57:03.346 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 182 fetched.
+2026-02-12 12:57:03.347 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 12:57:03.474 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 12:59:03.534 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 12:59:05.211 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 12:59:05.211 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 12:59:05.212 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 12:59:05.212 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 12:59:05.212 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 12:59:05.851 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 12:59:24.254 | INFO     | scrapers.tayara:fetch_listings:70 - Found 106 articles on page 1
+2026-02-12 13:00:29.532 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 13:00:49.137 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 13:01:21.713 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 181 fetched.
+2026-02-12 13:01:21.713 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 13:01:22.135 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 13:03:22.189 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 13:03:29.625 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 13:03:29.625 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 13:03:29.626 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 13:03:29.626 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 13:03:29.627 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 13:03:30.341 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 13:03:40.250 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 13:04:36.350 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 13:04:46.210 | INFO     | scrapers.tayara:fetch_listings:70 - Found 75 articles on page 2
+2026-02-12 13:05:17.819 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 180 fetched.
+2026-02-12 13:05:17.820 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 13:05:17.943 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 13:07:17.999 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 13:07:20.105 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 13:07:20.106 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 13:07:20.106 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 13:07:20.106 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 13:07:20.107 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 13:07:20.760 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 13:07:36.075 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 1
+2026-02-12 13:08:44.233 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 13:09:29.240 | WARNING  | scrapers.tayara:fetch_listings:46 - Page load timed out for https://www.tayara.tn/ads/c/Immobilier/?page=2. Stopping loading and attempting to scrape anyway...
+2026-02-12 13:09:29.266 | INFO     | scrapers.tayara:fetch_listings:70 - Found 105 articles on page 2
+2026-02-12 13:10:21.678 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 210 fetched.
+2026-02-12 13:10:21.678 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 13:10:21.773 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 13:12:21.824 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 13:12:27.583 | ERROR    | database.mongo_client:__init__:16 - Failed to connect to MongoDB: No replica set members found yet, Timeout: 5.0s, Topology Description: <TopologyDescription id: 698dc3a54d273250bf7807b0, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('ac-tmknz6v-shard-00-00.ouaisju.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('ac-tmknz6v-shard-00-01.ouaisju.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('ac-tmknz6v-shard-00-02.ouaisju.mongodb.net', 27017) server_type: Unknown, rtt: None>]>
+2026-02-12 13:12:27.584 | CRITICAL | __main__:<module>:25 - Unhandled exception: No replica set members found yet, Timeout: 5.0s, Topology Description: <TopologyDescription id: 698dc3a54d273250bf7807b0, topology_type: ReplicaSetNoPrimary, servers: [<ServerDescription ('ac-tmknz6v-shard-00-00.ouaisju.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('ac-tmknz6v-shard-00-01.ouaisju.mongodb.net', 27017) server_type: Unknown, rtt: None>, <ServerDescription ('ac-tmknz6v-shard-00-02.ouaisju.mongodb.net', 27017) server_type: Unknown, rtt: None>]>
+2026-02-12 15:01:36.297 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-12 15:01:36.298 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:01:44.320 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:01:44.320 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:01:44.321 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:01:44.321 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:01:44.321 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 15:06:45.663 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:07:30.665 | WARNING  | scrapers.tayara:fetch_listings:46 - Page load timed out for https://www.tayara.tn/ads/c/Immobilier/. Stopping loading and attempting to scrape anyway...
+2026-02-12 15:07:30.726 | INFO     | scrapers.tayara:fetch_listings:70 - Found 102 articles on page 1
+2026-02-12 15:08:34.064 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:08:38.756 | INFO     | scrapers.tayara:fetch_listings:70 - Found 72 articles on page 2
+2026-02-12 15:09:40.128 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 174 fetched.
+2026-02-12 15:09:40.128 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:09:42.435 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:13:22.516 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-12 15:13:22.518 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:13:29.151 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:13:29.152 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:13:29.152 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:13:29.152 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:13:29.152 | INFO     | scrapers.tayara:fetch_listings:20 - Starting Tayara scraper with Selenium (Re-fetch Strategy)...
+2026-02-12 15:14:34.544 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:14:41.362 | INFO     | scrapers.tayara:fetch_listings:70 - Found 102 articles on page 1
+2026-02-12 15:14:46.134 | ERROR    | scrapers.tayara:fetch_listings:152 - Error processing article at index 12: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff629b1f3d5
+	0x7ff629b1f430
+	0x7ff6298c10bd
+	0x7ff6298c9021
+	0x7ff6298cc144
+	0x7ff6298cc20f
+	0x7ff629915d5c
+	0x7ff62994589a
+	0x7ff62990e766
+	0x7ff629969d08
+	0x7ff62990cb0c
+	0x7ff62990da53
+	0x7ff629dfb470
+	0x7ff629df586d
+	0x7ff629e1621a
+	0x7ff629b3b235
+	0x7ff629b43a5c
+	0x7ff629b28844
+	0x7ff629b289f6
+	0x7ff629b0eb87
+	0x7ffa18c77374
+	0x7ffa1a93cc91
+
+2026-02-12 15:15:38.782 | INFO     | scrapers.tayara:fetch_listings:42 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:15:41.220 | INFO     | scrapers.tayara:fetch_listings:70 - Found 72 articles on page 2
+2026-02-12 15:15:41.554 | ERROR    | scrapers.tayara:fetch_listings:152 - Error processing article at index 0: Message: stale element reference: stale element not found in the current frame
+  (Session info: chrome=144.0.7559.134); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#staleelementreferenceexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x7ff629b1f3d5
+	0x7ff629b1f430
+	0x7ff6298c10bd
+	0x7ff6298c9021
+	0x7ff6298cc4de
+	0x7ff62996b0ed
+	0x7ff62994589a
+	0x7ff629969d08
+	0x7ff62990cb0c
+	0x7ff62990da53
+	0x7ff629dfb470
+	0x7ff629df586d
+	0x7ff629e1621a
+	0x7ff629b3b235
+	0x7ff629b43a5c
+	0x7ff629b28844
+	0x7ff629b289f6
+	0x7ff629b0eb87
+	0x7ffa18c77374
+	0x7ffa1a93cc91
+
+2026-02-12 15:16:14.102 | INFO     | core.pipeline:_run_scraper:68 - Finished tayara: 0 new listings out of 172 fetched.
+2026-02-12 15:16:14.103 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:16:14.256 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:24:33.304 | INFO     | __main__:main:13 - Running manual scraping...
+2026-02-12 15:24:33.305 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:24:36.099 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:24:36.099 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:24:36.099 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:24:36.100 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:24:36.100 | INFO     | scrapers.tayara:fetch_listings:21 - Starting Tayara scraper with Selenium + BS4 Snapshot...
+2026-02-12 15:24:36.766 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:24:48.444 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 102 articles on page 1
+2026-02-12 15:25:24.251 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:25:36.546 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 72 articles on page 2
+2026-02-12 15:26:17.884 | INFO     | core.pipeline:_run_scraper:66 - Finished tayara: Processed 174 listings (Upserted) out of 174 fetched.
+2026-02-12 15:26:17.885 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:26:18.718 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:28:52.106 | INFO     | scheduler:start_scheduler:18 - Scheduler started. Running every 2 minutes.
+2026-02-12 15:28:52.107 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:28:55.141 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:28:55.142 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:28:55.142 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:28:55.142 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:28:55.143 | INFO     | scrapers.tayara:fetch_listings:21 - Starting Tayara scraper with Selenium + BS4 Snapshot...
+2026-02-12 15:28:55.817 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:29:06.370 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 102 articles on page 1
+2026-02-12 15:29:47.783 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:30:49.570 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 72 articles on page 2
+2026-02-12 15:31:12.848 | INFO     | core.pipeline:_run_scraper:66 - Finished tayara: Processed 174 listings (Upserted) out of 174 fetched.
+2026-02-12 15:31:12.849 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:31:12.939 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:31:12.944 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:31:14.855 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:31:14.855 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:31:14.856 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:31:14.857 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:31:14.857 | INFO     | scrapers.tayara:fetch_listings:21 - Starting Tayara scraper with Selenium + BS4 Snapshot...
+2026-02-12 15:31:15.546 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:31:21.789 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 102 articles on page 1
+2026-02-12 15:32:01.063 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:32:37.905 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 72 articles on page 2
+2026-02-12 15:33:08.757 | INFO     | core.pipeline:_run_scraper:66 - Finished tayara: Processed 174 listings (Upserted) out of 174 fetched.
+2026-02-12 15:33:08.758 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:33:09.328 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:35:09.394 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:35:11.607 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:35:11.608 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:35:11.608 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:35:11.609 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:35:11.609 | INFO     | scrapers.tayara:fetch_listings:21 - Starting Tayara scraper with Selenium + BS4 Snapshot...
+2026-02-12 15:35:12.268 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:35:23.600 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 102 articles on page 1
+2026-02-12 15:36:11.251 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:36:28.806 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 72 articles on page 2
+2026-02-12 15:36:54.833 | INFO     | core.pipeline:_run_scraper:66 - Finished tayara: Processed 174 listings (Upserted) out of 174 fetched.
+2026-02-12 15:36:54.834 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:36:54.899 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:38:54.962 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:38:56.792 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:38:56.793 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:38:56.793 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:38:56.794 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:38:56.794 | INFO     | scrapers.tayara:fetch_listings:21 - Starting Tayara scraper with Selenium + BS4 Snapshot...
+2026-02-12 15:38:57.447 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:39:13.315 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 102 articles on page 1
+2026-02-12 15:40:01.600 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/?page=2
+2026-02-12 15:40:37.228 | INFO     | scrapers.tayara:fetch_listings:69 - BS4 found 72 articles on page 2
+2026-02-12 15:41:11.450 | INFO     | core.pipeline:_run_scraper:66 - Finished tayara: Processed 174 listings (Upserted) out of 174 fetched.
+2026-02-12 15:41:11.451 | INFO     | core.pipeline:run:21 - Pipeline completed.
+2026-02-12 15:41:12.156 | INFO     | scheduler:run_job:15 - Scheduled job finished.
+2026-02-12 15:43:12.216 | INFO     | scheduler:run_job:8 - Starting scheduled scraping job...
+2026-02-12 15:43:19.471 | INFO     | database.mongo_client:__init__:14 - Connected to MongoDB
+2026-02-12 15:43:19.471 | INFO     | core.pipeline:run:14 - Starting scraping pipeline...
+2026-02-12 15:43:19.471 | INFO     | core.pipeline:_run_scraper:25 - Running scraper: tayara
+2026-02-12 15:43:19.472 | INFO     | core.base_scraper:run:53 - Starting scraper for tayara
+2026-02-12 15:43:19.472 | INFO     | scrapers.tayara:fetch_listings:21 - Starting Tayara scraper with Selenium + BS4 Snapshot...
+2026-02-12 15:43:20.191 | INFO     | scrapers.tayara:fetch_listings:41 - Navigating to https://www.tayara.tn/ads/c/Immobilier/
+2026-02-12 15:43:56.451 | INFO     | __main__:<module>:22 - Stopping...

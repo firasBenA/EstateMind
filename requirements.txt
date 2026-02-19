@@ -1,0 +1,13 @@
+requests
+beautifulsoup4
+selenium
+psycopg2-binary
+pydantic
+pydantic-settings
+python-dotenv
+schedule
+pypdf
+fake-useragent
+webdriver-manager
+loguru
+pytest

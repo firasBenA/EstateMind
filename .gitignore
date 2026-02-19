@@ -1,0 +1,9 @@
+# Environment files
+.env
+
+# Documentation example file
+.env.example
+CODE_EXPLAINED.md
+
+# Data directory and everything inside it
+data/
