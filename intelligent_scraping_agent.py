@@ -1,34 +1,28 @@
 """
-Intelligent Real Estate Scraping Agent
-=======================================
-An autonomous AI agent that intelligently scrapes, monitors, and manages
-real estate data collection from Tunisie Annonce.
+Intelligent Real Estate Scraping Agent - PostgreSQL Only
+=========================================================
+Pure PostgreSQL implementation using existing PostgresClient
 
 Features:
 - Autonomous decision-making
 - Self-healing capabilities
 - Adaptive scraping strategies
-- Anomaly detection
-- Progress monitoring
-- Task scheduling
-- Data quality validation
+- PostgreSQL database (production-ready)
+- No SQLite dependencies
 """
 
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
-from datetime import datetime, timedelta
+from datetime import datetime
 import time
 import re
 import logging
-import json
-import sqlite3
-from pathlib import Path
 from typing import List, Dict, Optional, Tuple
 from dataclasses import dataclass, asdict
 from enum import Enum
-import schedule
-import threading
+
+from postgres_client import PostgresClient
 
 
 # Configure logging
@@ -50,11 +44,10 @@ class AgentState(Enum):
     ANALYZING = "analyzing"
     HEALING = "healing"
     ERROR = "error"
-    SLEEPING = "sleeping"
 
 
 class ScrapingStrategy(Enum):
-    """Scraping strategies based on conditions"""
+    """Scraping strategies"""
     AGGRESSIVE = "aggressive"      # Fast, many pages
     BALANCED = "balanced"          # Normal operation
     CONSERVATIVE = "conservative"  # Slow, careful
@@ -80,36 +73,27 @@ class AgentMetrics:
 
 @dataclass
 class ScrapingTask:
-    """Task definition for scraping"""
+    """Task definition"""
     max_pages: int
     delay: int
     strategy: ScrapingStrategy
     priority: int = 1
-    scheduled_time: Optional[str] = None
 
 
 class IntelligentScrapingAgent:
     """
     Autonomous agent for intelligent web scraping
-    
-    The agent makes decisions based on:
-    - Current success rate
-    - Error patterns
-    - Data quality
-    - Website response times
-    - Historical performance
+    Uses PostgreSQL for all data storage
     """
     
-    def __init__(self, db_path: str = "agent_data.db"):
-        """
-        Initialize the intelligent agent
-        
-        Args:
-            db_path: Path to SQLite database for persistent storage
-        """
+    def __init__(self):
+        """Initialize the intelligent agent"""
         self.state = AgentState.IDLE
         self.metrics = AgentMetrics()
-        self.db_path = db_path
+        
+        # Initialize PostgreSQL client
+        self.pg = PostgresClient()
+        logger.info("✅ PostgreSQL client connected")
         
         # Agent configuration
         self.base_url = "http://www.tunisie-annonce.com/AnnoncesImmobilier.asp"
@@ -119,111 +103,92 @@ class IntelligentScrapingAgent:
         
         # Intelligent thresholds
         self.error_threshold = 0.3  # 30% error rate triggers healing
-        self.min_listings_per_page = 10  # Below this triggers investigation
+        self.min_listings_per_page = 10
         self.max_retries = 3
         
-        # Initialize database
-        self._init_database()
+        # Create metrics table if needed
+        self._init_metrics_table()
         
         # Load previous metrics
         self._load_metrics()
         
         logger.info("🤖 Intelligent Scraping Agent initialized")
         logger.info(f"   State: {self.state.value}")
-        logger.info(f"   Database: {self.db_path}")
+        logger.info(f"   Database: estatemind (PostgreSQL)")
     
-    def _init_database(self):
-        """Initialize SQLite database for persistent storage"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        # Listings table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS listings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                listing_id TEXT UNIQUE,
-                region TEXT,
-                nature TEXT,
-                type TEXT,
-                description TEXT,
-                price INTEGER,
-                price_text TEXT,
-                date_modified TEXT,
-                url TEXT,
-                scraped_at TIMESTAMP,
-                data_quality_score REAL
-            )
-        ''')
-        
-        # Agent metrics table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS agent_metrics (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TIMESTAMP,
-                metric_name TEXT,
-                metric_value REAL
-            )
-        ''')
-        
-        # Scraping sessions table
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS scraping_sessions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                start_time TIMESTAMP,
-                end_time TIMESTAMP,
-                pages_scraped INTEGER,
-                listings_found INTEGER,
-                errors_count INTEGER,
-                strategy TEXT,
-                success BOOLEAN
-            )
-        ''')
-        
-        conn.commit()
-        conn.close()
-        logger.info("✅ Database initialized")
+    def _init_metrics_table(self):
+        """Create agent_metrics table in PostgreSQL"""
+        try:
+            with self.pg.conn.cursor() as cur:
+                # Agent metrics table
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS agent_metrics (
+                        id SERIAL PRIMARY KEY,
+                        timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        metric_name TEXT,
+                        metric_value DOUBLE PRECISION
+                    )
+                """)
+                
+                # Scraping sessions table
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS scraping_sessions (
+                        id SERIAL PRIMARY KEY,
+                        start_time TIMESTAMP,
+                        end_time TIMESTAMP,
+                        pages_scraped INTEGER,
+                        listings_found INTEGER,
+                        errors_count INTEGER,
+                        strategy TEXT,
+                        success BOOLEAN
+                    )
+                """)
+            
+            self.pg.conn.commit()
+            logger.info("✅ Metrics tables initialized")
+        except Exception as e:
+            self.pg.conn.rollback()
+            logger.warning(f"Could not init metrics tables: {e}")
     
     def _load_metrics(self):
-        """Load previous metrics from database"""
+        """Load previous metrics from PostgreSQL"""
         try:
-            conn = sqlite3.connect(self.db_path)
-            cursor = conn.cursor()
+            with self.pg.conn.cursor() as cur:
+                cur.execute("""
+                    SELECT metric_name, metric_value 
+                    FROM agent_metrics 
+                    WHERE timestamp = (SELECT MAX(timestamp) FROM agent_metrics)
+                """)
+                
+                for metric_name, metric_value in cur.fetchall():
+                    if hasattr(self.metrics, metric_name):
+                        setattr(self.metrics, metric_name, metric_value)
             
-            cursor.execute('''
-                SELECT metric_name, metric_value 
-                FROM agent_metrics 
-                WHERE timestamp = (SELECT MAX(timestamp) FROM agent_metrics)
-            ''')
-            
-            for metric_name, metric_value in cursor.fetchall():
-                if hasattr(self.metrics, metric_name):
-                    setattr(self.metrics, metric_name, metric_value)
-            
-            conn.close()
-            logger.info("📊 Previous metrics loaded")
+            logger.info("📊 Previous metrics loaded from PostgreSQL")
         except Exception as e:
-            logger.warning(f"Could not load previous metrics: {e}")
+            logger.debug(f"Could not load previous metrics: {e}")
     
     def _save_metrics(self):
-        """Save current metrics to database"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        timestamp = datetime.now()
-        
-        for metric_name, metric_value in self.metrics.to_dict().items():
-            if isinstance(metric_value, (int, float)):
-                cursor.execute('''
-                    INSERT INTO agent_metrics (timestamp, metric_name, metric_value)
-                    VALUES (?, ?, ?)
-                ''', (timestamp, metric_name, metric_value))
-        
-        conn.commit()
-        conn.close()
+        """Save current metrics to PostgreSQL"""
+        try:
+            with self.pg.conn.cursor() as cur:
+                timestamp = datetime.now()
+                
+                for metric_name, metric_value in self.metrics.to_dict().items():
+                    if isinstance(metric_value, (int, float)):
+                        cur.execute("""
+                            INSERT INTO agent_metrics (timestamp, metric_name, metric_value)
+                            VALUES (%s, %s, %s)
+                        """, (timestamp, metric_name, metric_value))
+            
+            self.pg.conn.commit()
+        except Exception as e:
+            self.pg.conn.rollback()
+            logger.error(f"Error saving metrics: {e}")
     
     def decide_strategy(self) -> ScrapingStrategy:
         """
-        Intelligently decide scraping strategy based on current conditions
+        Intelligently decide scraping strategy based on conditions
         
         Returns:
             ScrapingStrategy: Chosen strategy
@@ -238,15 +203,12 @@ class IntelligentScrapingAgent:
         if error_rate > self.error_threshold:
             strategy = ScrapingStrategy.CONSERVATIVE
             reason = f"High error rate ({error_rate:.1%})"
-        
         elif self.metrics.data_quality_score < 80:
             strategy = ScrapingStrategy.MINIMAL
             reason = f"Low data quality ({self.metrics.data_quality_score:.1f}%)"
-        
         elif self.metrics.successful_scrapes > 10 and error_rate < 0.1:
             strategy = ScrapingStrategy.AGGRESSIVE
             reason = f"Good performance (success rate: {1-error_rate:.1%})"
-        
         else:
             strategy = ScrapingStrategy.BALANCED
             reason = "Normal conditions"
@@ -255,42 +217,13 @@ class IntelligentScrapingAgent:
         return strategy
     
     def create_task_from_strategy(self, strategy: ScrapingStrategy) -> ScrapingTask:
-        """
-        Create scraping task based on strategy
-        
-        Args:
-            strategy: Scraping strategy
-            
-        Returns:
-            ScrapingTask: Configured task
-        """
+        """Create scraping task based on strategy"""
         strategy_configs = {
-            ScrapingStrategy.AGGRESSIVE: ScrapingTask(
-                max_pages=20,
-                delay=1,
-                strategy=strategy,
-                priority=3
-            ),
-            ScrapingStrategy.BALANCED: ScrapingTask(
-                max_pages=10,
-                delay=2,
-                strategy=strategy,
-                priority=2
-            ),
-            ScrapingStrategy.CONSERVATIVE: ScrapingTask(
-                max_pages=5,
-                delay=5,
-                strategy=strategy,
-                priority=1
-            ),
-            ScrapingStrategy.MINIMAL: ScrapingTask(
-                max_pages=1,
-                delay=3,
-                strategy=strategy,
-                priority=1
-            )
+            ScrapingStrategy.AGGRESSIVE: ScrapingTask(20, 1, strategy, 3),
+            ScrapingStrategy.BALANCED: ScrapingTask(10, 2, strategy, 2),
+            ScrapingStrategy.CONSERVATIVE: ScrapingTask(5, 5, strategy, 1),
+            ScrapingStrategy.MINIMAL: ScrapingTask(1, 3, strategy, 1)
         }
-        
         return strategy_configs[strategy]
     
     def fetch_page(self, page_num: int, timeout: int = 15) -> Optional[str]:
@@ -307,20 +240,18 @@ class IntelligentScrapingAgent:
                     
             except requests.exceptions.Timeout:
                 logger.warning(f"Timeout on page {page_num}, attempt {attempt+1}")
-                
             except Exception as e:
                 logger.error(f"Error fetching page {page_num}: {e}")
             
             # Exponential backoff
             if attempt < self.max_retries - 1:
                 wait_time = 2 ** attempt
-                logger.info(f"   Waiting {wait_time}s before retry...")
                 time.sleep(wait_time)
         
         return None
     
     def parse_listings(self, html: str) -> List[Dict]:
-        """Parse listings from HTML with validation"""
+        """Parse listings from HTML"""
         soup = BeautifulSoup(html, 'lxml')
         listings = []
         
@@ -412,21 +343,18 @@ class IntelligentScrapingAgent:
     
     def _generate_listing_id(self, listing: Dict) -> str:
         """Generate unique listing ID"""
-        # Use URL or combination of fields
         if listing.get('url'):
             return listing['url'].split('=')[-1] if '=' in listing['url'] else listing['url']
         
-        # Fallback: hash of key fields
         import hashlib
         key = f"{listing.get('region')}_{listing.get('description', '')}_{listing.get('price')}"
         return hashlib.md5(key.encode()).hexdigest()[:16]
     
     def _calculate_quality_score(self, listing: Dict) -> float:
-        """Calculate data quality score for listing"""
+        """Calculate data quality score"""
         score = 0.0
         max_score = 0.0
         
-        # Check each field
         fields = {
             'region': 15,
             'nature': 10,
@@ -446,127 +374,123 @@ class IntelligentScrapingAgent:
     
     def _validate_listing(self, listing: Dict) -> bool:
         """Validate listing quality"""
-        # Must have description
         if not listing.get('description') or len(listing['description']) < 10:
             return False
         
-        # Quality score threshold
         if listing.get('data_quality_score', 0) < 50:
             return False
         
         return True
     
     def detect_anomalies(self, listings: List[Dict]) -> Tuple[bool, str]:
-        """
-        Detect anomalies in scraped data
-        
-        Returns:
-            Tuple of (has_anomaly, description)
-        """
+        """Detect anomalies in scraped data"""
         if not listings:
             return True, "No listings found"
         
-        # Check minimum listings per page
         if len(listings) < self.min_listings_per_page:
             return True, f"Only {len(listings)} listings (expected >{self.min_listings_per_page})"
         
-        # Check data quality
         avg_quality = sum(l.get('data_quality_score', 0) for l in listings) / len(listings)
         if avg_quality < 70:
             return True, f"Low average quality: {avg_quality:.1f}%"
         
-        # Check price distribution
         prices = [l['price'] for l in listings if l.get('price')]
         if prices:
             avg_price = sum(prices) / len(prices)
-            # Anomaly if average price is extreme
             if avg_price < 5000 or avg_price > 5000000:
                 return True, f"Unusual average price: {avg_price:,.0f} TND"
         
         return False, "Data looks normal"
     
     def self_heal(self, issue: str):
-        """
-        Attempt to self-heal from detected issues
-        
-        Args:
-            issue: Description of the issue
-        """
+        """Self-healing mechanism"""
         self.state = AgentState.HEALING
         logger.warning(f"🔧 Self-healing triggered: {issue}")
         
         self.metrics.self_heals_performed += 1
         
-        # Healing strategies
-        if "No listings found" in issue or "Only" in issue:
-            logger.info("   Strategy: Analyzing HTML structure...")
-            # Could run analyzer here
-            
-        elif "quality" in issue.lower():
-            logger.info("   Strategy: Adjusting extraction logic...")
-            # Could adapt extraction rules
-        
-        elif "price" in issue.lower():
-            logger.info("   Strategy: Recalibrating price validation...")
-            # Could adjust price thresholds
-        
-        # Wait before resuming
         time.sleep(5)
         self.state = AgentState.IDLE
         logger.info("   Self-healing complete")
     
     def save_to_database(self, listings: List[Dict]):
-        """Save listings to database with deduplication"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        new_count = 0
-        updated_count = 0
+        """Save listings to PostgreSQL using your existing schema"""
+        new_or_updated = 0
         
         for listing in listings:
             try:
-                cursor.execute('''
-                    INSERT OR REPLACE INTO listings 
-                    (listing_id, region, nature, type, description, price, price_text, 
-                     date_modified, url, scraped_at, data_quality_score)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ''', (
-                    listing['listing_id'],
-                    listing.get('region'),
-                    listing.get('nature'),
-                    listing.get('type'),
-                    listing.get('description'),
-                    listing.get('price'),
-                    listing.get('price_text'),
-                    listing.get('date_modified'),
-                    listing.get('url'),
-                    listing.get('scraped_at'),
-                    listing.get('data_quality_score')
-                ))
+                # Map to your PostgreSQL schema
+                payload = self._map_listing_to_postgres(listing)
                 
-                if cursor.rowcount == 1:
-                    new_count += 1
-                else:
-                    updated_count += 1
+                # Use your PostgresClient upsert method
+                status = self.pg.upsert_listing(payload)
+                
+                if status != "error":
+                    new_or_updated += 1
                     
             except Exception as e:
                 logger.error(f"Error saving listing: {e}")
         
-        conn.commit()
-        conn.close()
+        logger.info(f"💾 PostgreSQL: {new_or_updated} listings upserted")
+    
+    def _map_listing_to_postgres(self, listing: Dict) -> Dict:
+        """
+        Map scraped listing to your PostgreSQL schema
         
-        logger.info(f"💾 Database updated: {new_count} new, {updated_count} updated")
+        Your schema expects:
+        - source_id, source_name, url, title, description
+        - price, currency, property_type, transaction_type
+        - location (dict), images (list), features (dict), pois (list)
+        - surface_area_m2, rooms, scraped_at, last_update
+        """
+        # Parse region
+        region_text = listing.get("region") or ""
+        
+        # Build location dict
+        location = {
+            "governorate": region_text,
+            "city": region_text,
+            "district": None,
+            "latitude": None,
+            "longitude": None,
+        }
+        
+        # Determine transaction type from nature
+        nature = (listing.get("nature") or "").lower()
+        transaction_type = "Sale"
+        if any(x in nature for x in ["louer", "location", "rent"]):
+            transaction_type = "Rent"
+        
+        # Property type
+        property_type = (listing.get("type") or "").title() or "Other"
+        
+        # Build payload matching your PostgresClient schema
+        return {
+            "source_id": listing.get("listing_id"),
+            "source_name": "tunisieannonce",
+            "url": listing.get("url"),
+            "title": (listing.get("description") or "")[:80] or listing.get("url", "No title"),
+            "description": listing.get("description"),
+            "price": listing.get("price"),
+            "currency": "TND",
+            "property_type": property_type,
+            "transaction_type": transaction_type,
+            "location": location,
+            "images": [],
+            "features": {
+                "data_quality_score": listing.get("data_quality_score"),
+                "price_text": listing.get("price_text")
+            },
+            "pois": [],
+            "surface_area_m2": None,
+            "rooms": None,
+            "scraped_at": listing.get("scraped_at"),
+            "last_update": listing.get("date_modified"),
+            "raw_data_path": None,
+        }
     
     def execute_task(self, task: ScrapingTask) -> bool:
-        """
-        Execute a scraping task
-        
-        Args:
-            task: Task to execute
-            
-        Returns:
-            bool: Success status
-        """
+        """Execute a scraping task"""
         self.state = AgentState.SCRAPING
         start_time = datetime.now()
         
@@ -610,7 +534,7 @@ class IntelligentScrapingAgent:
             if page_num < task.max_pages:
                 time.sleep(task.delay)
         
-        # Save to database
+        # Save to PostgreSQL
         if all_listings:
             self.save_to_database(all_listings)
             self.metrics.successful_scrapes += 1
@@ -650,18 +574,19 @@ class IntelligentScrapingAgent:
         return len(all_listings) > 0
     
     def _log_session(self, start_time, pages, listings, errors, strategy, success):
-        """Log scraping session to database"""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-        
-        cursor.execute('''
-            INSERT INTO scraping_sessions 
-            (start_time, end_time, pages_scraped, listings_found, errors_count, strategy, success)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (start_time, datetime.now(), pages, listings, errors, strategy.value, success))
-        
-        conn.commit()
-        conn.close()
+        """Log scraping session to PostgreSQL"""
+        try:
+            with self.pg.conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO scraping_sessions 
+                    (start_time, end_time, pages_scraped, listings_found, errors_count, strategy, success)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                """, (start_time, datetime.now(), pages, listings, errors, strategy.value, success))
+            
+            self.pg.conn.commit()
+        except Exception as e:
+            self.pg.conn.rollback()
+            logger.error(f"Error logging session: {e}")
     
     def run_autonomous_cycle(self):
         """Run one autonomous decision-making cycle"""
@@ -690,45 +615,78 @@ class IntelligentScrapingAgent:
         logger.info(f"Total Pages: {self.metrics.total_pages_scraped}")
         logger.info(f"Successful Scrapes: {self.metrics.successful_scrapes}")
         logger.info(f"Failed Scrapes: {self.metrics.failed_scrapes}")
-        logger.info(f"Error Rate: {self.metrics.failed_scrapes/(self.metrics.successful_scrapes+self.metrics.failed_scrapes)*100:.1f}%" 
-                   if self.metrics.successful_scrapes + self.metrics.failed_scrapes > 0 else "N/A")
+        
+        if self.metrics.successful_scrapes + self.metrics.failed_scrapes > 0:
+            error_rate = self.metrics.failed_scrapes / (self.metrics.successful_scrapes + self.metrics.failed_scrapes) * 100
+            logger.info(f"Error Rate: {error_rate:.1f}%")
+        
         logger.info(f"Data Quality: {self.metrics.data_quality_score:.1f}%")
         logger.info(f"Self-Heals: {self.metrics.self_heals_performed}")
         logger.info(f"Last Scrape: {self.metrics.last_scrape_time}")
         logger.info("=" * 70)
     
     def export_data(self, filename: str = None) -> str:
-        """Export database to CSV"""
+        """Export listings from PostgreSQL to CSV"""
         if filename is None:
             filename = f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
         
-        conn = sqlite3.connect(self.db_path)
-        df = pd.read_sql_query("SELECT * FROM listings ORDER BY scraped_at DESC", conn)
-        conn.close()
-        
-        df.to_csv(filename, index=False, encoding='utf-8-sig')
-        logger.info(f"📤 Exported {len(df)} listings to {filename}")
-        
-        return filename
+        try:
+            with self.pg.conn.cursor() as cur:
+                cur.execute("SELECT * FROM listings WHERE source_name = 'tunisieannonce' ORDER BY scraped_at DESC")
+                
+                # Get column names
+                columns = [desc[0] for desc in cur.description]
+                
+                # Fetch all rows
+                rows = cur.fetchall()
+                
+                # Create DataFrame
+                df = pd.DataFrame(rows, columns=columns)
+                
+                # Save to CSV
+                df.to_csv(filename, index=False, encoding='utf-8-sig')
+                
+                logger.info(f"📤 Exported {len(df)} listings to {filename}")
+                return filename
+                
+        except Exception as e:
+            logger.error(f"Error exporting data: {e}")
+            return None
+    
+    def close(self):
+        """Close PostgreSQL connection"""
+        try:
+            self.pg.close()
+            logger.info("PostgreSQL connection closed")
+        except Exception as e:
+            logger.error(f"Error closing connection: {e}")
 
 
 def main():
-    """Main execution with autonomous agent"""
+    """Main execution"""
     print("=" * 70)
-    print("🤖 INTELLIGENT SCRAPING AGENT")
+    print("🤖 INTELLIGENT SCRAPING AGENT - POSTGRESQL")
     print("=" * 70)
     print()
     
-    # Create agent
-    agent = IntelligentScrapingAgent()
-    
-    # Run autonomous cycle
-    agent.run_autonomous_cycle()
-    
-    # Export data
-    agent.export_data()
-    
-    print("\n✅ Agent cycle complete!")
+    try:
+        # Create agent
+        agent = IntelligentScrapingAgent()
+        
+        # Run autonomous cycle
+        agent.run_autonomous_cycle()
+        
+        # Export data
+        agent.export_data()
+        
+        # Close connection
+        agent.close()
+        
+        print("\n✅ Agent cycle complete!")
+        
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        logger.error(f"Fatal error: {e}", exc_info=True)
 
 
 if __name__ == "__main__":

@@ -1,30 +1,33 @@
 """
-Agent Monitoring Dashboard
-===========================
+Agent Monitoring Dashboard - PostgreSQL Only
+=============================================
 Real-time monitoring and control of the intelligent scraping agent
 
 Features:
-- View live metrics
+- View live metrics from PostgreSQL
 - See recent sessions
 - Export data
 - Control agent
 - View logs
+
+Uses your existing PostgresClient
 """
 
-import sqlite3
 import pandas as pd
-from datetime import datetime, timedelta
-from intelligent_scraping_agent import IntelligentScrapingAgent
+from datetime import datetime
 import os
+
+from postgres_client import PostgresClient
+from intelligent_scraping_agent import IntelligentScrapingAgent, ScrapingStrategy
 
 
 class AgentDashboard:
-    """Dashboard for monitoring agent performance"""
+    """Dashboard for monitoring agent performance - PostgreSQL backend"""
     
-    def __init__(self, db_path="agent_data.db"):
-        """Initialize dashboard"""
-        self.db_path = db_path
-        self.agent = IntelligentScrapingAgent(db_path)
+    def __init__(self):
+        """Initialize dashboard with PostgreSQL"""
+        self.pg = PostgresClient()
+        self.agent = IntelligentScrapingAgent()
     
     def clear_screen(self):
         """Clear console screen"""
@@ -36,11 +39,11 @@ class AgentDashboard:
         print(" " * 20 + "🤖 AGENT MONITORING DASHBOARD")
         print("=" * 80)
         print(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Database: {self.db_path}")
+        print(f"Database: estatemind (PostgreSQL)")
         print("-" * 80)
     
     def show_metrics(self):
-        """Display current agent metrics"""
+        """Display current agent metrics from PostgreSQL"""
         print("\n📊 AGENT METRICS")
         print("-" * 80)
         
@@ -61,118 +64,166 @@ class AgentDashboard:
         print(f"Last Scrape:             {metrics.last_scrape_time or 'Never'}")
     
     def show_recent_sessions(self, limit=5):
-        """Show recent scraping sessions"""
+        """Show recent scraping sessions from PostgreSQL"""
         print("\n\n📋 RECENT SCRAPING SESSIONS")
         print("-" * 80)
         
-        conn = sqlite3.connect(self.db_path)
-        df = pd.read_sql_query(f'''
-            SELECT 
-                datetime(start_time) as start,
-                datetime(end_time) as end,
-                pages_scraped,
-                listings_found,
-                errors_count,
-                strategy,
-                CASE WHEN success = 1 THEN 'SUCCESS' ELSE 'FAILED' END as status
-            FROM scraping_sessions
-            ORDER BY start_time DESC
-            LIMIT {limit}
-        ''', conn)
-        conn.close()
-        
-        if len(df) > 0:
-            print(df.to_string(index=False))
-        else:
-            print("No sessions yet")
+        try:
+            with self.pg.conn.cursor() as cur:
+                cur.execute(f"""
+                    SELECT 
+                        TO_CHAR(start_time, 'YYYY-MM-DD HH24:MI:SS') as start,
+                        TO_CHAR(end_time, 'YYYY-MM-DD HH24:MI:SS') as end,
+                        pages_scraped,
+                        listings_found,
+                        errors_count,
+                        strategy,
+                        CASE WHEN success THEN 'SUCCESS' ELSE 'FAILED' END as status
+                    FROM scraping_sessions
+                    ORDER BY start_time DESC
+                    LIMIT {limit}
+                """)
+                
+                rows = cur.fetchall()
+                
+                if rows:
+                    # Create DataFrame for nice display
+                    df = pd.DataFrame(rows, columns=['start', 'end', 'pages', 'listings', 'errors', 'strategy', 'status'])
+                    print(df.to_string(index=False))
+                else:
+                    print("No sessions yet")
+                    
+        except Exception as e:
+            print(f"Error loading sessions: {e}")
     
     def show_database_stats(self):
-        """Show database statistics"""
+        """Show database statistics from PostgreSQL"""
         print("\n\n💾 DATABASE STATISTICS")
         print("-" * 80)
         
-        conn = sqlite3.connect(self.db_path)
-        
-        # Total listings
-        cursor = conn.cursor()
-        cursor.execute("SELECT COUNT(*) FROM listings")
-        total = cursor.fetchone()[0]
-        print(f"Total Listings in DB:    {total:,}")
-        
-        # Listings by region
-        df_regions = pd.read_sql_query('''
-            SELECT region, COUNT(*) as count
-            FROM listings
-            GROUP BY region
-            ORDER BY count DESC
-            LIMIT 10
-        ''', conn)
-        
-        print(f"\nTop 10 Regions:")
-        for idx, row in df_regions.iterrows():
-            print(f"  {row['region']:20s} {row['count']:5d}")
-        
-        # Price statistics
-        cursor.execute('''
-            SELECT 
-                AVG(price) as avg_price,
-                MIN(price) as min_price,
-                MAX(price) as max_price
-            FROM listings
-            WHERE price IS NOT NULL
-        ''')
-        
-        prices = cursor.fetchone()
-        if prices and prices[0]:
-            print(f"\nPrice Statistics:")
-            print(f"  Average: {prices[0]:,.0f} TND")
-            print(f"  Min:     {prices[1]:,.0f} TND")
-            print(f"  Max:     {prices[2]:,.0f} TND")
-        
-        conn.close()
+        try:
+            with self.pg.conn.cursor() as cur:
+                # Total listings
+                cur.execute("SELECT COUNT(*) FROM listings WHERE source_name = 'tunisieannonce'")
+                total = cur.fetchone()[0]
+                print(f"Total Listings in DB:    {total:,}")
+                
+                if total > 0:
+                    # Listings by region
+                    cur.execute("""
+                        SELECT region, COUNT(*) as count
+                        FROM listings
+                        WHERE source_name = 'tunisieannonce'
+                        GROUP BY region
+                        ORDER BY count DESC
+                        LIMIT 10
+                    """)
+                    
+                    print(f"\nTop 10 Regions:")
+                    for region, count in cur.fetchall():
+                        print(f"  {region:20s} {count:5d}")
+                    
+                    # Price statistics
+                    cur.execute("""
+                        SELECT 
+                            AVG(price) as avg_price,
+                            MIN(price) as min_price,
+                            MAX(price) as max_price
+                        FROM listings
+                        WHERE source_name = 'tunisieannonce'
+                          AND price IS NOT NULL
+                    """)
+                    
+                    stats = cur.fetchone()
+                    if stats and stats[0]:
+                        print(f"\nPrice Statistics:")
+                        print(f"  Average: {stats[0]:,.0f} {stats[0] and 'TND' or ''}")
+                        print(f"  Min:     {stats[1]:,.0f} TND")
+                        print(f"  Max:     {stats[2]:,.0f} TND")
+                    
+                    # Property type distribution
+                    cur.execute("""
+                        SELECT type, COUNT(*) as count
+                        FROM listings
+                        WHERE source_name = 'tunisieannonce'
+                        GROUP BY type
+                        ORDER BY count DESC
+                        LIMIT 5
+                    """)
+                    
+                    print(f"\nTop 5 Property Types:")
+                    for prop_type, count in cur.fetchall():
+                        print(f"  {prop_type:20s} {count:5d}")
+                    
+        except Exception as e:
+            print(f"Error loading statistics: {e}")
     
     def show_data_quality(self):
-        """Show data quality metrics"""
+        """Show data quality metrics from PostgreSQL"""
         print("\n\n✅ DATA QUALITY")
         print("-" * 80)
         
-        conn = sqlite3.connect(self.db_path)
-        
-        cursor = conn.cursor()
-        
-        # Completeness
-        cursor.execute('''
-            SELECT 
-                COUNT(*) as total,
-                SUM(CASE WHEN price IS NOT NULL THEN 1 ELSE 0 END) as with_price,
-                SUM(CASE WHEN url IS NOT NULL THEN 1 ELSE 0 END) as with_url
-            FROM listings
-        ''')
-        
-        stats = cursor.fetchone()
-        if stats and stats[0] > 0:
-            total = stats[0]
-            print(f"Completeness:")
-            print(f"  With Price: {stats[1]/total*100:.1f}% ({stats[1]}/{total})")
-            print(f"  With URL:   {stats[2]/total*100:.1f}% ({stats[2]}/{total})")
-        
-        # Average quality score
-        cursor.execute('SELECT AVG(data_quality_score) FROM listings')
-        avg_quality = cursor.fetchone()[0]
-        
-        if avg_quality:
-            print(f"\nAverage Quality Score: {avg_quality:.1f}%")
-            
-            if avg_quality >= 90:
-                print("  Status: Excellent ⭐⭐⭐")
-            elif avg_quality >= 80:
-                print("  Status: Good ⭐⭐")
-            elif avg_quality >= 70:
-                print("  Status: Fair ⭐")
-            else:
-                print("  Status: Needs Improvement ⚠️")
-        
-        conn.close()
+        try:
+            with self.pg.conn.cursor() as cur:
+                # Completeness
+                cur.execute("""
+                    SELECT 
+                        COUNT(*) as total,
+                        COUNT(price) as with_price,
+                        COUNT(url) as with_url,
+                        COUNT(description) as with_description
+                    FROM listings
+                    WHERE source_name = 'tunisieannonce'
+                """)
+                
+                stats = cur.fetchone()
+                if stats and stats[0] > 0:
+                    total = stats[0]
+                    print(f"Completeness:")
+                    print(f"  With Price:       {stats[1]/total*100:.1f}% ({stats[1]}/{total})")
+                    print(f"  With URL:         {stats[2]/total*100:.1f}% ({stats[2]}/{total})")
+                    print(f"  With Description: {stats[3]/total*100:.1f}% ({stats[3]}/{total})")
+                
+                # Average quality score from features
+                cur.execute("""
+                    SELECT AVG((features->>'data_quality_score')::float)
+                    FROM listings
+                    WHERE source_name = 'tunisieannonce'
+                      AND features ? 'data_quality_score'
+                """)
+                
+                avg_quality = cur.fetchone()[0]
+                
+                if avg_quality:
+                    print(f"\nAverage Quality Score: {avg_quality:.1f}%")
+                    
+                    if avg_quality >= 90:
+                        print("  Status: Excellent ⭐⭐⭐")
+                    elif avg_quality >= 80:
+                        print("  Status: Good ⭐⭐")
+                    elif avg_quality >= 70:
+                        print("  Status: Fair ⭐")
+                    else:
+                        print("  Status: Needs Improvement ⚠️")
+                
+                # Recent scraping activity
+                cur.execute("""
+                    SELECT 
+                        DATE(scraped_at) as date,
+                        COUNT(*) as listings
+                    FROM listings
+                    WHERE source_name = 'tunisieannonce'
+                      AND scraped_at >= CURRENT_DATE - INTERVAL '7 days'
+                    GROUP BY DATE(scraped_at)
+                    ORDER BY date DESC
+                """)
+                
+                print(f"\nRecent Activity (Last 7 days):")
+                for date, count in cur.fetchall():
+                    print(f"  {date}: {count} listings")
+                    
+        except Exception as e:
+            print(f"Error loading quality metrics: {e}")
     
     def export_data_menu(self):
         """Export data options"""
@@ -187,40 +238,61 @@ class AgentDashboard:
         
         if choice == "1":
             filename = self.agent.export_data()
-            print(f"\n✅ Exported to: {filename}")
+            if filename:
+                print(f"\n✅ Exported to: {filename}")
+            else:
+                print(f"\n❌ Export failed")
             input("\nPress Enter to continue...")
             
         elif choice == "2":
-            conn = sqlite3.connect(self.db_path)
-            df = pd.read_sql_query('''
-                SELECT * FROM listings
-                WHERE scraped_at >= datetime('now', '-7 days')
-                ORDER BY scraped_at DESC
-            ''', conn)
-            conn.close()
+            try:
+                with self.pg.conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT * FROM listings
+                        WHERE source_name = 'tunisieannonce'
+                          AND scraped_at >= CURRENT_DATE - INTERVAL '7 days'
+                        ORDER BY scraped_at DESC
+                    """)
+                    
+                    columns = [desc[0] for desc in cur.description]
+                    rows = cur.fetchall()
+                    
+                    df = pd.DataFrame(rows, columns=columns)
+                    
+                    filename = f"export_7days_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                    df.to_csv(filename, index=False, encoding='utf-8-sig')
+                    print(f"\n✅ Exported {len(df)} listings to: {filename}")
+                    
+            except Exception as e:
+                print(f"\n❌ Export failed: {e}")
             
-            filename = f"export_7days_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-            df.to_csv(filename, index=False, encoding='utf-8-sig')
-            print(f"\n✅ Exported {len(df)} listings to: {filename}")
             input("\nPress Enter to continue...")
             
         elif choice == "3":
             region = input("Enter region name: ").strip()
             
-            conn = sqlite3.connect(self.db_path)
-            df = pd.read_sql_query('''
-                SELECT * FROM listings
-                WHERE region LIKE ?
-                ORDER BY scraped_at DESC
-            ''', conn, params=(f'%{region}%',))
-            conn.close()
-            
-            if len(df) > 0:
-                filename = f"export_{region}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-                df.to_csv(filename, index=False, encoding='utf-8-sig')
-                print(f"\n✅ Exported {len(df)} listings to: {filename}")
-            else:
-                print(f"\n❌ No listings found for region: {region}")
+            try:
+                with self.pg.conn.cursor() as cur:
+                    cur.execute("""
+                        SELECT * FROM listings
+                        WHERE source_name = 'tunisieannonce'
+                          AND region ILIKE %s
+                        ORDER BY scraped_at DESC
+                    """, (f'%{region}%',))
+                    
+                    columns = [desc[0] for desc in cur.description]
+                    rows = cur.fetchall()
+                    
+                    if rows:
+                        df = pd.DataFrame(rows, columns=columns)
+                        filename = f"export_{region}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                        df.to_csv(filename, index=False, encoding='utf-8-sig')
+                        print(f"\n✅ Exported {len(df)} listings to: {filename}")
+                    else:
+                        print(f"\n❌ No listings found for region: {region}")
+                        
+            except Exception as e:
+                print(f"\n❌ Export failed: {e}")
             
             input("\nPress Enter to continue...")
     
@@ -237,8 +309,6 @@ class AgentDashboard:
         choice = input("\nChoice (1-5): ").strip()
         
         if choice in ["1", "2", "3"]:
-            from intelligent_scraping_agent import ScrapingStrategy, ScrapingTask
-            
             strategy_map = {
                 "1": ScrapingStrategy.BALANCED,
                 "2": ScrapingStrategy.AGGRESSIVE,
@@ -317,12 +387,31 @@ class AgentDashboard:
             elif choice == "6":
                 print("\n👋 Goodbye!")
                 break
+    
+    def close(self):
+        """Close connections"""
+        try:
+            self.pg.close()
+            self.agent.close()
+        except:
+            pass
 
 
 def main():
     """Main dashboard execution"""
-    dashboard = AgentDashboard()
-    dashboard.show_main_menu()
+    print("=" * 80)
+    print("🤖 AGENT DASHBOARD - POSTGRESQL")
+    print("=" * 80)
+    print()
+    
+    try:
+        dashboard = AgentDashboard()
+        dashboard.show_main_menu()
+        dashboard.close()
+    except Exception as e:
+        print(f"\n❌ Error: {e}")
+        import traceback
+        traceback.print_exc()
 
 
 if __name__ == "__main__":
