@@ -33,15 +33,14 @@ def _make_selenium_driver(headless: bool = True):
     from selenium import webdriver
     from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.chrome.options import Options
-    from webdriver_manager.chrome import ChromeDriverManager
-    from webdriver_manager.core.driver_cache import DriverCacheManager
-    from selenium.webdriver.support.ui import WebDriverWait
+    import shutil
 
     options = Options()
     if headless:
         options.add_argument("--headless")
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--window-size=1920,1080")
     options.add_argument(
         "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -49,12 +48,30 @@ def _make_selenium_driver(headless: bool = True):
         "Chrome/91.0.4472.124 Safari/537.36"
     )
     options.add_argument("--log-level=3")
-    # NO disable-blink-features, NO experimental options, NO CDP patch
-    # These are what trigger CAPTCHA on century21.tn
 
-    cache_manager = DriverCacheManager(root_dir="./temp_drivers")
-    service = Service(ChromeDriverManager(cache_manager=cache_manager).install())
+    # On Railway/Linux use system chromium, on Windows use webdriver-manager
+    chrome_path = shutil.which("chromium") or shutil.which("chromium-browser")
+    chromedriver_path = shutil.which("chromedriver")
+
+    if chrome_path:
+        options.binary_location = chrome_path
+        service = Service(chromedriver_path)
+    else:
+        from webdriver_manager.chrome import ChromeDriverManager
+        from webdriver_manager.core.driver_cache import DriverCacheManager
+        cache_manager = DriverCacheManager(root_dir="./temp_drivers")
+        service = Service(ChromeDriverManager(cache_manager=cache_manager).install())
+
     return webdriver.Chrome(service=service, options=options)
+
+
+def _is_selenium_available() -> bool:
+    import shutil
+    return any([
+        shutil.which("chromium"),
+        shutil.which("chromium-browser"),
+        shutil.which("google-chrome"),
+    ])
 
 def _selenium_get_html(driver, url: str, wait_selector: str = "body",
                         timeout: int = 15) -> Optional[str]:
@@ -246,6 +263,8 @@ class _HouzezListScraper(BaseScraper):
             for cat in self.list_urls:
                 cat_url = cat["url"]
                 trans_type = cat["type"]
+                seen_urls: set = set()   # track across ALL pages for this category
+                prev_page_urls: set = set()  # detect pagination loops
 
                 for page in range(1, self.max_pages + 1):
                     page_url = f"{cat_url}?page={page}" if page > 1 else cat_url
@@ -257,19 +276,33 @@ class _HouzezListScraper(BaseScraper):
 
                     soup = BeautifulSoup(html, "html.parser")
                     links = soup.find_all("a", href=lambda h: h and self.link_pattern in h)
-                    urls = set()
+                    page_urls = set()
                     for a in links:
                         href = a["href"]
                         full = href if href.startswith("http") else urljoin(self.base_url, href)
-                        urls.add(full)
+                        page_urls.add(full)
 
-                    if not urls:
+                    if not page_urls:
                         log.info(f"[{self.source_name}] No listings on page {page}, stopping")
                         break
 
-                    log.info(f"[{self.source_name}] Found {len(urls)} links on page {page}")
+                    # Detect pagination loop — same URLs as previous page means no more pages
+                    if page_urls == prev_page_urls:
+                        log.info(f"[{self.source_name}] Pagination ended at page {page} (same URLs)")
+                        break
+                    prev_page_urls = page_urls
 
-                    for detail_url in urls:
+                    # Only scrape URLs we haven't seen before
+                    new_urls = page_urls - seen_urls
+                    seen_urls.update(page_urls)
+
+                    if not new_urls:
+                        log.info(f"[{self.source_name}] No new listings on page {page}, stopping")
+                        break
+
+                    log.info(f"[{self.source_name}] Found {len(new_urls)} new links on page {page}")
+
+                    for detail_url in new_urls:
                         try:
                             detail_html = self._get_html(detail_url)
                             if detail_html:
@@ -319,7 +352,7 @@ class VerdarScraper(_HouzezListScraper):
 
 class DarcomScraper(_HouzezListScraper):
     source_name = "darcom"
-    base_url = "https://www.darcomtunisia.com"  # FIXED: was darcom.tn
+    base_url = "https://www.darcomtunisia.com"
     list_urls = [
         {"url": "https://www.darcomtunisia.com/vente", "type": "Sale"},
         {"url": "https://www.darcomtunisia.com/location", "type": "Rent"},
@@ -328,10 +361,16 @@ class DarcomScraper(_HouzezListScraper):
     min_delay = 2.0
     max_delay = 5.0
 
+    def fetch_listings(self):
+        if not _is_selenium_available():
+            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
+            return
+        yield from super().fetch_listings()
+
 
 class NewKeyScraper(_HouzezListScraper):
     source_name = "newkey"
-    base_url = "https://www.newkey.com.tn"  # FIXED: was newkey.tn (cert mismatch)
+    base_url = "https://www.newkey.com.tn"
     list_urls = [
         {"url": "https://www.newkey.com.tn/acheter", "type": "Sale"},
         {"url": "https://www.newkey.com.tn/louer", "type": "Rent"},
@@ -339,6 +378,12 @@ class NewKeyScraper(_HouzezListScraper):
     needs_selenium = True
     min_delay = 2.0
     max_delay = 4.0
+
+    def fetch_listings(self):
+        if not _is_selenium_available():
+            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
+            return
+        yield from super().fetch_listings()
 
 
 class TecnocasaScraper(_HouzezListScraper):
@@ -359,30 +404,37 @@ class TecnocasaScraper(_HouzezListScraper):
         return _selenium_get_html(self._get_driver(), url)
 
     def fetch_listings(self) -> Generator[PropertyListing, None, None]:
+        if not _is_selenium_available():
+            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
+            return
         try:
             for cat in self.list_urls:
                 cat_url = cat["url"]
                 trans_type = cat["type"]
+                seen_urls: set = set()
+                prev_page_urls: set = set()
                 for page in range(1, self.max_pages + 1):
-                    if page == 1:
-                        page_url = cat_url
-                    else:
-                        page_url = cat_url.rstrip("/") + f"/page/{page}/"
+                    page_url = cat_url if page == 1 else cat_url.rstrip("/") + f"/page/{page}/"
                     log.info(f"[{self.source_name}] {trans_type} p{page}: {page_url}")
                     html = self._get_html(page_url)
                     if not html:
                         break
                     soup = BeautifulSoup(html, "html.parser")
                     links = soup.find_all("a", href=lambda h: h and "/property/" in h)
-                    urls = {
+                    page_urls = {
                         a["href"] if a["href"].startswith("http")
                         else urljoin(self.base_url, a["href"])
                         for a in links
                         if "page" not in a["href"] and "status" not in a["href"]
                     }
-                    if not urls:
+                    if not page_urls or page_urls == prev_page_urls:
                         break
-                    for detail_url in urls:
+                    prev_page_urls = page_urls
+                    new_urls = page_urls - seen_urls
+                    seen_urls.update(page_urls)
+                    if not new_urls:
+                        break
+                    for detail_url in new_urls:
                         html2 = self._get_html(detail_url)
                         if html2:
                             listing = _parse_houzez_detail(
@@ -424,9 +476,13 @@ class Century21Scraper(BaseScraper):
 
     def fetch_listings(self) -> Generator[PropertyListing, None, None]:
         """
-        Scrape Century21.tn using plain headless Selenium (no anti-detection flags
-        which paradoxically trigger CAPTCHA). Breaks out after 3 consecutive CAPTCHAs.
+        Scrape Century21.tn using plain headless Selenium.
+        Skips gracefully if Chrome not available (Railway without Chrome).
+        Breaks out after 3 consecutive CAPTCHAs.
         """
+        if not _is_selenium_available():
+            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
+            return
         driver = self._get_driver()
         _captcha_hits = 0
 
@@ -528,9 +584,11 @@ class AqariScraper(BaseScraper):
         return self._driver
 
     def fetch_listings(self) -> Generator[PropertyListing, None, None]:
+        if not _is_selenium_available():
+            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
+            return
         try:
             driver = self._get_driver()
-            from selenium.webdriver.common.by import By
             from selenium.webdriver.support.ui import WebDriverWait
             from selenium.webdriver.support import expected_conditions as EC
 
@@ -696,8 +754,9 @@ class MubawabScraper(BaseScraper):
         super().__init__(self.source_name, self.base_url)
 
     def fetch_listings(self) -> Generator[PropertyListing, None, None]:
-        seen_urls: set = set()
         for path, trans_type, prop_type in self.CATEGORIES:
+            seen_urls: set = set()   # reset per category
+            prev_items_count = -1
             for page in range(1, 21):
                 url = f"{self.base_url}/fr/{path}"
                 if page > 1:
@@ -710,6 +769,12 @@ class MubawabScraper(BaseScraper):
                 items = self._get_list_items(soup)
                 if not items:
                     break
+                # Detect pagination loop — same number of items as before with no new URLs
+                if len(items) == prev_items_count:
+                    log.info(f"[{self.source_name}] Pagination ended at p{page}")
+                    break
+                prev_items_count = len(items)
+                new_found = 0
                 for item in items:
                     link = (item.select_one("h2.listingTit a") or
                             item.select_one("h2 a") or
@@ -721,17 +786,19 @@ class MubawabScraper(BaseScraper):
                     if detail_url in seen_urls:
                         continue
                     seen_urls.add(detail_url)
-
+                    new_found += 1
                     title = link.get_text(strip=True)
                     price_el = item.select_one("span.priceTag, .price")
                     price = parse_tunisian_price(price_el.get_text() if price_el else "")
                     subtitle_el = item.select_one("span.listingDetails, .adLocation")
                     subtitle = subtitle_el.get_text(strip=True) if subtitle_el else ""
-
                     listing = self._get_detail(detail_url, title, price,
                                                subtitle, trans_type, prop_type)
                     if listing:
                         yield listing
+                if new_found == 0:
+                    log.info(f"[{self.source_name}] No new listings at p{page}, stopping category")
+                    break
                 self._random_delay(2, 5)
 
     def _get_list_items(self, soup: BeautifulSoup) -> List:
