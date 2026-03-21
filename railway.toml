@@ -1,6 +1,5 @@
-[build]
-builder = "nixpacks"
+[phases.setup]
+nixPkgs = ["chromium", "chromedriver", "glib", "nss", "nspr", "atk", "cups", "dbus", "expat", "libdrm", "libxkbcommon", "mesa"]
 
-[deploy]
-startCommand = "python main.py schedule"
-restartPolicyType = "always"
+[phases.install]
+cmds = ["pip install -r requirements.txt"]

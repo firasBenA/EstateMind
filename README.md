@@ -81,3 +81,40 @@ cd estatemind-dashboard
 npm install
 npm run dev
 ```
+---------------------------------------------------------------
+data/
+├── main.py                        # scheduler
+├── scrapers/                      # existing
+├── ai_agent/                      # existing  
+├── database/
+│   ├── vector_db.py               # Pinecone (semantic search)
+│   └── timeseries_db.py           # NEW: price history storage
+│
+├── preprocessing/                 # data cleaning
+│   ├── pipeline.py                # runs after each scrape
+│   ├── nlp/
+│   │   └── extractor.py          # extract fields from description
+│   └── steps/
+│       ├── deduplicator.py        # cross-source dedup only
+│       ├── change_detector.py     # detect price/status changes (Obj 2)
+│       ├── null_handler.py        # fill nulls via NLP
+│       ├── normalizer.py          # standardize formats
+│       ├── outlier_detector.py    # flag statistical outliers (feeds Obj 3)
+│       └── scorer.py             # reliability score
+│
+├── modeling/                      # ML models
+│   ├── anomaly/
+│   │   └── detector.py           # Obj 3: unsupervised anomaly detection
+│   ├── forecasting/
+│   │   └── price_forecast.py     # Obj 5: time series forecasting
+│   ├── multimodal/
+│   │   └── consistency.py        # Obj 4: image/text/price consistency
+│   └── recommendations/
+│       └── recommender.py        # Obj 8
+│
+├── rag/                           # LangChain lives here
+│   ├── legal_pipeline.py         # Obj 6-7: legal doc RAG
+│   └── market_search.py          # semantic property search
+│
+└── exports/                       # for dashboard and reports
+    └── report_generator.py       # Obj 9

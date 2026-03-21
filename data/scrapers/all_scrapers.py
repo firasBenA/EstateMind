@@ -16,6 +16,14 @@ import hashlib
 from datetime import datetime
 from typing import Generator, List, Optional, Dict, Any, Iterator
 from urllib.parse import urljoin, urlparse
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from webdriver_manager.chrome import ChromeDriverManager
+from webdriver_manager.core.driver_cache import DriverCacheManager
 
 import requests
 from bs4 import BeautifulSoup
@@ -23,6 +31,9 @@ from bs4 import BeautifulSoup
 from core.base_scraper import BaseScraper, parse_tunisian_price, parse_surface, parse_rooms
 from core.base_scraper import infer_property_type, infer_transaction_type, make_source_id
 from core.base_scraper import infer_governorate
+from core.base_scraper import BaseScraper
+from core.models import PropertyListing, Location
+from core.geolocation import infer_governorate
 from core.models import PropertyListing, Location
 from config.logging_config import log
 from selenium.webdriver.support.ui import WebDriverWait
@@ -454,282 +465,827 @@ class TecnocasaScraper(_HouzezListScraper):
 
 class Century21Scraper(BaseScraper):
     """
-    Century21 TN — WordPress/Houzez with CAPTCHA.
-    Uses Selenium with longer delays to avoid detection.
+    Scraper for Century 21 Tunisia (century21.tn) using Selenium.
     """
-    source_name = "century21"
-    base_url = "https://century21.tn"
-
-    CATEGORIES = [
-        {"url": "https://century21.tn/status/vente-immobilier-tunisie/", "type": "Sale"},
-        {"url": "https://century21.tn/status/location-immobilier-tunisie/", "type": "Rent"},
-    ]
-
     def __init__(self):
-        super().__init__(self.source_name, self.base_url)
-        self._driver = None
+        super().__init__(source_name="century21", base_url="https://century21.tn")
+        self.driver = None
+        self.categories = [
+            {"url": f"{self.base_url}/status/vente-immobilier-tunisie/", "type": "Sale"},
+            {"url": f"{self.base_url}/status/location-immobilier-tunisie/", "type": "Rent"}
+        ]
 
-    def _get_driver(self):
-        if self._driver is None:
-            self._driver = _make_selenium_driver()
-        return self._driver
+    def _setup_driver(self):
+        if self.driver:
+            return
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        options.add_argument("--log-level=3")
+        
+        cache_manager = DriverCacheManager(root_dir="./temp_drivers")
+        service = Service(ChromeDriverManager(cache_manager=cache_manager).install())
+        self.driver = webdriver.Chrome(service=service, options=options)
+
+    def _scrape_detail(self, url: str) -> Optional[PropertyListing]:
+        """
+        Scrapes a single detail page using Selenium.
+        Used by reprocess_listings.py
+        """
+        try:
+            self._setup_driver()
+            log.info(f"Fetching detail with Selenium: {url}")
+            self.driver.get(url)
+            
+            # Wait for main content
+            try:
+                WebDriverWait(self.driver, 10).until(
+                    EC.presence_of_element_located((By.TAG_NAME, "h1"))
+                )
+            except:
+                log.warning(f"Timeout waiting for content on {url}")
+
+            # Get page source
+            html_content = self.driver.page_source
+            
+            # Extract ID if possible
+            listing_id = "unknown"
+            match = re.search(r'ref-([a-zA-Z0-9]+)', url)
+            if match:
+                listing_id = match.group(1)
+            else:
+                listing_id = str(abs(hash(url)))
+                
+            # Determine transaction type (heuristic from URL or content)
+            trans_type = "Sale" # Default
+            if "location" in url or "louer" in url:
+                trans_type = "Rent"
+            
+            return self.parse_listing(html_content, url, listing_id, trans_type)
+            
+        except Exception as e:
+            log.error(f"Error scraping detail {url}: {e}")
+            # Reset driver on error to recover from session crashes
+            if self.driver:
+                try:
+                    self.driver.quit()
+                except:
+                    pass
+                self.driver = None
+            return None
 
     def fetch_listings(self) -> Generator[PropertyListing, None, None]:
-        """
-        Scrape Century21.tn using plain headless Selenium.
-        Skips gracefully if Chrome not available (Railway without Chrome).
-        Breaks out after 3 consecutive CAPTCHAs.
-        """
-        if not _is_selenium_available():
-            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
-            return
-        driver = self._get_driver()
-        _captcha_hits = 0
-
         try:
-            for category in self.CATEGORIES:
-                cat_url    = category["url"]
+            self._setup_driver()
+            log.info(f"Starting {self.source_name} scraper with Selenium...")
+            
+            for category in self.categories:
+                cat_url = category["url"]
                 trans_type = category["type"]
-                _captcha_hits = 0  # reset per category
-
-                for page in range(1, 51):
-                    page_url = cat_url if page == 1 else f"{cat_url}page/{page}/"
-                    log.info(f"[{self.source_name}] {trans_type} p{page}: {page_url}")
-
-                    driver.get(page_url)
-
-                    # CAPTCHA detection — break after 3 consecutive hits
-                    if "captcha" in driver.page_source.lower():
-                        _captcha_hits += 1
-                        log.warning(
-                            f"[{self.source_name}] CAPTCHA {_captcha_hits}/3 on {page_url}"
-                        )
-                        if _captcha_hits >= 3:
-                            log.error(
-                                f"[{self.source_name}] IP blocked — skipping category"
-                            )
-                            break
-                        time.sleep(120)
-                        continue
-
-                    _captcha_hits = 0  # reset on clean page
-
-                    # Wait for property links
+                page = 1
+                max_pages = 50
+                
+                while page <= max_pages:
+                    # WordPress pagination style: .../page/2/
+                    url = f"{cat_url}page/{page}/" if page > 1 else cat_url
+                    log.info(f"Scraping {trans_type} page {page}: {url}")
+                    
+                    self.driver.get(url)
+                    
+                    # Wait for listings
                     try:
-                        WebDriverWait(driver, 10).until(
-                            EC.presence_of_element_located(
-                                (By.CSS_SELECTOR, "a[href*='/property/']")
-                            )
+                        WebDriverWait(self.driver, 10).until(
+                            EC.presence_of_element_located((By.CSS_SELECTOR, "a[href*='/property/']"))
                         )
-                    except Exception:
-                        log.warning(
-                            f"[{self.source_name}] No listings or timeout on {page_url}"
-                        )
+                    except:
+                        log.warning(f"No listings found or timeout on page {page}")
                         break
-
-                    soup = BeautifulSoup(driver.page_source, "html.parser")
+                    
+                    soup = BeautifulSoup(self.driver.page_source, 'html.parser')
+                    
+                    # Find links
+                    links = soup.find_all("a", href=True)
                     unique_urls = set()
-                    for a in soup.find_all("a", href=True):
-                        href = a["href"]
-                        if "/property/" in href and "status" not in href and "page" not in href:
-                            if href.startswith("http"):
+                    
+                    for link in links:
+                        href = link['href']
+                        if "/property/" in href:
+                            if "status" in href or "page" in href:
+                                continue
+                            if href not in unique_urls and href.startswith("http"):
                                 unique_urls.add(href)
 
                     if not unique_urls:
-                        log.info(
-                            f"[{self.source_name}] No listings on p{page}, stopping {trans_type}"
-                        )
+                        log.warning(f"No listings found on page {page}. Stopping {trans_type}.")
                         break
-
-                    log.info(
-                        f"[{self.source_name}] Found {len(unique_urls)} listings on p{page}"
-                    )
-
-                    for detail_url in unique_urls:
+                    
+                    log.info(f"Found {len(unique_urls)} listings on page {page}")
+                    
+                    for link_url in unique_urls:
                         try:
-                            html = _selenium_get_html(driver, detail_url, "h1", timeout=20)
-                            if html:
-                                listing = _parse_houzez_detail(
-                                    html, detail_url, self.source_name, trans_type
-                                )
-                                if listing:
-                                    yield listing
+                            listing = self._scrape_detail(link_url)
+                            if listing:
+                                yield listing
                         except Exception as e:
-                            log.error(f"[{self.source_name}] Detail error: {e}")
-                        time.sleep(random.uniform(2, 4))
-
+                            log.error(f"Error processing listing {link_url}: {e}")
+                    
+                    page += 1
+                    
+        except Exception as e:
+            log.error(f"Error running Century21 scraper: {e}")
         finally:
-            if self._driver:
+            if self.driver:
+                self.driver.quit()
+                self.driver = None
+
+    def _infer_property_type(self, title: str, description: str) -> str:
+        text = (title + " " + description).lower()
+        if "terrain" in text:
+            return "Land"
+        if "bureau" in text or "commercial" in text:
+            return "Office"
+        if "villa" in text or "maison" in text:
+            return "House"
+        if "appartement" in text:
+            return "Apartment"
+        if "s+" in text:
+            return "Apartment"
+        return "Other"
+
+    def parse_listing(self, html_content: str, url: str, listing_id: str, transaction_type: str) -> PropertyListing:
+        soup = BeautifulSoup(html_content, "html.parser")
+
+        title_tag = soup.find("h1")
+        title = title_tag.get_text(strip=True) if title_tag else "No Title"
+
+        price = 0.0
+        price_text = ""
+        price_tag = soup.find(class_="item-price") or soup.find(class_="price")
+        if price_tag:
+            price_text = price_tag.get_text(strip=True)
+            clean = re.sub(r"[^\d]", "", price_text)
+            if clean:
                 try:
-                    self._driver.quit()
+                    price = float(clean)
                 except Exception:
                     pass
-                self._driver = None
 
-class AqariScraper(BaseScraper):
-    """
-    Aqari.tn — React SPA. Selenium required.
-    Correct list URLs: /vente and /location (NOT /properties?status=...)
-    """
-    source_name = "aqari"
-    base_url = "https://www.aqari.tn"
+        # Description (fallbacks)
+        description = ""
+        desc_tag = soup.find(class_="detail-description") or soup.find("div", id="description")
+        if desc_tag:
+            description = desc_tag.get_text(" ", strip=True)
+        if not description:
+            section = soup.find("div", id="property-description-wrap") or soup.find(
+                "div", class_="property-description-wrap"
+            )
+            if section:
+                paragraphs = [p.get_text(" ", strip=True) for p in section.find_all("p")]
+                paragraphs = [t for t in paragraphs if len(t) > 40]
+                if paragraphs:
+                    description = " ".join(paragraphs)
+        if not description:
+            paragraphs = [p.get_text(" ", strip=True) for p in soup.find_all("p")]
+            paragraphs = [t for t in paragraphs if len(t) > 80]
+            if paragraphs:
+                description = max(paragraphs, key=len)
+        if not description:
+            log.warning(f"[{self.source_name}] No description extracted for {url}")
 
-    def __init__(self):
-        super().__init__(self.source_name, self.base_url)
-        self._driver = None
-
-    def _get_driver(self):
-        if self._driver is None:
-            self._driver = _make_selenium_driver()
-        return self._driver
-
-    def fetch_listings(self) -> Generator[PropertyListing, None, None]:
-        if not _is_selenium_available():
-            log.warning(f"[{self.source_name}] Selenium/Chrome not available — skipping")
-            return
-        try:
-            driver = self._get_driver()
-            from selenium.webdriver.support.ui import WebDriverWait
-            from selenium.webdriver.support import expected_conditions as EC
-
-            for cat_path, trans_type in [("/vente", "Sale"), ("/location", "Rent")]:
-                url = self.base_url + cat_path
-                log.info(f"[{self.source_name}] Loading {trans_type}: {url}")
-                driver.get(url)
-                time.sleep(5)
-
-                page = 1
-                max_pages = 20
-                while page <= max_pages:
-                    log.info(f"[{self.source_name}] Page {page}")
-                    soup = BeautifulSoup(driver.page_source, "html.parser")
-                    # Aqari uses /property/ links
-                    links = soup.find_all("a", href=lambda h: h and "/property/" in h)
-                    urls = set()
-                    for a in links:
-                        href = a["href"]
-                        full = href if href.startswith("http") else urljoin(self.base_url, href)
-                        urls.add(full)
-
-                    if not urls:
-                        log.info(f"[{self.source_name}] No listings on page {page}")
-                        break
-
-                    for detail_url in urls:
-                        try:
-                            html = _selenium_get_html(driver, detail_url, "h1")
-                            if html:
-                                listing = self._parse_detail(html, detail_url, trans_type)
-                                if listing:
-                                    yield listing
-                        except Exception as e:
-                            log.error(f"[{self.source_name}] Detail error: {e}")
-                        time.sleep(random.uniform(2, 4))
-
-                    # Pagination — click Next button
-                    try:
-                        next_btn = driver.find_element(
-                            By.XPATH,
-                            "//button[contains(text(),'Suivant') or contains(text(),'Next')] | "
-                            "//a[contains(text(),'Suivant') or contains(text(),'Next')]"
-                        )
-                        if next_btn.is_enabled():
-                            next_btn.click()
-                            time.sleep(4)
-                            page += 1
-                        else:
-                            break
-                    except Exception:
-                        break
-        finally:
-            if self._driver:
-                try:
-                    self._driver.quit()
-                except Exception:
-                    pass
-                self._driver = None
-
-    def _parse_detail(self, html: str, url: str, trans_type: str) -> Optional[PropertyListing]:
-        soup = BeautifulSoup(html, "html.parser")
-        title = ""
-        h1 = soup.find("h1")
-        if h1:
-            title = h1.get_text(strip=True)
-
-        # Try JSON-LD structured data
-        price, surface, rooms = None, None, None
-        description = None
-        city, governorate = None, None
+        # Images
         images: List[str] = []
+        for a in soup.find_all("a", class_="houzez-photoswipe-trigger"):
+            img = a.find("img", src=True)
+            if img:
+                src = img.get("src")
+                if src and src.startswith("http"):
+                    images.append(src)
+        if not images:
+            for img in soup.find_all("img", src=True):
+                src = img.get("src")
+                if not src or not src.startswith("http"):
+                    continue
+                if any(token in src for token in ["Properties", "digitaloceanspaces", "/bien/", "/property/"]):
+                    images.append(src)
+        images = list(dict.fromkeys(images))
 
-        for script in soup.find_all("script", type="application/ld+json"):
-            try:
-                data = json.loads(script.get_text())
-                if data.get("@type") in ["RealEstateListing", "Product", "Apartment",
-                                          "House", "SingleFamilyResidence"]:
-                    if not title and data.get("name"):
-                        title = data["name"]
-                    if data.get("description"):
-                        description = data["description"]
-                    offers = data.get("offers", {})
-                    if offers.get("price"):
-                        try: price = float(offers["price"])
-                        except Exception: pass
-                    if data.get("floorSize", {}).get("value"):
-                        try: surface = float(data["floorSize"]["value"])
-                        except Exception: pass
-                    if data.get("numberOfRooms"):
-                        try: rooms = int(data["numberOfRooms"])
-                        except Exception: pass
-                    addr = data.get("address", {})
-                    city = addr.get("addressLocality")
-                    governorate = addr.get("addressRegion") or infer_governorate(city or "")
-                    if isinstance(data.get("image"), list):
-                        images.extend(data["image"])
-                    elif isinstance(data.get("image"), str):
-                        images.append(data["image"])
+        # Location: try structured "Adresse / Ville / Gouvernerat / Quartier" block
+        governorate = None
+        city = None
+        district = None
+        address = None
+        
+        # Try specific classes first (more robust)
+        addr_li = soup.find("li", class_="detail-address")
+        if addr_li:
+            sp = addr_li.find_all("span")[-1] if addr_li.find_all("span") else None
+            if sp: address = sp.get_text(strip=True)
+            
+        city_li = soup.find("li", class_="detail-city")
+        if city_li:
+            sp = city_li.find_all("span")[-1] if city_li.find_all("span") else None
+            if sp: city = sp.get_text(strip=True)
+            
+        gov_li = soup.find("li", class_="detail-state")
+        if gov_li:
+            sp = gov_li.find_all("span")[-1] if gov_li.find_all("span") else None
+            if sp: governorate = sp.get_text(strip=True)
+            
+        area_li = soup.find("li", class_="detail-area")
+        if area_li:
+            sp = area_li.find_all("span")[-1] if area_li.find_all("span") else None
+            if sp: district = sp.get_text(strip=True)
+
+        # Fallback: Extract from script data (houzez_single_property_map)
+        if not address or not city:
+            scripts = soup.find_all("script")
+            for s in scripts:
+                if s.string and "houzez_single_property_map" in s.string:
+                    m_addr = re.search(r'"address"\s*:\s*"([^"]+)"', s.string)
+                    if m_addr:
+                        script_address = m_addr.group(1).encode('utf-8').decode('unicode_escape')
+                        if not address:
+                            address = script_address
+                        if not city and not district:
+                            # Heuristic: use script address as district/city if we have nothing
+                            district = script_address
                     break
+
+        # Fallback to text parsing if classes not found
+        if not city and not governorate:
+            addr_block = ""
+            # Try to find any element containing "Adresse"
+            for el in soup.find_all(string=re.compile(r"Adresse", re.IGNORECASE)):
+                try:
+                    parent = el.find_parent()
+                    # Go up to the block wrapper if possible
+                    block = parent.find_parent(class_="block-content-wrap") or parent
+                    if block:
+                        addr_block = block.get_text(" ", strip=True)
+                        break
+                except Exception:
+                    continue
+            
+            if addr_block:
+                text = re.sub(r"\s+", " ", addr_block)
+                m_addr = re.search(r"Adresse\s+(.+?)\s+Ville", text, re.IGNORECASE)
+                if m_addr: address = m_addr.group(1).strip()
+                m_city = re.search(r"Ville\s+(.+?)\s+Gouvernerat", text, re.IGNORECASE)
+                if m_city: city = m_city.group(1).strip()
+                m_gov = re.search(r"Gouvernerat\s+(.+?)\s+Quartier", text, re.IGNORECASE)
+                if m_gov: governorate = m_gov.group(1).strip()
+                m_quarter = re.search(r"Quartier\s+(.+)", text, re.IGNORECASE)
+                if m_quarter: district = m_quarter.group(1).strip()
+
+        # Details: surface, rooms, bathrooms, reference
+        # Iterate over ALL lists because address block might be the first list-2-cols
+
+        og_desc = soup.find("meta", property="og:description")
+        meta_desc_content = ""
+        if og_desc:
+            meta_desc_content = og_desc.get("content", "")
+        
+        meta_surface = None
+        m_surf = re.search(r"Superficie:\s*(\d+(?:[\.,]\d+)?)\s*m[²2]", meta_desc_content, re.IGNORECASE)
+        if m_surf:
+            try:
+                meta_surface = float(m_surf.group(1).replace(",", "."))
+            except:
+                pass
+
+        surface_m2: Optional[float] = meta_surface
+        rooms: Optional[int] = None
+        bathrooms: Optional[int] = None
+        features: List[str] = []
+        
+        for ul in soup.find_all("ul", class_="list-2-cols"):
+            for li in ul.find_all("li"):
+                label_tag = li.find("strong")
+                # Value is usually in the last span, sometimes nested
+                spans = li.find_all("span")
+                if not spans:
+                    # Fallback: check text content directly if no span
+                    # e.g. <li><strong>Surface:</strong> 120 m²</li>
+                    full_text = li.get_text(strip=True)
+                    if label_tag:
+                        label_text = label_tag.get_text(strip=True)
+                        value_text = full_text.replace(label_text, "").strip()
+                    else:
+                        continue
+                else:
+                    value_text = spans[-1].get_text(strip=True)
+                
+                label = label_tag.get_text(strip=True).lower() if label_tag else ""
+                
+                # Surface parsing
+                if any(k in label for k in ["surface", "superficie"]):
+                    # e.g. "185 m²"
+                    m = re.search(r"(\d+[\d\s,\.]*)", value_text)
+                    if m:
+                        digits = m.group(1).replace(" ", "").replace(",", ".")
+                        try:
+                            surface_m2 = float(digits)
+                        except Exception:
+                            pass
+                
+                # Rooms parsing
+                elif any(k in label for k in ["chambres", "chambre", "pièces", "typologie"]):
+                    # Try to find simple number first
+                    m = re.search(r"^(\d+)$", value_text)
+                    if m:
+                        try:
+                            rooms = int(m.group(1))
+                        except:
+                            pass
+                    else:
+                        # Try S+N pattern (common in Tunisia)
+                        # e.g. "S+2", "s+3"
+                        m_s = re.search(r"[sS]\s*\+\s*(\d+)", value_text)
+                        if m_s:
+                            try:
+                                rooms = int(m_s.group(1))
+                            except:
+                                pass
+                        else:
+                            # Fallback for "3 chambres"
+                            m = re.search(r"(\d+)", value_text)
+                            if m:
+                                try:
+                                    rooms = int(m.group(1))
+                                except:
+                                    pass
+
+                # Bathrooms parsing
+                elif any(k in label for k in ["salles de bains", "salle de bains", "salle d'eau"]):
+                    m = re.search(r"(\d+)", value_text)
+                    if m:
+                        try:
+                            bathrooms = int(m.group(1))
+                        except Exception:
+                            pass
+
+        # Try to extract coordinates from raw HTML (map widget or scripts)
+        latitude: Optional[float] = None
+        longitude: Optional[float] = None
+        
+        # 0. Look for houzez_single_property_map in scripts (Most reliable)
+        if latitude is None:
+            scripts = soup.find_all("script")
+            for s in scripts:
+                if s.string and "houzez_single_property_map" in s.string:
+                    m_lat = re.search(r'"lat"\s*:\s*"(-?\d+\.\d+)"', s.string)
+                    m_lng = re.search(r'"lng"\s*:\s*"(-?\d+\.\d+)"', s.string)
+                    if m_lat and m_lng:
+                        try:
+                            latitude = float(m_lat.group(1))
+                            longitude = float(m_lng.group(1))
+                            break
+                        except:
+                            pass
+
+        # 1. Look for Houzez map attributes
+        map_div = soup.find("div", id="houzez-single-listing-map")
+        if map_div:
+            lat_attr = map_div.get("data-lat")
+            lng_attr = map_div.get("data-lng")
+            if lat_attr and lng_attr:
+                try:
+                    latitude = float(lat_attr)
+                    longitude = float(lng_attr)
+                except:
+                    pass
+
+        # 2. Look for Google Maps link if map div failed
+        if latitude is None:
+            gmap_link = soup.find("a", href=re.compile(r"maps\.google\.com"))
+            if gmap_link:
+                href = gmap_link.get("href", "")
+                # q=Les%20berges%20du%20Lac%202 -> we can't get lat/lon directly but we can use it as address
+                # q=36.85,10.19 -> we can get lat/lon
+                m_coord = re.search(r"q=(-?\d+\.\d+),(-?\d+\.\d+)", href)
+                if m_coord:
+                    try:
+                        latitude = float(m_coord.group(1))
+                        longitude = float(m_coord.group(2))
+                    except:
+                        pass
+                # If q is text, we might rely on geocoding downstream using this text
+                elif "q=" in href and not address:
+                    # Fallback address from map link if we missed it
+                    q_val = href.split("q=")[1].split("&")[0]
+                    from urllib.parse import unquote
+                    address = unquote(q_val)
+
+        # 3. Regex scan of raw HTML (last resort)
+        if latitude is None:
+            patterns = [
+                r"data-lat=[\"']?(-?\d+\.\d+)",
+                r"data-lng=[\"']?(-?\d+\.\d+)",
+                r"data-longitude=[\"']?(-?\d+\.\d+)",
+                r"lat\s*[:=]\s*([0-9]+\.[0-9]+)",
+                r"lng\s*[:=]\s*([0-9]+\.[0-9]+)",
+                r"longitude\s*[:=]\s*([0-9]+\.[0-9]+)",
+            ]
+            lat_val = None
+            lon_val = None
+            for pat in patterns:
+                for match in re.finditer(pat, html_content):
+                    val = match.group(1)
+                    if "lat" in pat and lat_val is None:
+                        lat_val = val
+                    elif ("lng" in pat or "long" in pat) and lon_val is None:
+                        lon_val = val
+            try:
+                if lat_val is not None and lon_val is not None:
+                    latitude = float(lat_val)
+                    longitude = float(lon_val)
             except Exception:
-                continue
+                pass
 
-        # Fallback
-        if not price:
-            og = soup.find("meta", property="og:description")
-            if og:
-                price = parse_tunisian_price(og.get("content", ""))
-        if not surface:
-            full_text = soup.get_text(" ", strip=True)
-            surface = parse_surface(full_text)
-        if not rooms:
-            rooms = parse_rooms(soup.get_text(" ", strip=True))
 
-        source_id = make_source_id(url, self.source_name)
+        property_type = self._infer_property_type(title, description)
+
         location = Location(
-            governorate=governorate or infer_governorate(city or ""),
+            governorate=governorate,
             city=city,
+            district=district,
+            address=address,
+            latitude=latitude,
+            longitude=longitude,
         )
+
         return PropertyListing(
-            source_id=source_id,
             source_name=self.source_name,
+            source_id=listing_id,
             url=url,
-            title=title or url,
+            title=title,
             description=description,
             price=price,
             currency="TND",
-            property_type=infer_property_type(title, description or ""),
-            transaction_type=trans_type,
+            property_type=property_type,
+            transaction_type=transaction_type,
             location=location,
-            surface_area_m2=surface,
+            surface_area_m2=surface_m2,
             rooms=rooms,
-            images=list(dict.fromkeys(images)),
-            scraped_at=datetime.utcnow(),
+            bathrooms=bathrooms,
+            images=images,
+            features=features,
+            raw_content=html_content,
         )
 
-    # def fetch_listings(self):
-    #     return self._fetch()
+class AqariScraper(BaseScraper):
+    def __init__(self):
+        super().__init__("aqari", "https://www.aqari.tn")
+        self.driver = None
+        self.detail_driver = None
 
-    # def _fetch(self):
-    #     yield from self.fetch_listings()  # handled above
+    def _setup_driver(self):
+        options = Options()
+        options.add_argument("--headless")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--no-sandbox")
+        options.add_argument("--window-size=1920,1080")
+        options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36")
+        options.add_argument("--log-level=3")
+        
+        cache_manager = DriverCacheManager(root_dir="./temp_drivers")
+        service = Service(ChromeDriverManager(cache_manager=cache_manager).install())
+        self.driver = webdriver.Chrome(service=service, options=options)
+        self.detail_driver = webdriver.Chrome(service=service, options=options)
+
+    def run(self) -> Iterator[PropertyListing]:
+        try:
+            self._setup_driver()
+            log.info(f"Starting {self.source_name} scraper with Selenium...")
+            
+            # 1. Scrape Sale Listings
+            yield from self.fetch_listings("Sale")
+            
+            # 2. Scrape Rent Listings
+            yield from self.fetch_listings("Rent")
+            
+        except Exception as e:
+            log.error(f"Error running Aqari scraper: {e}")
+        finally:
+            if self.driver:
+                self.driver.quit()
+            if self.detail_driver:
+                self.detail_driver.quit()
+
+    def fetch_listings(self, transaction_type: str) -> Iterator[PropertyListing]:
+        # Valid endpoints based on inspection: /vente, /location
+        category_url = "vente" if transaction_type == "Sale" else "location"
+        url = f"{self.base_url}/{category_url}"
+        
+        log.info(f"Scraping {transaction_type} from: {url}")
+        self.driver.get(url)
+        
+        # Wait for listings to load (hydration)
+        try:
+            WebDriverWait(self.driver, 20).until(
+                lambda d: len(d.find_elements(By.CSS_SELECTOR, "a[href*='/property/']")) > 0
+            )
+            time.sleep(2) # Extra buffer for images/text
+        except Exception:
+             log.warning("Timeout waiting for listings to load. Trying to parse anyway.")
+
+        # Pagination Loop
+        page = 1
+        max_pages = 20 # Limit for now
+        
+        while page <= max_pages:
+            log.info(f"Processing page {page}")
+            
+            # Parse current page source with BeautifulSoup
+            soup = BeautifulSoup(self.driver.page_source, "html.parser")
+            
+            # Find all links that point to a property
+            # The <a> tag wraps the entire card
+            property_links = [a for a in soup.find_all("a", href=True) if "/property/" in a["href"]]
+            
+            if not property_links:
+                log.warning(f"No listings found on page {page}. Stopping.")
+                break
+                
+            count = 0
+            # Use a set to avoid duplicates on the same page (if any)
+            seen_urls = set()
+            
+            for item in property_links:
+                try:
+                    href = item["href"]
+                    if href in seen_urls:
+                        continue
+                    seen_urls.add(href)
+                    
+                    listing = self.parse_listing(item, transaction_type)
+                    if listing:
+                        yield listing
+                        count += 1
+                except Exception as e:
+                    log.error(f"[{self.source_name}] Error parsing listing card {href}: {e}")
+            
+            log.info(f"Found {count} listings on page {page}")
+            
+            # Handle Pagination
+            try:
+                # Scroll to bottom
+                self.driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1)
+                
+                # Find the "Next" button. 
+                next_buttons = self.driver.find_elements(By.XPATH, "//button[contains(text(), 'Suivant') or contains(text(), 'Next')] | //a[contains(text(), 'Suivant') or contains(text(), 'Next')]")
+                
+                if not next_buttons:
+                     next_buttons = self.driver.find_elements(By.XPATH, "//button[contains(text(), '>')] | //a[contains(text(), '>')]")
+
+                if not next_buttons:
+                    next_page_num = page + 1
+                    next_buttons = self.driver.find_elements(By.XPATH, f"//button[text()='{next_page_num}'] | //a[text()='{next_page_num}']")
+
+                if next_buttons:
+                    btn = next_buttons[-1]
+                    if btn.is_enabled():
+                        btn.click()
+                        time.sleep(random.uniform(3, 5)) # Wait for load
+                        page += 1
+                    else:
+                        log.info("Next button disabled.")
+                        break
+                else:
+                    log.info("No next page button found.")
+                    break
+            except Exception as e:
+                log.error(f"Error navigating to next page: {e}")
+                break
+
+    def _scrape_detail(self, url: str) -> Optional[PropertyListing]:
+        """
+        Wrapper for parse_detail_page to support reprocess_listings.py interface
+        """
+        # Aqari sometimes needs transaction type. If not provided, we might need to guess or it defaults.
+        # parse_detail_page signature: (url, transaction_type)
+        # We can try to guess from URL
+        trans_type = "Sale"
+        if "/location" in url:
+            trans_type = "Rent"
+            
+        return self.parse_detail_page(url, trans_type)
+
+    def parse_detail_page(self, url: str, transaction_type: str) -> Optional[PropertyListing]:
+        """
+        Parses a detail page directly given its URL.
+        Useful for reprocessing or when card data is unavailable.
+        """
+        if not self.detail_driver:
+            self._setup_driver()
+
+        try:
+            log.info(f"[{self.source_name}] Fetching detail page: {url}")
+            self.detail_driver.get(url)
+            try:
+                WebDriverWait(self.detail_driver, 20).until(
+                    lambda d: len(d.page_source) > 5000
+                )
+            except:
+                log.warning(f"[{self.source_name}] Timeout waiting for page load, proceeding with available source.")
+
+            detail_html = self.detail_driver.page_source
+            detail_soup = BeautifulSoup(detail_html, "html.parser")
+            
+            # Defaults
+            title = "No Title"
+            description = ""
+            price = 0.0
+            surface_area = 0.0
+            rooms = 0
+            location_obj = Location(governorate="Tunis", city="Tunis")
+            images = []
+            prop_type = "Other"
+            
+            # 1. Try JSON-LD Parsing (Primary Strategy)
+            ld_scripts = detail_soup.find_all("script", type="application/ld+json")
+            for script in ld_scripts:
+                try:
+                    data = json.loads(script.get_text())
+                    if isinstance(data, dict):
+                        # Extract from RealEstateListing or Product
+                        if data.get("@type") in ["RealEstateListing", "Product", "Apartment", "House", "SingleFamilyResidence"]:
+                            if "name" in data: title = data["name"]
+                            if "description" in data: description = data["description"]
+                            
+                            # Price
+                            if "offers" in data and "price" in data["offers"]:
+                                try: price = float(data["offers"]["price"])
+                                except: pass
+                            elif "price" in data: # Direct price property
+                                try: 
+                                    if isinstance(data["price"], dict) and "value" in data["price"]:
+                                        price = float(data["price"]["value"])
+                                    else:
+                                        price = float(data["price"])
+                                except: pass
+                                
+                            # Location
+                            if "address" in data:
+                                addr = data["address"]
+                                if isinstance(addr, dict):
+                                    if "addressLocality" in addr: 
+                                        location_obj.city = addr["addressLocality"]
+                                        inferred = infer_governorate(location_obj.city)
+                                        if inferred:
+                                            location_obj.governorate = inferred
+                                    if "addressRegion" in addr: location_obj.governorate = addr["addressRegion"]
+                                    
+                            # Surface (floorSize)
+                            if "floorSize" in data:
+                                fs = data["floorSize"]
+                                if isinstance(fs, dict) and "value" in fs:
+                                    try: surface_area = float(fs["value"])
+                                    except: pass
+                            
+                            # Rooms
+                            if "numberOfRooms" in data:
+                                try: rooms = int(data["numberOfRooms"])
+                                except: pass
+                                
+                            # Property Type
+                            if "propertyType" in data:
+                                prop_type = data["propertyType"]
+                                
+                            # Images
+                            if "image" in data:
+                                if isinstance(data["image"], str): images.append(data["image"])
+                                elif isinstance(data["image"], list): images.extend(data["image"])
+
+                except Exception as e:
+                    continue
+
+            # 2. Try Meta Tags (Secondary Strategy - very reliable in Aqari)
+            if price == 0:
+                meta_price = detail_soup.find("meta", property="og:price:amount") or detail_soup.find("meta", property="product:price:amount")
+                if meta_price:
+                    try: price = float(meta_price.get("content"))
+                    except: pass
+            
+            if location_obj.city == "Tunis" and location_obj.governorate == "Tunis":
+                meta_loc = detail_soup.find("meta", property="og:locality")
+                if meta_loc:
+                    loc_content = meta_loc.get("content", "")
+                    parts = [p.strip() for p in loc_content.split(",")]
+                    if len(parts) >= 2:
+                        location_obj.city = parts[0]
+                        location_obj.governorate = parts[1]
+                    elif len(parts) == 1:
+                        location_obj.city = parts[0]
+                        inferred = infer_governorate(location_obj.city)
+                        if inferred:
+                            location_obj.governorate = inferred
+
+            if title == "No Title":
+                meta_title = detail_soup.find("meta", property="og:title")
+                if meta_title: title = meta_title.get("content")
+
+            if not description:
+                meta_desc = detail_soup.find("meta", property="og:description")
+                if meta_desc: description = meta_desc.get("content")
+
+            # 3. Fallback to Regex on Text
+            full_text = detail_soup.get_text(" ", strip=True)
+            
+            if surface_area == 0:
+                surf_match = re.search(r"(\d+)\s*m[²2]", full_text, re.IGNORECASE)
+                if surf_match:
+                    try: surface_area = float(surf_match.group(1))
+                    except: pass
+            
+            if rooms == 0:
+                room_match = re.search(r"(\d+)\s*chambres?", full_text, re.IGNORECASE)
+                if room_match:
+                    try: rooms = int(room_match.group(1))
+                    except: pass
+
+            # ID
+            source_id = "unknown"
+            match = re.search(r'/property/([a-zA-Z0-9-]+)', url)
+            if match:
+                source_id = match.group(1)
+            else:
+                import hashlib
+                source_id = hashlib.md5(url.encode()).hexdigest()
+
+            return PropertyListing(
+                source_id=source_id,
+                source_name=self.source_name,
+                url=url,
+                title=title,
+                description=description,
+                price=price,
+                currency="TND",
+                surface_area_m2=surface_area,
+                rooms=rooms,
+                location=location_obj,
+                images=list(dict.fromkeys(images)), # Deduplicate
+                scraped_at=datetime.now(),
+                transaction_type=transaction_type,
+                property_type=prop_type
+            )
+
+        except Exception as e:
+            log.error(f"[{self.source_name}] Error parsing detail page {url}: {e}")
+            if self.detail_driver:
+                try:
+                    self.detail_driver.quit()
+                except:
+                    pass
+                self.detail_driver = None
+            return None
+
+    def _scrape_detail(self, url: str) -> Optional[PropertyListing]:
+        """
+        Scrapes a single detail page.
+        Used by reprocess_listings.py
+        """
+        transaction_type = "Sale" # Default
+        if "/location/" in url:
+            transaction_type = "Rent"
+            
+        return self.parse_detail_page(url, transaction_type)
+
+    def parse_listing(self, item: Any, transaction_type: str) -> Optional[PropertyListing]:
+        # Reuse parse_detail_page logic if we navigate to it, 
+        # but here we might want to just grab the URL and let the reprocessing handle details
+        # OR we can try to get basic info from the card.
+        # Given the user wants high quality data, and we have Selenium, 
+        # we can either navigate to detail page HERE or just extract minimal info.
+        # Since 'reprocess_listings.py' is the main goal for "no null values", 
+        # let's extract what we can from the card and rely on reprocessing for the rest,
+        # OR if we are running the scraper fresh, we might want to click through.
+        
+        # For now, let's keep the lightweight card extraction, but ensure the URL is correct
+        # so reprocessing can do its job.
+        
+        try:
+            relative_url = item["href"]
+            if not relative_url.startswith("http"):
+                 url = f"{self.base_url.rstrip('/')}/{relative_url.lstrip('/')}"
+            else:
+                 url = relative_url
+            
+            # If we want to be thorough during the main run, we can call parse_detail_page
+            # But that slows down the main scraper significantly. 
+            # The user asked for "reprocess all old data", implying the main scraper might be light.
+            # However, for new data, we want it to be good too.
+            # Let's call parse_detail_page if we are in the main run loop.
+            
+            return self.parse_detail_page(url, transaction_type)
+            
+        except Exception as e:
+            log.error(f"Parse listing error: {e}")
+            return None
 
 
 class MubawabScraper(BaseScraper):
