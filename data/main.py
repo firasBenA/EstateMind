@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from config.logging_config import log
-from scrapers.all_scrapers import build_all_scrapers, AqariScraper
+from scrapers.all_scrapers import build_all_scrapers
 from ai_agent.agent import IntelligentScrapingAgent
 
 
@@ -88,16 +88,28 @@ def run_job(
         )
     log.info("=" * 60)
 
+    if store_vectors and vector_db:
+        log.info("Starting preprocessing pipeline...")
+        from preprocessing.pipeline import PreprocessingPipeline
+        pipeline = PreprocessingPipeline(vector_db)
+        report = pipeline.run(export=True)
+        
+        log.info(f"Preprocessing complete: {report['total_records']} records")
+        log.info(f"Quality scores: {report['steps']['scorer']['score_distribution']}")
+
     return summary
 
 
 def start_scheduler(store_vectors: bool = True, embedding_strategy: str = "huggingface"):
     log.info("Scheduler started — running every 24 hours")
     run_job(store_vectors=store_vectors, embedding_strategy=embedding_strategy)
-    schedule.every(24).hours.do(
+    schedule.every(1).hours.do(
         run_job,
+        
         store_vectors=store_vectors,
         embedding_strategy=embedding_strategy,
+        
+        
     )
     while True:
         schedule.run_pending()
