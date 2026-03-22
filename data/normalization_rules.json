@@ -1,0 +1,198 @@
+{
+  "price": {
+    "remove": [
+      "TND",
+      "DT",
+      "dinars",
+      "dinar",
+      "€",
+      "$"
+    ],
+    "thousands_sep": [
+      " ",
+      ","
+    ],
+    "decimal_sep": ".",
+    "min": 500,
+    "max": 50000000,
+    "output_type": "float"
+  },
+  "surface": {
+    "remove": [
+      "m²",
+      "m2",
+      "mètres",
+      "metres",
+      "m"
+    ],
+    "decimal_sep": ".",
+    "min": 10,
+    "max": 10000,
+    "output_type": "float"
+  },
+  "rooms": {
+    "patterns": [
+      {
+        "regex": "S\\s*\\+\\s*(\\d+)",
+        "add": 1
+      },
+      {
+        "regex": "(\\d+)\\s*chambres?"
+      },
+      {
+        "regex": "(\\d+)\\s*pi[eè]ces?"
+      },
+      {
+        "regex": "studio",
+        "value": 1
+      },
+      {
+        "regex": "F(\\d+)",
+        "extract": 1
+      },
+      {
+        "regex": "T(\\d+)",
+        "extract": 1
+      }
+    ],
+    "min": 1,
+    "max": 20,
+    "output_type": "int"
+  },
+  "city": {
+    "split": [
+      "|",
+      ","
+    ],
+    "take_first": true,
+    "title_case": true,
+    "output_type": "string"
+  },
+  "governorate": {
+    "mapping": {
+      "tunis": "Tunis",
+      "ariana": "Ariana",
+      "ariane": "Ariana",
+      "ben arous": "Ben Arous",
+      "benarous": "Ben Arous",
+      "manouba": "Manouba",
+      "nabeul": "Nabeul",
+      "zaghouan": "Zaghouan",
+      "bizerte": "Bizerte",
+      "béja": "Béja",
+      "beja": "Béja",
+      "jendouba": "Jendouba",
+      "kef": "Le Kef",
+      "le kef": "Le Kef",
+      "siliana": "Siliana",
+      "sousse": "Sousse",
+      "monastir": "Monastir",
+      "mahdia": "Mahdia",
+      "sfax": "Sfax",
+      "kairouan": "Kairouan",
+      "kasserine": "Kasserine",
+      "sidi bouzid": "Sidi Bouzid",
+      "gabès": "Gabès",
+      "gabes": "Gabès",
+      "médenine": "Médenine",
+      "medenine": "Médenine",
+      "tataouine": "Tataouine",
+      "gafsa": "Gafsa",
+      "tozeur": "Tozeur",
+      "kébili": "Kébili",
+      "kebili": "Kébili"
+    },
+    "output_type": "string"
+  },
+  "district": {
+    "output_type": "string"
+  },
+  "transaction_type": {
+    "mapping": {
+      "vente": "Sale",
+      "vendre": "Sale",
+      "achat": "Sale",
+      "acheter": "Sale",
+      "location": "Rent",
+      "louer": "Rent",
+      "loyer": "Rent",
+      "rent": "Rent",
+      "sale": "Sale"
+    },
+    "default": "Sale",
+    "output_type": "string"
+  },
+  "property_type": {
+    "mapping": {
+      "appartement": "Apartment",
+      "appart": "Apartment",
+      "studio": "Apartment",
+      "villa": "Villa",
+      "maison": "Villa",
+      "house": "Villa",
+      "duplex": "Villa",
+      "triplex": "Villa",
+      "terrain": "Land",
+      "land": "Land",
+      "bureau": "Commercial",
+      "office": "Commercial",
+      "commerce": "Commercial",
+      "local": "Commercial",
+      "commercial": "Commercial"
+    },
+    "default": "Other",
+    "output_type": "string"
+  },
+  "features": {
+    "keywords": {
+      "piscine": [
+        "piscine",
+        "swimming pool",
+        "pool"
+      ],
+      "parking": [
+        "parking",
+        "garage",
+        "box"
+      ],
+      "jardin": [
+        "jardin",
+        "garden",
+        "yard"
+      ],
+      "vue mer": [
+        "vue mer",
+        "sea view",
+        "ocean view"
+      ],
+      "ascenseur": [
+        "ascenseur",
+        "elevator",
+        "lift"
+      ],
+      "meublé": [
+        "meublé",
+        "furnished"
+      ],
+      "climatisation": [
+        "climatisation",
+        "climatisé",
+        "clim",
+        "air conditioning"
+      ],
+      "chauffage": [
+        "chauffage",
+        "heating"
+      ],
+      "balcon": [
+        "balcon",
+        "balcony"
+      ],
+      "terrasse": [
+        "terrasse",
+        "terrace"
+      ]
+    },
+    "output_type": "list"
+  }
+}
