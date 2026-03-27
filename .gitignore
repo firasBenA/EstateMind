@@ -15,6 +15,7 @@ db.sqlite3
 logs/
 temp_drivers/
 data/raw/
+data/exports/
 
 # Node / React
 node_modules/
