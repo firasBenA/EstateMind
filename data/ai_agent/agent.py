@@ -109,7 +109,7 @@ class IntelligentScrapingAgent:
     """
 
     def __init__(self, scrapers, vector_db=None, store_vectors=True,
-                 deduplicate=True, pipeline=None, enrich=True, fetch_pois=False):
+                 deduplicate=True, pipeline=None, enrich=True, fetch_pois=True):
         self.scrapers = scrapers
         self.vector_db = vector_db
         self.store_vectors = store_vectors and vector_db is not None
@@ -145,16 +145,56 @@ class IntelligentScrapingAgent:
         time.sleep(wait_s + random.uniform(0, 30))
         self.state = AgentState.RUNNING
 
+    # def _enrich(self, listing: PropertyListing) -> PropertyListing:
+    #     # 1. Features
+    #     if not listing.features:
+    #         try:
+    #             from core.feature_extraction import enrich_listing_features
+    #             listing = enrich_listing_features(listing)
+    #         except Exception as e:
+    #             logger.debug(f"features {listing.source_id}: {e}")
+    #     # 2. Geocoding
+    #     if not listing.location.latitude or not listing.location.longitude:
+    #         try:
+    #             from core.geolocation import geocode_location
+    #             lat, lon, muni = geocode_location(
+    #                 city=listing.location.city,
+    #                 governorate=listing.location.governorate,
+    #                 address=listing.location.address,
+    #             )
+    #             if lat and lon:
+    #                 listing.location.latitude = lat; listing.location.longitude = lon
+    #             if muni and not listing.location.municipalite:
+    #                 listing.location.municipalite = muni
+    #         except Exception as e:
+    #             logger.debug(f"geocode {listing.source_id}: {e}")
+    #     # 3. Zone
+    #     if listing.location.governorate and not listing.location.zone:
+    #         try:
+    #             from core.base_scraper import infer_zone
+    #             listing.location.zone = infer_zone(listing.location.governorate)
+    #         except Exception as e:
+    #             logger.debug(f"zone {listing.source_id}: {e}")
+    #     # 4. POIs (optional, slow)
+    #     if self.fetch_pois and not listing.pois and listing.location.latitude and listing.location.longitude:
+    #         try:
+    #             from core.geolocation import fetch_pois
+    #             listing.pois = fetch_pois(listing.location.latitude, listing.location.longitude)
+    #         except Exception as e:
+    #             logger.debug(f"pois {listing.source_id}: {e}")
+    #     return listing
     def _enrich(self, listing: PropertyListing) -> PropertyListing:
-        # 1. Features
+        """Enrich listing with features, geocoding, zone, and POIs"""
+        # 1. Features extraction (from DOM or LLM-like fallback)
         if not listing.features:
             try:
                 from core.feature_extraction import enrich_listing_features
                 listing = enrich_listing_features(listing)
             except Exception as e:
-                logger.debug(f"features {listing.source_id}: {e}")
-        # 2. Geocoding
-        if not listing.location.latitude or not listing.location.longitude:
+                logger.debug(f"features extraction failed for {listing.source_id}: {e}")
+
+        # 2. Geocoding - ONLY if coordinates are missing (don't overwrite!)
+        if (not listing.location.latitude or not listing.location.longitude):
             try:
                 from core.geolocation import geocode_location
                 lat, lon, muni = geocode_location(
@@ -163,25 +203,42 @@ class IntelligentScrapingAgent:
                     address=listing.location.address,
                 )
                 if lat and lon:
-                    listing.location.latitude = lat; listing.location.longitude = lon
+                    listing.location.latitude = lat
+                    listing.location.longitude = lon
                 if muni and not listing.location.municipalite:
                     listing.location.municipalite = muni
             except Exception as e:
-                logger.debug(f"geocode {listing.source_id}: {e}")
-        # 3. Zone
+                logger.debug(f"geocoding failed for {listing.source_id}: {e}")
+        else:
+            logger.debug(f"Skipping geocoding for {listing.source_id} - coordinates already present")
+
+        # 3. Zone inference (based on governorate) - ONLY if zone missing
         if listing.location.governorate and not listing.location.zone:
             try:
                 from core.base_scraper import infer_zone
                 listing.location.zone = infer_zone(listing.location.governorate)
             except Exception as e:
-                logger.debug(f"zone {listing.source_id}: {e}")
-        # 4. POIs (optional, slow)
-        if self.fetch_pois and not listing.pois and listing.location.latitude and listing.location.longitude:
+                logger.debug(f"zone inference failed for {listing.source_id}: {e}")
+
+        # 4. POIs - ONLY if coordinates exist and POIs are missing
+        if (self.fetch_pois and not listing.pois and 
+            listing.location.latitude and listing.location.longitude):
             try:
                 from core.geolocation import fetch_pois
-                listing.pois = fetch_pois(listing.location.latitude, listing.location.longitude)
+                import concurrent.futures
+                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                    future = executor.submit(
+                        fetch_pois, 
+                        listing.location.latitude, 
+                        listing.location.longitude
+                    )
+                    try:
+                        listing.pois = future.result(timeout=10)
+                    except concurrent.futures.TimeoutError:
+                        logger.debug(f"POI fetch timeout for {listing.source_id}")
             except Exception as e:
-                logger.debug(f"pois {listing.source_id}: {e}")
+                logger.debug(f"POI enrichment failed for {listing.source_id}: {e}")
+        
         return listing
 
     def _store(self, listing: PropertyListing) -> bool:

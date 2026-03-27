@@ -15,8 +15,9 @@ export function LoginCard() {
     setLoading(true);
     try {
       await login(username, password);
-    } catch (err: any) {
-      setError(err.message || "Login failed");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Login failed";
+      setError(msg);
     } finally {
       setLoading(false);
     }

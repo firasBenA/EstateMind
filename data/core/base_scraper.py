@@ -15,9 +15,9 @@ import time
 import random
 import hashlib
 from abc import ABC, abstractmethod
-from typing import Generator, Optional, Dict, Any, List
+from typing import Generator, Optional, Dict, Any, List , Tuple
 from datetime import datetime
-
+from bs4 import BeautifulSoup
 import requests
 from fake_useragent import UserAgent
 
@@ -85,6 +85,69 @@ ZONE_MAP: Dict[str, str] = {
 }
 
 
+def _make_selenium_driver(headless: bool = True):
+    """Create a Selenium Chrome driver with proper configuration."""
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
+    from selenium.webdriver.chrome.options import Options
+    import shutil
+    import os
+    import platform
+
+    options = Options()
+    env_h = os.getenv("HEADLESS")
+    if env_h is not None:
+        headless = env_h.lower() in ("1", "true", "yes", "on")
+    if headless:
+        options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument(
+        "user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) "
+        "Chrome/91.0.4472.124 Safari/537.36"
+    )
+    options.add_argument("--log-level=3")
+    try:
+        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    except Exception:
+        pass
+
+    chrome_binary_env = os.getenv("CHROME_BINARY") or os.getenv("CHROME_BINARY_PATH") or os.getenv("GOOGLE_CHROME_BIN")
+    chromedriver_env = os.getenv("CHROMEDRIVER_PATH")
+
+    chrome_path = chrome_binary_env or shutil.which("chromium") or shutil.which("chromium-browser") or shutil.which("google-chrome")
+    if not chrome_path and platform.system().lower().startswith("win"):
+        default_paths = [
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        ]
+        for p in default_paths:
+            if os.path.exists(p):
+                chrome_path = p
+                break
+
+    chromedriver_path = chromedriver_env or shutil.which("chromedriver")
+
+    if chrome_path:
+        options.binary_location = chrome_path
+        if chromedriver_path:
+            service = Service(chromedriver_path)
+        else:
+            from webdriver_manager.chrome import ChromeDriverManager
+            from webdriver_manager.core.driver_cache import DriverCacheManager
+            cache_manager = DriverCacheManager(root_dir="./temp_drivers")
+            service = Service(ChromeDriverManager(cache_manager=cache_manager).install())
+    else:
+        from webdriver_manager.chrome import ChromeDriverManager
+        from webdriver_manager.core.driver_cache import DriverCacheManager
+        cache_manager = DriverCacheManager(root_dir="./temp_drivers")
+        service = Service(ChromeDriverManager(cache_manager=cache_manager).install())
+
+    return webdriver.Chrome(service=service, options=options)
+
 def infer_governorate(text: str) -> Optional[str]:
     """Return normalized governorate name from any city/district text."""
     if not text:
@@ -120,8 +183,24 @@ def parse_tunisian_price(text: str) -> Optional[float]:
     """
     if not text:
         return None
+    lower = str(text).strip().lower()
+
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(mdt|m\s*dt|millions?|million)\b", lower)
+    if m:
+        try:
+            return float(m.group(1).replace(",", ".")) * 1_000_000
+        except Exception:
+            return None
+
+    m = re.search(r"(\d+(?:[.,]\d+)?)\s*(k|mille)\b", lower)
+    if m:
+        try:
+            return float(m.group(1).replace(",", ".")) * 1_000
+        except Exception:
+            return None
+
     # Remove non-numeric chars except space, comma, dot
-    clean = re.sub(r"[^\d\s,.]", "", text)
+    clean = re.sub(r"[^\d\s,.]", "", lower)
     # Remove space-thousands separator: "450 000" → "450000"
     clean = re.sub(r"(\d)\s+(\d{3})\b", r"\1\2", clean).strip()
     # Remove comma-thousands: "450,000" → "450000"
@@ -253,19 +332,49 @@ class BaseScraper(ABC):
         self,
         city: Optional[str] = None,
         governorate: Optional[str] = None,
+        municipalite: Optional[str] = None,
         district: Optional[str] = None,
         address: Optional[str] = None,
         latitude: Optional[float] = None,
         longitude: Optional[float] = None,
     ) -> Location:
-        """Build a Location with auto-inferred governorate and zone."""
+        """Build a Location with auto-inferred governorate, zone, and missing details via data.ts."""
+        from core.geolocation import _match_local_delegation, infer_governorate
+
+        # Step 1: Infer governorate from city if missing
         if not governorate and city:
             governorate = infer_governorate(city)
+        
+        # Step 2: Consolidate district/municipality
+        if not municipalite and district:
+            municipalite = district
+
+        # Step 3: Attempt to match against data.ts to fill missing fields
+        local_match = _match_local_delegation(city, governorate, address or municipalite)
+        if local_match:
+            # If data.ts found a match, fill in the blanks
+            if not governorate and local_match.get("governorate_name"):
+                governorate = local_match["governorate_name"].title()
+            
+            # Use matched municipality if we don't have one
+            muni_val = local_match.get("muni_value") or local_match.get("muni_name")
+            if not municipalite and muni_val:
+                municipalite = muni_val.title()
+                
+            # If coordinates are missing, use data.ts coordinates
+            if latitude is None and local_match.get("lat") is not None:
+                latitude = float(local_match["lat"])
+            if longitude is None and local_match.get("lon") is not None:
+                longitude = float(local_match["lon"])
+
+        # Step 4: Infer zone based on final governorate
         zone = infer_zone(governorate) if governorate else None
+        
         return Location(
             governorate=governorate,
             zone=zone,
             city=city,
+            municipalite=municipalite,
             district=district,
             address=address,
             latitude=latitude,

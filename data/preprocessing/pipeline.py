@@ -133,13 +133,15 @@ class PreprocessingPipeline:
             if self.vector_db is None:
                 logger.warning("[Pipeline] No vector_db — using empty list")
                 return []
-            records, total = self.vector_db._fetch_all_metadata(
+            
+            # Use public fetch_all_metadata instead of private _fetch_all_metadata
+            records = self.vector_db.fetch_all_metadata(
                 limit=PINECONE_FETCH_LIMIT
             )
             report["steps"]["fetch"] = {
                 "status":  "ok",
                 "fetched": len(records),
-                "total":   total,
+                "total":   len(records), # total is approximate in fetch_all_metadata
             }
             logger.info(f"[Pipeline] Fetched {len(records)} records")
             return records
@@ -282,10 +284,15 @@ class PreprocessingPipeline:
         try:
             upserted = 0
             errors   = 0
-            # Fields to upsert back — only metadata, not vectors (vectors unchanged)
+            # Standardized schema: id, property_id, source_name, url, type, title, description, 
+            # price, surface, rooms, region, zone, city, municipalite, latitude, longitude, 
+            # images, image_count, features, scraped_at, last_update, transaction_type, currency, poi
             clean_fields = [
-                "price", "surface", "rooms", "city", "region", "zone",
-                "municipalite", "transaction_type", "type", "features",
+                "property_id", "source_name", "url", "type", "title", "description",
+                "price", "surface", "rooms", "region", "zone", "city", "municipalite",
+                "latitude", "longitude", "images", "image_count", "features",
+                "scraped_at", "last_update", "transaction_type", "currency", "poi",
+                # Plus the pipeline flags
                 "normalized", "nlp_enriched", "nlp_filled_fields",
                 "reliability_score", "reliability_level", "should_drop",
                 "model_weight", "is_outlier", "outlier_flags",

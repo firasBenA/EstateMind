@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import os
 import time
+from pathlib import Path
 from typing import List, Optional, Dict, Any
 
 from loguru import logger
+from sympy import limit
 
 from core.models import PropertyListing
 
@@ -88,14 +90,26 @@ class VectorDBHandler:
         region: str = "us-east-1",
         strategy: str = "huggingface",
     ):
-        self.api_key    = api_key or os.getenv("PINECONE_API_KEY")
+        try:
+            from dotenv import load_dotenv
+
+            data_dir = Path(__file__).resolve().parents[1]
+            project_root = data_dir.parent
+            load_dotenv(data_dir / ".env")
+            load_dotenv(project_root / ".env")
+        except Exception:
+            pass
+
+        self.api_key = api_key or os.getenv("PINECONE_API_KEY")
         if not self.api_key:
-            raise ValueError("PINECONE_API_KEY not set in .env")
+            raise ValueError(
+                "PINECONE_API_KEY not set. Ensure env vars are loaded (data/.env or project root .env)."
+            )
 
         self.index_name = index_name
-        self.cloud      = cloud
-        self.region     = region
-        self.strategy   = strategy
+        self.cloud = cloud
+        self.region = region
+        self.strategy = strategy
 
         cfg = EMBEDDING_STRATEGIES.get(strategy)
         if not cfg:
@@ -103,17 +117,17 @@ class VectorDBHandler:
                 f"Unknown strategy '{strategy}'. Only 'huggingface' is supported."
             )
         self.model_name: str = cfg["model_name"]
-        self.dimension: int  = cfg["dimension"]
+        self.dimension: int = cfg["dimension"]
 
         try:
             from pinecone import Pinecone, ServerlessSpec
-            self._Pinecone       = Pinecone
+            self._Pinecone = Pinecone
             self._ServerlessSpec = ServerlessSpec
         except ImportError:
             raise RuntimeError("pip install pinecone")
 
         self.client = self._Pinecone(api_key=self.api_key)
-        self.index  = None
+        self.index = None
         self._connect()
 
     # ── Connection ────────────────────────────────────────────────────────────
@@ -128,7 +142,8 @@ class VectorDBHandler:
                 name=self.index_name,
                 dimension=self.dimension,
                 metric="cosine",
-                spec=self._ServerlessSpec(cloud=self.cloud, region=self.region),
+                spec=self._ServerlessSpec(
+                    cloud=self.cloud, region=self.region),
             )
             for _ in range(60):
                 desc = self.client.describe_index(self.index_name)
@@ -153,17 +168,20 @@ class VectorDBHandler:
         None metadata values are stripped — Pinecone rejects nulls.
         """
         try:
-            text       = listing.to_embedding_text()
-            embedding  = self._embed([text])[0]
-            vector_id  = f"{listing.source_name}:{listing.source_id}"
-            metadata   = _clean_metadata(listing.to_vector_metadata())
+            text = listing.to_embedding_text()
+            embedding = self._embed([text])[0]
+            vector_id = f"{listing.source_name}:{listing.source_id}"
+            metadata = _clean_metadata(listing.to_vector_metadata())
 
             self.index.upsert(vectors=[{
                 "id":       vector_id,
                 "values":   embedding,
                 "metadata": metadata,
             }])
-            logger.debug(f"Upserted {vector_id}")
+            if os.getenv("DETAILED_LOGS", "").lower() in ("1","true","yes","on"):
+                logger.info(f"[Pinecone] upsert id={vector_id} dims={len(embedding)} meta_keys={len(metadata)}")
+            else:
+                logger.debug(f"Upserted {vector_id}")
             return True
         except Exception as e:
             logger.error(f"Failed to upsert {listing.source_id}: {e}")
@@ -180,12 +198,13 @@ class VectorDBHandler:
         """
         stats = {"success": 0, "failed": 0}
         for i in range(0, len(listings), batch_size):
-            batch = listings[i : i + batch_size]
+            batch = listings[i: i + batch_size]
             texts = [l.to_embedding_text() for l in batch]
             try:
                 embeddings = self._embed(texts)
             except Exception as e:
-                logger.error(f"Embedding batch {i // batch_size + 1} failed: {e}")
+                logger.error(
+                    f"Embedding batch {i // batch_size + 1} failed: {e}")
                 stats["failed"] += len(batch)
                 continue
 
@@ -219,7 +238,7 @@ class VectorDBHandler:
     ) -> List[Dict[str, Any]]:
         """Semantic similarity search with optional metadata filters."""
         try:
-            q_emb   = self._embed([query])[0]
+            q_emb = self._embed([query])[0]
             results = self.index.query(
                 vector=q_emb,
                 top_k=top_k,
@@ -241,24 +260,34 @@ class VectorDBHandler:
         """Find listings similar to a given one (for price comparison)."""
         return self.semantic_search(
             query=listing.to_embedding_text(),
-            top_k=top_k + 1,
+            top_k=top_k,
             filters={"transaction_type": {"$eq": listing.transaction_type}},
         )
 
-    def check_duplicate(
-        self, listing: PropertyListing, threshold: float = 0.97
-    ) -> bool:
-        """True if a near-identical listing already exists (cross-source dedup)."""
-        results = self.semantic_search(listing.to_embedding_text(), top_k=1)
-        if results and results[0]["score"] >= threshold:
-            existing_id = results[0]["id"]
-            if existing_id != f"{listing.source_name}:{listing.source_id}":
-                logger.debug(
-                    f"Duplicate: {listing.source_id} ≈ {existing_id} "
-                    f"(score={results[0]['score']:.3f})"
-                )
+    def check_duplicate(self, listing: PropertyListing, threshold: float = 0.98) -> bool:
+        """
+        Check if a listing already exists in Pinecone.
+        1. Exact ID check (fastest)
+        2. Semantic similarity check (optional, set threshold=1.0 to disable)
+        """
+        vector_id = f"{listing.source_name}:{listing.source_id}"
+        try:
+            # 1. Exact ID check
+            res = self.index.fetch(ids=[vector_id])
+            if res and res.vectors and vector_id in res.vectors:
                 return True
-        return False
+            
+            # 2. Semantic check (if enabled)
+            if threshold < 1.0:
+                results = self.semantic_search(query=listing.to_embedding_text(), top_k=1)
+                if results and results[0]["score"] >= threshold:
+                    # Double check it's not the same source (same source + different ID + high similarity = likely dupe)
+                    # or same address + same price
+                    return True
+            return False
+        except Exception as e:
+            logger.error(f"Duplicate check failed: {e}")
+            return False
 
     # ── Stats / maintenance ───────────────────────────────────────────────────
 
@@ -283,8 +312,9 @@ class VectorDBHandler:
             if not ids_to_delete:
                 return 0
             for i in range(0, len(ids_to_delete), 1000):
-                self.index.delete(ids=ids_to_delete[i : i + 1000])
-            logger.info(f"Deleted {len(ids_to_delete)} vectors for {source_name}")
+                self.index.delete(ids=ids_to_delete[i: i + 1000])
+            logger.info(
+                f"Deleted {len(ids_to_delete)} vectors for {source_name}")
             return len(ids_to_delete)
         except Exception as e:
             logger.error(f"delete_by_source failed: {e}")
@@ -293,3 +323,91 @@ class VectorDBHandler:
     def close(self):
         """No-op — Pinecone is a managed service."""
         pass
+    # Add this corrected method to VectorDBHandler in database/vector_db.py
+
+    def fetch_all_metadata(self, limit: int = 10000) -> List[Dict[str, Any]]:
+        """
+        Fetch all vectors with their metadata from Pinecone.
+        Streams IDs using index.list and fetches in small batches.
+        """
+        try:
+            all_metadata: List[Dict[str, Any]] = []
+            list_batch_size = 100
+            fetch_batch_size = 10
+            total_fetched = 0
+
+            for ids_page in self.index.list(prefix="", limit=list_batch_size):
+                ids_list = list(ids_page) if not isinstance(ids_page, list) else ids_page
+                if not ids_list:
+                    continue
+                for i in range(0, len(ids_list), fetch_batch_size):
+                    batch_ids = ids_list[i : i + fetch_batch_size]
+                    try:
+                        result = self.index.fetch(ids=batch_ids)
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch batch {batch_ids}: {e}")
+                        continue
+                    if not result or not getattr(result, "vectors", None):
+                        continue
+                    for vector_id, vector_data in result.vectors.items():
+                        md = (getattr(vector_data, "metadata", None) or {})
+                        md["_id"] = vector_id
+                        if "property_id" not in md:
+                            md["property_id"] = vector_id.split(":")[-1] if ":" in vector_id else vector_id
+                        all_metadata.append(md)
+                        total_fetched += 1
+                        if total_fetched >= limit:
+                            logger.info(f"Reached limit of {limit} records")
+                            return all_metadata[:limit]
+
+            logger.info(f"Fetched {len(all_metadata)} vectors from Pinecone")
+            return all_metadata
+        except Exception as e:
+            logger.error(f"Failed to fetch all metadata: {e}")
+            return []
+
+
+    def fetch_by_source(self, source_name: str, limit: int = 10000) -> List[Dict[str, Any]]:
+        """
+        Fetch all vectors for a specific source by ID prefix.
+        """
+        try:
+            all_metadata: List[Dict[str, Any]] = []
+            list_batch_size = 100
+            fetch_batch_size = 10
+            total_fetched = 0
+
+            # Correctly handle the iterable from index.list
+            for ids_page in self.index.list(prefix=f"{source_name}:", limit=list_batch_size):
+                # Pinecone index.list returns a generator of lists of strings
+                if not ids_page:
+                    continue
+                
+                # Ensure ids_page is treated as a list of strings
+                ids_list = list(ids_page)
+                
+                logger.info(f"Processing {len(ids_list)} vectors for source {source_name}")
+                for i in range(0, len(ids_list), fetch_batch_size):
+                    batch_ids = ids_list[i : i + fetch_batch_size]
+                    try:
+                        result = self.index.fetch(ids=batch_ids)
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch batch {batch_ids}: {e}")
+                        continue
+                    if not result or not getattr(result, "vectors", None):
+                        continue
+                    for vector_id, vector_data in result.vectors.items():
+                        md = (getattr(vector_data, "metadata", None) or {})
+                        md["_id"] = vector_id
+                        if "property_id" not in md:
+                            md["property_id"] = vector_id.split(":")[-1] if ":" in vector_id else vector_id
+                        all_metadata.append(md)
+                        total_fetched += 1
+                        if total_fetched >= limit:
+                            return all_metadata[:limit]
+
+            logger.info(f"Fetched {len(all_metadata)} vectors for source {source_name}")
+            return all_metadata
+        except Exception as e:
+            logger.error(f"Failed to fetch by source {source_name}: {e}")
+            return []

@@ -132,30 +132,39 @@ class PropertyListing(BaseModel):
         return " ".join(p for p in parts if p)
 
     def to_vector_metadata(self) -> Dict[str, Any]:
-        """Payload for Pinecone / Qdrant point — all filterable fields."""
+        """
+        Payload for Pinecone / Qdrant point — all filterable fields.
+        Schema matches the core database structure:
+        id, property_id, source_name, url, type, title, description, price, surface, 
+        rooms, region, zone, city, municipalite, latitude, longitude, images, 
+        image_count, features, scraped_at, last_update, transaction_type, currency, poi
+        """
         loc = self.location
         return {
+            "id": f"{self.source_name}:{self.source_id}",
             "property_id": self.source_id,
             "source_name": self.source_name,
             "url": self.url,
             "type": self.property_type,
             "title": self.title,
-            "description": (self.description or "")[:500],
+            "description": self.description or "",
             "price": self.price,
-            "currency": self.currency,
-            "transaction_type": self.transaction_type,
+            "surface": self.surface_area_m2,
+            "rooms": self.rooms,
             "region": loc.governorate,
             "zone": loc.zone,
             "city": loc.city,
             "municipalite": loc.municipalite,
             "latitude": loc.latitude,
             "longitude": loc.longitude,
-            "surface": self.surface_area_m2,
-            "rooms": self.rooms,
+            "images": self.images,
             "image_count": self.image_count,
-            "features": self.features,          # stored as list — filterable in Pinecone
+            "features": self.features,
+            "scraped_at": self.scraped_at.isoformat() if self.scraped_at else None,
+            "last_update": self.last_update.isoformat() if self.last_update else datetime.utcnow().isoformat(),
+            "transaction_type": self.transaction_type,
+            "currency": self.currency,
             "poi": [p.name for p in self.pois],
-            "scraped_at": self.scraped_at.isoformat() if self.scraped_at else "",
         }
 
 

@@ -1,3 +1,5 @@
+# preprocessing/pipeline.py - Replace the location geocoding section
+
 from typing import List
 from core.base_scraper import BaseScraper
 from core.models import PropertyListing, POI
@@ -46,7 +48,8 @@ class ScrapingPipeline:
                 loc = None
 
             if loc is not None:
-                if not getattr(loc, "latitude", None) or not getattr(loc, "longitude", None) or not getattr(loc, "district", None):
+                # ONLY geocode if coordinates are missing
+                if (not getattr(loc, "latitude", None) or not getattr(loc, "longitude", None)):
                     g_lat, g_lon, g_muni = geocode_location(
                         city=getattr(loc, "city", None),
                         governorate=getattr(loc, "governorate", None),
@@ -59,7 +62,10 @@ class ScrapingPipeline:
                         loc.district = g_muni
                     listing.location = loc
 
-                if not getattr(listing, "pois", None) and getattr(loc, "latitude", None) and getattr(loc, "longitude", None):
+                # ONLY fetch POIs if coordinates exist and POIs missing
+                if (not getattr(listing, "pois", None) and 
+                    getattr(loc, "latitude", None) and 
+                    getattr(loc, "longitude", None)):
                     pois = fetch_pois(loc.latitude, loc.longitude)
                     listing.pois = pois
 
@@ -67,15 +73,14 @@ class ScrapingPipeline:
             extension = "json"
             
             if hasattr(listing, 'raw_content') and listing.raw_content:
-                 raw_content = listing.raw_content
-                 if raw_content.strip().startswith("<"):
-                     extension = "html"
-                 else:
-                     extension = "json"
+                raw_content = listing.raw_content
+                if raw_content.strip().startswith("<"):
+                    extension = "html"
+                else:
+                    extension = "json"
             else:
-                 # Fallback: Serialize the listing itself
-                 raw_content = listing.model_dump_json()
-                 extension = "json"
+                raw_content = listing.model_dump_json()
+                extension = "json"
 
             saved_path = self.storage.save_raw_data(listing.source_name, listing.source_id, raw_content, extension)
             if saved_path:
@@ -93,6 +98,7 @@ class ScrapingPipeline:
                 stats["unchanged"] += 1
             else:
                 stats["error"] += 1
+                
         log.info(f"Finished {scraper.source_name}: Fetched={stats['fetched']} | Inserted={stats['inserted']} | Updated={stats['updated']} | Unchanged={stats['unchanged']} | Errors={stats['error']}")
         return stats
 

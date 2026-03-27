@@ -17,6 +17,7 @@ import schedule
 from typing import Optional
 
 from dotenv import load_dotenv
+import os
 load_dotenv()
 
 from config.logging_config import log
@@ -42,27 +43,50 @@ def run_job(
     store_vectors: bool = True,
     site_filter: Optional[str] = None,
     embedding_strategy: str = "huggingface",
-) -> dict:
+    ) -> dict:
     """
     Run one full scraping cycle.
     Returns the agent summary dict.
     """
     scrapers = build_all_scrapers()
     if site_filter:
-        scrapers = [s for s in scrapers if s.source_name == site_filter]
-        if not scrapers:
-            log.error(f"Unknown site '{site_filter}'")
+        # Flexible site filtering (case-insensitive, handles aliases)
+        site_map = {s.source_name.lower(): s for s in scrapers}
+        # Add common aliases
+        aliases = {
+            "zitouna": "zitouna_immo",
+            "tunisie-annonce": "tunisieannonce",
+            "tunisie_annonce": "tunisieannonce",
+            "ta": "tunisieannonce",
+            "c21": "century21",
+            "affar": "affare",
+        }
+        
+        target = site_filter.lower()
+        if target in aliases:
+            target = aliases[target]
+            
+        filtered = [s for s in scrapers if s.source_name.lower() == target]
+        
+        if not filtered:
+            available = ", ".join([s.source_name for s in scrapers])
+            log.error(f"Unknown site '{site_filter}'. Available sites: {available}")
             sys.exit(1)
+        scrapers = filtered
 
     vector_db = None
     if store_vectors:
         vector_db = _build_vector_db(strategy=embedding_strategy)
 
+    dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
     agent = IntelligentScrapingAgent(
         scrapers=scrapers,
         vector_db=vector_db,
         store_vectors=store_vectors,
-        deduplicate=True,
+        deduplicate=not dedup_disabled,
+        pipeline=None,
+        enrich=True,
+        fetch_pois=True,
     )
 
     log.info("=" * 60)
@@ -89,13 +113,24 @@ def run_job(
     log.info("=" * 60)
 
     if store_vectors and vector_db:
-        log.info("Starting preprocessing pipeline...")
-        from preprocessing.pipeline import PreprocessingPipeline
-        pipeline = PreprocessingPipeline(vector_db)
-        report = pipeline.run(export=True)
-        
-        log.info(f"Preprocessing complete: {report['total_records']} records")
-        log.info(f"Quality scores: {report['steps']['scorer']['score_distribution']}")
+        try:
+            log.info("=" * 60)
+            log.info("Starting preprocessing pipeline...")
+            from preprocessing.pipeline import PreprocessingPipeline
+            pipeline = PreprocessingPipeline(vector_db,force_reprocess=True)
+            report = pipeline.run(export=True)
+            log.info(f"Preprocessing complete: {report.get('total_records', 0)} records")
+            if 'steps' in report and 'scorer' in report['steps']:
+                log.info(f"Quality scores: {report['steps']['scorer'].get('score_distribution', {})}")
+                unknown_count = score_dist.get('UNKNOWN', 0)
+                if unknown_count > 0:
+                    log.warning(f"  ⚠️ {unknown_count} records still have UNKNOWN scores!")
+        except Exception as e:
+            log.error(f"Preprocessing pipeline failed: {e}", exc_info=True)
+    elif not store_vectors:
+        log.info("Preprocessing pipeline skipped: store_vectors=False")
+    elif not vector_db:
+        log.warning("Preprocessing pipeline skipped: vector_db is None")
 
     return summary
 
@@ -103,13 +138,10 @@ def run_job(
 def start_scheduler(store_vectors: bool = True, embedding_strategy: str = "huggingface"):
     log.info("Scheduler started — running every 24 hours")
     run_job(store_vectors=store_vectors, embedding_strategy=embedding_strategy)
-    schedule.every(1).hours.do(
+    schedule.every(24).hours.do(
         run_job,
-        
         store_vectors=store_vectors,
         embedding_strategy=embedding_strategy,
-        
-        
     )
     while True:
         schedule.run_pending()

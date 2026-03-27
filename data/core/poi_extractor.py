@@ -35,3 +35,15 @@ def extract_pois_from_text(text: str) -> List[POI]:
                     found_pois.append(POI(name=keyword.capitalize(), category=category))
     
     return found_pois
+
+def normalize_and_categorize_poi_from_text(text: str) -> List[POI]:
+    if not text:
+        return []
+    text_lower = text.lower()
+    found_pois: List[POI] = []
+    for category, keywords in POI_KEYWORDS.items():
+        for keyword in keywords:
+            if re.search(r'\b' + re.escape(keyword) + r'\b', text_lower):
+                if not any(p.name.lower() == keyword for p in found_pois):
+                    found_pois.append(POI(name=keyword.capitalize(), category=category))
+    return found_pois

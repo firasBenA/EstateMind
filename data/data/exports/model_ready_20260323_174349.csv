@@ -1,0 +1,9 @@
+property_id,source_name,price,surface,rooms,city,region,zone,municipalite,transaction_type,type,latitude,longitude,features,reliability_score,reliability_level,model_weight,is_outlier,suspected_duplicate,change_type,price_delta_pct,price_per_m2,scraped_at
+verdar_129894,verdar,620000.0,,,Boumhel,,,,Sale,Land,36.9208825,10.1371088,,25,LOW,0.5,False,False,new,,,2026-03-23T17:41:57.423457
+verdar_129904,verdar,345000.0,,,Boumhel,,,,Sale,Apartment,36.9208825,10.1371088,,25,LOW,0.5,False,False,new,,,2026-03-23T17:42:17.786107
+verdar_124421,verdar,2200.0,,,Ezzahra,BEN AROUS,north,Ezzahra,Rent,Commercial,36.743,10.308,,40,LOW,0.5,False,False,new,,,2026-03-23T17:43:30.785929
+verdar_127969,verdar,1300.0,,,Boumhel,,,,Rent,Apartment,36.9208825,10.1371088,,25,LOW,0.5,False,False,new,,,2026-03-23T17:43:17.783720
+verdar_107846,verdar,105000.0,,,Boumhel,,,,Sale,Land,36.9208825,10.1371088,,25,LOW,0.5,False,False,new,,,2026-03-23T17:42:27.019357
+verdar_124362,verdar,1900.0,,,Nouvelle Médina,,,Nouvelle Medina,Rent,Villa,36.75,10.23,,30,LOW,0.5,False,False,new,,,2026-03-23T17:43:26.658830
+verdar_91041,verdar,880000.0,,,Hammam Chat,BEN AROUS,north,Ben Arous,Sale,Land,36.745,10.225,,40,LOW,0.5,False,False,new,,,2026-03-23T17:42:42.831066
+verdar_97543,verdar,980000.0,,,Bélair Boumhel,,,بومهل البساتين,Sale,Land,36.7289378,10.3079482,,30,LOW,0.5,False,False,new,,,2026-03-23T17:42:31.824501

@@ -1,8 +1,7 @@
+# preprocessing/nlp/extractor.py
 """
 EstateMind — NLP Field Extractor
-
-Extracts structured fields from raw French/Arabic listing descriptions.
-Uses LLM via OpenRouter for smart extraction.
+Uses local Ollama or OpenRouter for smart extraction.
 """
 
 from __future__ import annotations
@@ -18,27 +17,140 @@ from loguru import logger
 # Load environment variables
 load_dotenv()
 
-class Extractor:
-    def __init__(self, api_key: str = None, model: str = None):
-        """Initialize extractor with API key from env if not provided"""
-        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
-        self.model = model or os.getenv("OPENROUTER_MODEL", "mistralai/mistral-small-2603")
-        
-        if not self.api_key:
-            raise ValueError("OpenRouter API key not found. Set OPENROUTER_API_KEY in .env")
-        
-        self.base_url = "https://openrouter.ai/api/v1/chat/completions"
-        self.headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        logger.info(f"LLM Extractor initialized with model: {self.model}")
 
+class Extractor:
+    """LLM Extractor with local Ollama support"""
+    
+    FREE_MODELS = [
+        "google/gemini-2.0-flash-exp:free",
+        "meta-llama/llama-3.2-3b-instruct:free",
+        "microsoft/phi-3-mini-128k-instruct:free",
+    ]
+    
+    def __init__(self, api_key: str = None, model: str = None, use_local: bool = None):
+        """Initialize extractor"""
+        self.api_key = api_key or os.getenv("OPENROUTER_API_KEY")
+        self.model = model or os.getenv("OPENROUTER_MODEL", self.FREE_MODELS[0])
+        
+        # Local LLM settings
+        self.use_local = use_local if use_local is not None else os.getenv("USE_LOCAL_LLM", "false").lower() == "true"
+        self.local_model = os.getenv("LOCAL_LLM_MODEL", "gemma2:2b")
+        self.local_url = os.getenv("LOCAL_LLM_URL", "http://localhost:11434/api/generate")
+        
+        # OpenRouter setup
+        if self.api_key and not self.use_local:
+            self.base_url = "https://openrouter.ai/api/v1/chat/completions"
+            self.headers = {
+                "Authorization": f"Bearer {self.api_key}",
+                "Content-Type": "application/json",
+                "HTTP-Referer": "https://estatemind.ai",
+                "X-Title": "EstateMind",
+            }
+            logger.info(f"LLM Extractor initialized with OpenRouter model: {self.model}")
+        elif self.use_local:
+            logger.info(f"LLM Extractor initialized with local Ollama model: {self.local_model}")
+        else:
+            logger.warning("No LLM configured, using regex fallback only")
+            self.base_url = None
+            self.headers = None
+    
+    def _check_local_ollama(self) -> bool:
+        """Check if Ollama is running"""
+        try:
+            resp = requests.get("http://localhost:11434/api/tags", timeout=2)
+            return resp.status_code == 200
+        except:
+            return False
+    
+    def _call_local_ollama(self, prompt: str, max_tokens: int = 500) -> Optional[str]:
+        """Call local Ollama instance"""
+        if not self._check_local_ollama():
+            logger.debug("Local Ollama not available")
+            return None
+        
+        try:
+            resp = requests.post(
+                self.local_url,
+                json={
+                    "model": self.local_model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {
+                        "temperature": 0.1,
+                        "num_predict": max_tokens,
+                        "num_threads": 2  # Limit CPU usage
+                    }
+                },
+                timeout=30
+            )
+            if resp.status_code == 200:
+                return resp.json().get("response", "")
+            else:
+                logger.debug(f"Ollama error: {resp.status_code}")
+                return None
+        except requests.Timeout:
+            logger.debug("Ollama timeout")
+            return None
+        except Exception as e:
+            logger.debug(f"Ollama error: {e}")
+            return None
+    
+    def _call_openrouter(self, prompt: str, max_tokens: int = 500) -> Optional[str]:
+        """Call OpenRouter API"""
+        if not self.api_key or not self.base_url:
+            return None
+        
+        try:
+            response = requests.post(
+                self.base_url,
+                headers=self.headers,
+                json={
+                    "model": self.model,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.1,
+                    "max_tokens": max_tokens
+                },
+                timeout=15
+            )
+            
+            if response.status_code == 200:
+                result = response.json()
+                return result['choices'][0]['message']['content']
+            elif response.status_code == 402:
+                logger.warning("OpenRouter payment required, try using local Ollama")
+                return None
+            else:
+                logger.debug(f"OpenRouter API error: {response.status_code}")
+                return None
+                
+        except requests.Timeout:
+            logger.debug("OpenRouter timeout")
+            return None
+        except Exception as e:
+            logger.debug(f"OpenRouter error: {e}")
+            return None
+    
+    def _call_llm(self, prompt: str, max_tokens: int = 500) -> Optional[str]:
+        """Call LLM with fallback: Local Ollama -> OpenRouter -> None"""
+        # Try local Ollama first (if enabled)
+        if self.use_local:
+            result = self._call_local_ollama(prompt, max_tokens)
+            if result:
+                logger.debug("Used local Ollama for extraction")
+                return result
+        
+        # Try OpenRouter as fallback
+        if self.api_key:
+            result = self._call_openrouter(prompt, max_tokens)
+            if result:
+                return result
+        
+        logger.debug("No LLM available")
+        return None
+    
     def extract(self, text: str) -> Dict[str, Any]:
         """Extract all fields from listing text using LLM"""
         if not text or len(text) < 10:
-            logger.debug("Text too short for extraction")
             return {}
         
         prompt = f"""Extract structured data from this Tunisian real estate listing description.
@@ -67,49 +179,24 @@ Guidelines:
 JSON only, no other text:"""
         
         try:
-            response = requests.post(
-                self.base_url,
-                headers=self.headers,
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 500
-                },
-                timeout=10
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result['choices'][0]['message']['content']
-                
-                # Clean response (remove markdown code blocks if present)
-                content = self._clean_json_response(content)
-                
-                try:
-                    extracted = json.loads(content)
-                    logger.debug(f"Successfully extracted: {list(extracted.keys())}")
-                    return extracted
-                except json.JSONDecodeError as e:
-                    logger.warning(f"Failed to parse JSON: {e}\nContent: {content[:200]}")
-                    return {}
-            else:
-                logger.error(f"OpenRouter API error: {response.status_code}")
-                if response.status_code == 401:
-                    logger.error("Invalid API key. Please check your OPENROUTER_API_KEY")
+            content = self._call_llm(prompt, max_tokens=500)
+            if not content:
                 return {}
-                
-        except requests.Timeout:
-            logger.warning("LLM extraction timeout")
+            
+            content = self._clean_json_response(content)
+            extracted = json.loads(content)
+            logger.debug(f"Successfully extracted: {list(extracted.keys())}")
+            return extracted
+            
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse JSON: {e}\nContent: {content[:200] if content else 'None'}")
             return {}
         except Exception as e:
             logger.error(f"LLM extraction failed: {e}")
             return {}
     
-    def extract_batch(self, texts: List[str], max_batch_size: int = 10) -> List[Dict[str, Any]]:
-        """
-        Extract data from multiple listings in one API call
-        """
+    def extract_batch(self, texts: List[str], max_batch_size: int = 5) -> List[Dict[str, Any]]:
+        """Extract data from multiple listings"""
         if not texts:
             return []
         
@@ -119,10 +206,10 @@ JSON only, no other text:"""
             batch_results = self._extract_batch_internal(batch)
             results.extend(batch_results)
             
-            # Small delay between batches to avoid rate limits
+            # Small delay between batches
             if i + max_batch_size < len(texts):
                 import time
-                time.sleep(0.5)
+                time.sleep(1)
         
         return results
     
@@ -131,7 +218,7 @@ JSON only, no other text:"""
         listings_text = []
         for idx, text in enumerate(texts):
             if text and len(text) > 10:
-                listings_text.append(f"Listing {idx+1}: {text[:500]}")
+                listings_text.append(f"Listing {idx+1}: {text[:400]}")
         
         if not listings_text:
             return [{}] * len(texts)
@@ -157,41 +244,21 @@ Return a JSON array with one object per listing. Each object should have:
 
 JSON array only, no other text:"""
         
+        content = self._call_llm(prompt, max_tokens=2000)
+        if not content:
+            return [{}] * len(texts)
+        
         try:
-            response = requests.post(
-                self.base_url,
-                headers=self.headers,
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 2000
-                },
-                timeout=30
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result['choices'][0]['message']['content']
-                content = self._clean_json_response(content)
-                
-                try:
-                    extracted = json.loads(content)
-                    if isinstance(extracted, list):
-                        # Pad with empty dicts if needed
-                        while len(extracted) < len(texts):
-                            extracted.append({})
-                        return extracted[:len(texts)]
-                    else:
-                        return [extracted] if extracted else [{}] * len(texts)
-                except json.JSONDecodeError:
-                    logger.warning(f"Failed to parse batch JSON")
-                    return [{}] * len(texts)
+            content = self._clean_json_response(content)
+            extracted = json.loads(content)
+            if isinstance(extracted, list):
+                while len(extracted) < len(texts):
+                    extracted.append({})
+                return extracted[:len(texts)]
             else:
-                logger.error(f"Batch extraction API error: {response.status_code}")
-                return [{}] * len(texts)
-        except Exception as e:
-            logger.error(f"Batch extraction error: {e}")
+                return [extracted] if extracted else [{}] * len(texts)
+        except json.JSONDecodeError:
+            logger.warning("Failed to parse batch JSON")
             return [{}] * len(texts)
     
     def _clean_json_response(self, content: str) -> str:
@@ -206,7 +273,7 @@ JSON array only, no other text:"""
         return content.strip()
     
     def extract_location_only(self, text: str) -> Dict[str, str]:
-        """Extract only location fields (faster, less tokens)"""
+        """Extract only location fields"""
         if not text or len(text) < 10:
             return {}
         
@@ -218,29 +285,17 @@ Return JSON with:
 - governorate: governorate/region  
 - district: district/neighborhood
 
-Use official Tunisian governorates: Tunis, Ariana, Ben Arous, Manouba, Nabeul, Zaghouan, Bizerte, Béja, Jendouba, Le Kef, Siliana, Sousse, Monastir, Mahdia, Sfax, Kairouan, Kasserine, Sidi Bouzid, Gabès, Médenine, Tataouine, Gafsa, Tozeur, Kébili
+Use official Tunisian governorates.
 
 JSON only, no other text:"""
         
-        try:
-            response = requests.post(
-                self.base_url,
-                headers=self.headers,
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 150
-                },
-                timeout=8
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result['choices'][0]['message']['content']
-                content = self._clean_json_response(content)
-                return json.loads(content)
+        content = self._call_llm(prompt, max_tokens=150)
+        if not content:
             return {}
+        
+        try:
+            content = self._clean_json_response(content)
+            return json.loads(content)
         except:
             return {}
     
@@ -254,48 +309,35 @@ Text: {text}
 
 Return ONLY a JSON list of features (e.g., ["pool", "parking", "garden", "elevator", "air conditioning"]):"""
         
-        try:
-            response = requests.post(
-                self.base_url,
-                headers=self.headers,
-                json={
-                    "model": self.model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1,
-                    "max_tokens": 200
-                },
-                timeout=8
-            )
-            
-            if response.status_code == 200:
-                result = response.json()
-                content = result['choices'][0]['message']['content']
-                content = self._clean_json_response(content)
-                return json.loads(content)
+        content = self._call_llm(prompt, max_tokens=200)
+        if not content:
             return []
+        
+        try:
+            content = self._clean_json_response(content)
+            return json.loads(content)
         except:
             return []
 
 
-# Singleton instance for reuse
+# Singleton instance
 _extractor_instance = None
 
 def get_extractor() -> Extractor:
-    """Get or create extractor instance (singleton)"""
+    """Get or create extractor instance"""
     global _extractor_instance
     if _extractor_instance is None:
         _extractor_instance = Extractor()
     return _extractor_instance
 
 
-# Convenience functions for backward compatibility
+# Convenience functions
 def extract_all(title: str = "", description: str = "", url: str = "", existing: Dict = None) -> Dict[str, Any]:
-    """Extract all fields (compatible with existing code)"""
+    """Extract all fields"""
     extractor = get_extractor()
     text = f"{title} {description}"
     extracted = extractor.extract(text)
     
-    # Map to expected field names
     result = {}
     if extracted.get("rooms"):
         result["rooms"] = {"value": extracted["rooms"], "source": "llm", "confidence": 0.85}
