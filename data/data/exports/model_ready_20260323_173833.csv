@@ -1,0 +1,1 @@
+property_id,source_name,price,surface,rooms,city,region,zone,municipalite,transaction_type,type,latitude,longitude,features,reliability_score,reliability_level,model_weight,is_outlier,suspected_duplicate,change_type,price_delta_pct,price_per_m2,scraped_at

@@ -31,7 +31,7 @@ COMPLETENESS_WEIGHTS = {
     "description":   10,   # description length > 50 chars
     "images":         5,   # at least one image
     "features":       5,   # features list not empty
-    "municipalite":   5,   # municipality/district present
+    "municipality":   5,   # municipality/district present
 }
 
 BONUS_WEIGHTS = {
@@ -153,11 +153,11 @@ def compute_score(
         breakdown["features"] = 0
 
     # Municipality
-    if metadata.get("municipalite"):
-        score += COMPLETENESS_WEIGHTS["municipalite"]
-        breakdown["municipalite"] = COMPLETENESS_WEIGHTS["municipalite"]
+    if metadata.get("municipality") or metadata.get("municipalite"):
+        score += COMPLETENESS_WEIGHTS["municipality"]
+        breakdown["municipality"] = COMPLETENESS_WEIGHTS["municipality"]
     else:
-        breakdown["municipalite"] = 0
+        breakdown["municipality"] = 0
 
     # ── Bonuses ───────────────────────────────────────────────────────────────
 

@@ -1,0 +1,31 @@
+property_id,source_name,price,surface,rooms,city,region,zone,municipalite,transaction_type,type,latitude,longitude,features,reliability_score,reliability_level,model_weight,is_outlier,suspected_duplicate,change_type,price_delta_pct,price_per_m2,scraped_at
+affare_223096,affare,78000.0,312.0,,Hammamet Sud,NABEUL,north,Hammamet,Sale,Land,36.4,10.6167,,85,HIGH,1.5,False,False,new,,250.0,2026-03-24T10:28:52.289737
+affare_1737,affare,680000.0,1430.0,,Route El Ain,SFAX,east,Agareb,Sale,Land,34.7392,10.5258,,85,HIGH,1.5,False,False,new,,475.52,2026-03-24T10:27:17.090513
+affare_248364,affare,350000.0,,,Bir Mchergua,ZAGHOUAN,north,Zaghouan,Sale,Land,36.4025,10.1431,,70,GOOD,1.0,False,False,new,,,2026-03-24T10:25:18.501761
+affare_241011,affare,245000.0,,,Bir Mchergua,ZAGHOUAN,north,Zaghouan,Sale,Land,36.4025,10.1431,,70,GOOD,1.0,False,False,new,,,2026-03-24T10:25:55.786825
+affare_224230,affare,1800.0,230.0,3.0,Akouda,SOUSSE,east,Akouda,Sale,Apartment,35.8667,10.5667,Ascenseur|Parking,80,GOOD,1.0,True,False,new,,7.83,2026-03-24T10:29:16.224852
+affare_240053,affare,225000.0,60.0,1.0,Ennasr,ARIANA,north,Ariana Ville,Sale,Apartment,36.866011,10.193923,Ascenseur,100,HIGH,1.5,False,False,new,,3750.0,2026-03-24T10:28:47.733107
+affare_221112,affare,,,,El Fahs,ZAGHOUAN,north,Zaghouan,Sale,Land,36.4025,10.1431,garage,30,LOW,0.5,False,False,new,,,2026-03-24T10:25:49.665608
+affare_243820,affare,65000.0,10000.0,,Bir Mchergua,ZAGHOUAN,north,Zaghouan,Sale,Land,36.4025,10.1431,,55,LOW,0.5,True,False,new,,6.5,2026-03-24T10:25:30.733264
+affare_228212,affare,1500.0,100.0,2.0,Hammam Sousse,SOUSSE,east,Hammam Sousse,Sale,Apartment,35.8592,10.59,Ascenseur|Parking,80,GOOD,1.0,True,False,new,,15.0,2026-03-24T10:29:22.096343
+affare_241005,affare,175000.0,,,Bir Mchergua,ZAGHOUAN,north,Zaghouan,Sale,Land,36.4025,10.1431,,70,GOOD,1.0,False,False,new,,,2026-03-24T10:25:41.406104
+affare_257858,affare,2300.0,200.0,,Sousse Médina,SOUSSE,east,Sidi El Heni,Sale,Commercial,35.6756,10.3106,meuble,70,GOOD,1.0,True,False,new,,11.5,2026-03-24T10:29:03.521603
+affare_257705,affare,1600.0,120.0,2.0,Ennasr,ARIANA,north,Ariana Ville,Rent,Apartment,36.866011,10.193923,Ascenseur|Parking,90,HIGH,1.5,False,False,new,,13.33,2026-03-24T10:28:08.417504
+affare_253257,affare,600000.0,865.0,2.0,Kalâat El Andalous,ARIANA,north,Ariana Ville,Sale,Land,36.866011,10.193923,jardin|parking|climatisation|terrasse,100,HIGH,1.5,False,False,new,,693.64,2026-03-24T10:28:41.386313
+affare_255747,affare,560000.0,148.0,3.0,Les Berges Du Lac,TUNIS,north,Jebel Jelloud,Sale,Commercial,36.7667,10.1833,Ascenseur|Parking,100,HIGH,1.5,False,False,new,,3783.78,2026-03-24T10:28:36.157160
+affare_248365,affare,185000.0,,,Bir Mchergua,ZAGHOUAN,north,Zaghouan,Sale,Land,36.4025,10.1431,,70,GOOD,1.0,False,False,new,,,2026-03-24T10:24:44.101421
+affare_256718,affare,780000.0,500.0,7.0,Ghazela,ARIANA,north,Ariana Ville,Sale,Land,36.866011,10.193923,jardin|garage|terrasse,100,HIGH,1.5,False,False,new,,1560.0,2026-03-24T10:28:23.153725
+affare_257399,affare,1320.0,70.0,1.0,Ennasr,ARIANA,north,Ariana Ville,Rent,Apartment,36.866011,10.193923,Ascenseur|Parking,90,HIGH,1.5,False,False,new,,18.86,2026-03-24T10:28:30.210227
+affare_256542,affare,460000.0,180.0,3.0,Akouda,SOUSSE,east,Akouda,Sale,Other,35.8667,10.5667,Ascenseur,100,HIGH,1.5,False,False,new,,2555.56,2026-03-24T10:29:11.412913
+affare_257768,affare,1100.0,70.0,,Sousse Médina,SOUSSE,east,Sidi El Heni,Sale,Commercial,35.6756,10.3106,meuble,70,GOOD,1.0,True,False,new,,15.71,2026-03-24T10:28:57.957882
+affare_258711,affare,1500.0,70.0,1.0,Menzah,ARIANA,north,Ariana Ville,Rent,Apartment,36.866011,10.193923,Ascenseur|Parking,90,HIGH,1.5,False,False,new,,21.43,2026-03-24T10:27:57.174317
+affare_259048,affare,740000.0,400.0,4.0,Hammamet Sud,NABEUL,north,Hammamet,Sale,Land,36.4,10.6167,piscine|jardin|parking|chauffage central|climatisation|terrasse,100,HIGH,1.5,False,False,new,,1850.0,2026-03-24T10:27:01.219884
+affare_30000,affare,120.0,,,Sousse Sidi Abdelhamid,SOUSSE,east,Sidi El Heni,Sale,Land,35.6756,10.3106,,50,LOW,0.5,True,False,new,,,2026-03-24T10:27:23.998741
+affare_259041,affare,260000.0,364.0,4.0,Akouda,SOUSSE,east,Akouda,Sale,Land,35.8667,10.5667,jardin,100,HIGH,1.5,False,False,new,,714.29,2026-03-24T10:27:30.749246
+affare_259050,affare,1050.0,580.0,4.0,Hammamet Sud,NABEUL,north,Hammamet,Sale,Land,36.4,10.6167,piscine|jardin|parking|chauffage central|climatisation|terrasse,80,GOOD,1.0,True,False,new,,1.81,2026-03-24T10:26:02.273430
+affare_259042,affare,,130.0,3.0,Sousse Jawhara,SOUSSE,east,Sidi El Heni,Sale,Apartment,35.6756,10.3106,haut standing,80,GOOD,1.0,False,False,new,,,2026-03-24T10:27:39.037710
+affare_259046,affare,410000.0,811.0,,Route El Ain,SFAX,east,Agareb,Sale,Land,34.7392,10.5258,,85,HIGH,1.5,False,False,new,,505.55,2026-03-24T10:26:52.957815
+affare_259047,affare,1300.0,1200.0,,Sousse Riadh,SOUSSE,east,Sousse Riadh,Sale,Land,35.8269,10.63,,65,GOOD,1.0,True,False,new,,1.08,2026-03-24T10:26:19.217419
+affare_259049,affare,300000.0,620.0,,Route El Ain,SFAX,east,Agareb,Sale,Land,34.7392,10.5258,,85,HIGH,1.5,False,False,new,,483.87,2026-03-24T10:26:39.734162
+affare_259051,affare,2300.0,6714.0,,Grombalia,NABEUL,north,Nabeul,Sale,Land,36.4561,10.7358,,55,LOW,0.5,True,False,new,,0.34,2026-03-24T10:26:32.736686
+affare_259043,affare,720000.0,500.0,3.0,Hammamet Sud,NABEUL,north,Hammamet,Sale,Villa,36.4,10.6167,piscine|jardin|parking|climatisation|terrasse,100,HIGH,1.5,False,False,new,,1440.0,2026-03-24T10:27:48.493412

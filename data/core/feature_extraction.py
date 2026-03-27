@@ -64,10 +64,30 @@ def build_feature_list(
 
 
 def enrich_listing_features(listing: PropertyListing, extra_text: Optional[str] = None) -> PropertyListing:
+    # 1. Regex-based extraction (Fast)
     listing.features = build_feature_list(
         existing=listing.features,
         title=listing.title,
         description=listing.description,
         extra_text=extra_text,
     )
+    
+    # 2. LLM-based extraction (Smart) - if description is long enough
+    if (listing.description and len(listing.description) > 50) or (listing.title and len(listing.title) > 20):
+        try:
+            from preprocessing.nlp.extractor import get_extractor
+            extractor = get_extractor()
+            text = f"Title: {listing.title}\nDescription: {listing.description or ''}"
+            llm_features = extractor.extract_features(text)
+            if llm_features and isinstance(llm_features, list):
+                # Merge and deduplicate
+                all_features = set(listing.features)
+                for f in llm_features:
+                    if f and isinstance(f, str):
+                        all_features.add(f.strip())
+                listing.features = sorted(list(all_features))
+        except Exception:
+            # Silently fail if LLM is unavailable or key is wrong
+            pass
+            
     return listing

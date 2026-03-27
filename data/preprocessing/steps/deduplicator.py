@@ -43,9 +43,9 @@ def _prices_match(price1: Any, price2: Any) -> bool:
 
 def _locations_match(meta1: Dict, meta2: Dict) -> bool:
     """Check if two listings are in the same location."""
-    # Region must match if both present
-    r1 = (meta1.get("region") or "").lower().strip()
-    r2 = (meta2.get("region") or "").lower().strip()
+    # Region / Governorate must match if both present
+    r1 = (meta1.get("governorate") or meta1.get("region") or "").lower().strip()
+    r2 = (meta2.get("governorate") or meta2.get("region") or "").lower().strip()
     if r1 and r2 and r1 != r2:
         return False
 
