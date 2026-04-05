@@ -1,0 +1,30 @@
+# Secrets
+.env
+.env.*
+
+# Python
+*.pyc
+__pycache__/
+*.egg-info/
+
+# Django
+db.sqlite3
+
+# Logs & temp
+*.log
+logs/
+temp_drivers/
+data/raw/
+data/exports/
+
+# Node / React
+node_modules/
+dist/
+.cache/
+build/
+
+# Model cache (471MB — don't push this)
+.cache/huggingface/
+
+# pip wheels
+*.whl

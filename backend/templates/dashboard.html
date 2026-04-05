@@ -1,0 +1,60 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>EstateMind Admin Dashboard</title>
+</head>
+<body>
+    <h1>EstateMind Admin Dashboard</h1>
+    <p>Logged in as {{ request.user.username }}</p>
+
+    <section>
+        <h2>Listings</h2>
+        <p>Total listings: {{ total_listings }}</p>
+        <h3>By source</h3>
+        <ul>
+            {% for row in total_by_source %}
+                <li>{{ row.source_name }}: {{ row.count }}</li>
+            {% endfor %}
+        </ul>
+    </section>
+
+    <section>
+        <h2>Latest Agent Runs</h2>
+        <table border="1" cellpadding="4">
+            <thead>
+                <tr>
+                    <th>Started at</th>
+                    <th>Finished at</th>
+                    <th>Source</th>
+                    <th>Strategy</th>
+                    <th>Fetched</th>
+                    <th>Inserted</th>
+                    <th>Updated</th>
+                    <th>Unchanged</th>
+                    <th>Errors</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for run in latest_runs %}
+                <tr>
+                    <td>{{ run.run_started_at }}</td>
+                    <td>{{ run.run_finished_at }}</td>
+                    <td>{{ run.source_name }}</td>
+                    <td>{{ run.strategy }}</td>
+                    <td>{{ run.fetched }}</td>
+                    <td>{{ run.inserted }}</td>
+                    <td>{{ run.updated }}</td>
+                    <td>{{ run.unchanged }}</td>
+                    <td>{{ run.errors }}</td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="9">No runs logged yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </section>
+</body>
+</html>
+
