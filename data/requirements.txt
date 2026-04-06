@@ -1,0 +1,38 @@
+# EstateMind — Python dependencies
+
+# Web scraping
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+fake-useragent>=1.4.0
+
+# JavaScript-heavy sites
+selenium>=4.15.0
+webdriver-manager>=4.0.0
+playwright>=1.40.0          # optional — only if switching from selenium
+
+# Vector database
+pinecone==5.0.0
+
+# Embeddings — FREE, no API key
+sentence-transformers>=2.2.0
+
+# Embeddings — PAID optional
+# openai>=1.6.0
+
+# Data models
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Configuration
+python-dotenv>=1.0.0
+
+# Logging
+loguru>=0.7.0
+
+# Scheduling
+schedule>=1.2.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
