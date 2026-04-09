@@ -5,21 +5,25 @@ EstateMind — All 9 Tunisian real estate scrapers in one file.
 Each scraper is built from actual HTML structure of the source site.
 """
 from __future__ import annotations
-
+ 
+import csv
 import json
 import re
+import sqlite3
 import time
 import random
-from datetime import datetime
-from typing import Generator, Optional, List, Dict, Any
-from urllib.parse import urljoin
-
+from datetime import datetime, date
+from pathlib import Path
+from typing import Generator, Optional, List, Dict, Any, Tuple
+from urllib.parse import urljoin, urlencode
+ 
 import requests
 from bs4 import BeautifulSoup
-
+ 
 from core.base_scraper import BaseScraper
 from core.models import PropertyListing, Location
 from config.logging_config import log
+from config.settings import settings
 
 
 # =============================================================================
