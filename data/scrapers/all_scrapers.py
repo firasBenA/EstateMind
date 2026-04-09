@@ -2127,6 +2127,237 @@ class INSScraper:
 # =============================================================================
 # BVMT SCRAPER — Bourse des Valeurs Mobilières de Tunis
 # =============================================================================
+class BVMTScraper:
+    """
+    Scrapes real estate market signals from the Bourse de Tunis (bvmt.com.tn).
+
+    Indicators collected:
+      - tunindex              : TUNINDEX general market index (daily close)
+      - tunindex_immo         : Secteur Immobilier sub-index (if available)
+      - sah_price             : SAH (Société d'Aménagement du Lac) share price
+      - sits_price            : SITS share price
+      - spdit_price           : SPDIT share price (real estate investment trust)
+
+    BVMT publishes historical data on their public site.
+    This scraper uses their historical data endpoints.
+    """
+
+    SOURCE = "BVMT"
+    BASE_URL = "https://www.bvmt.com.tn"
+
+    # BVMT market data URLs
+    TUNINDEX_URL = "https://www.bvmt.com.tn/sites/default/files/cours_et_indice/evolution-tunindex.xlsx"
+    MARKET_URL = "https://www.bvmt.com.tn/fr/cours-et-indices/cours-du-marche"
+    HISTO_URL = "https://www.bvmt.com.tn/fr/cours-et-indices/historique-des-cours"
+
+    # Real estate stocks to track on BVMT
+    RE_STOCKS = {
+        "SAH": "sah_price",
+        "SITS": "sits_price",
+        "SPDIT": "spdit_price",
+        "SIM": "sim_price",
+    }
+
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/123.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+        "Referer": "https://www.bvmt.com.tn/",
+    }
+
+    def run(self) -> Dict[str, Any]:
+        log.info("[BVMT] Starting BVMT macro scraper")
+        rows: List[Dict] = []
+
+        rows += self._scrape_tunindex()
+        rows += self._scrape_re_stocks()
+
+        if not rows:
+            log.warning("[BVMT] No data collected")
+            return {"source": self.SOURCE, "rows": 0, "status": "empty"}
+
+        conn = _get_macro_db()
+        inserted = _upsert_macro(conn, rows)
+        conn.close()
+        log.info(f"[BVMT] Saved {inserted}/{len(rows)} rows to DB")
+        return {"source": self.SOURCE, "rows": inserted, "status": "ok"}
+
+    def _get(self, url: str, timeout: int = 30) -> Optional[requests.Response]:
+        for attempt in range(3):
+            try:
+                resp = requests.get(url, headers=self.HEADERS, timeout=timeout)
+                resp.raise_for_status()
+                return resp
+            except Exception as e:
+                log.warning(f"[BVMT] GET {url} attempt {attempt+1} failed: {e}")
+                time.sleep(random.uniform(2, 5))
+        return None
+
+    def _scrape_tunindex(self) -> List[Dict]:
+        """Scrape TUNINDEX historical index from BVMT market data page."""
+        log.info("[BVMT] Scraping TUNINDEX")
+        resp = self._get(self.MARKET_URL)
+        if not resp:
+            return []
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        rows_out = []
+
+        # BVMT market page: table with date | index columns
+        for table in soup.find_all("table"):
+            headers_text = " ".join(th.get_text(strip=True).upper() for th in table.find_all("th"))
+            if "TUNINDEX" not in headers_text and "INDICE" not in headers_text:
+                continue
+            headers = [th.get_text(strip=True).upper() for th in table.find_all("th")]
+            tunindex_col = next(
+                (i for i, h in enumerate(headers) if "TUNINDEX" in h or "INDICE" in h),
+                1,
+            )
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all(["td", "th"])
+                if len(cells) <= tunindex_col:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = (
+                    cells[tunindex_col]
+                    .get_text(strip=True)
+                    .replace("\xa0", "")
+                    .replace(",", ".")
+                    .strip()
+                )
+                d = BCTScraper._normalise_date(raw_date)
+                if not d:
+                    # Try DD/MM/YYYY format common on BVMT
+                    m = re.match(r"(\d{2})/(\d{2})/(\d{4})", raw_date)
+                    if m:
+                        d = f"{m.group(3)}-{m.group(2)}-01"
+                    else:
+                        continue
+                try:
+                    val = float(re.sub(r"[^\d.]", "", raw_val))
+                    rows_out.append(
+                        {"date": d, "indicator": "tunindex", "value": val, "unit": "points", "source": self.SOURCE}
+                    )
+                except ValueError:
+                    continue
+
+        # Also try historical endpoint for richer data
+        if not rows_out:
+            rows_out += self._scrape_tunindex_historical()
+
+        return rows_out
+
+    def _scrape_tunindex_historical(self) -> List[Dict]:
+        """Fallback: scrape TUNINDEX from historical data page."""
+        resp = self._get(self.HISTO_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        rows_out = []
+        for table in soup.find_all("table"):
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all(["td", "th"])
+                if len(cells) < 2:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = cells[-1].get_text(strip=True).replace(",", ".").replace("\xa0", "").strip()
+                # BVMT date format: DD/MM/YYYY
+                m = re.match(r"(\d{2})/(\d{2})/(\d{4})", raw_date)
+                if m:
+                    d = f"{m.group(3)}-{m.group(2)}-01"
+                else:
+                    d = BCTScraper._normalise_date(raw_date)
+                if not d:
+                    continue
+                try:
+                    val = float(re.sub(r"[^\d.]", "", raw_val))
+                    rows_out.append(
+                        {"date": d, "indicator": "tunindex", "value": val, "unit": "points", "source": self.SOURCE}
+                    )
+                except ValueError:
+                    continue
+        return rows_out
+
+    def _scrape_re_stocks(self) -> List[Dict]:
+        """Scrape real estate stock prices from BVMT market page."""
+        log.info("[BVMT] Scraping real estate stocks (SAH, SITS, SPDIT, SIM)")
+        resp = self._get(self.MARKET_URL)
+        if not resp:
+            return []
+
+        soup = BeautifulSoup(resp.text, "html.parser")
+        rows_out = []
+        today = datetime.utcnow().strftime("%Y-%m-01")
+
+        for table in soup.find_all("table"):
+            for tr in table.find_all("tr"):
+                cells = tr.find_all(["td", "th"])
+                if len(cells) < 2:
+                    continue
+                ticker = cells[0].get_text(strip=True).upper()
+                if ticker not in self.RE_STOCKS:
+                    continue
+                # Price is usually in column 1 or 2 (cours)
+                for col in [1, 2]:
+                    if len(cells) <= col:
+                        continue
+                    raw_val = (
+                        cells[col]
+                        .get_text(strip=True)
+                        .replace(",", ".")
+                        .replace("\xa0", "")
+                        .strip()
+                    )
+                    try:
+                        val = float(re.sub(r"[^\d.]", "", raw_val))
+                        if val > 0:
+                            rows_out.append(
+                                {
+                                    "date": today,
+                                    "indicator": self.RE_STOCKS[ticker],
+                                    "value": val,
+                                    "unit": "TND",
+                                    "source": self.SOURCE,
+                                }
+                            )
+                            break
+                    except ValueError:
+                        continue
+
+        return rows_out
+
+
+# =============================================================================
+# MACRO RUNNER — convenience function to run all macro scrapers at once
+# =============================================================================
+
+def run_all_macro_scrapers() -> List[Dict]:
+    """
+    Run BCT, INS, and BVMT scrapers sequentially.
+    Returns list of result summaries.
+
+    Usage:
+        from scrapers.all_scrapers import run_all_macro_scrapers
+        results = run_all_macro_scrapers()
+    """
+    results = []
+    for ScraperClass in [BCTScraper, INSScraper, BVMTScraper]:
+        try:
+            result = ScraperClass().run()
+            results.append(result)
+            time.sleep(random.uniform(3, 6))  # polite delay between sources
+        except Exception as e:
+            log.error(f"[macro] {ScraperClass.__name__} crashed: {e}")
+            results.append({"source": ScraperClass.__name__, "rows": 0, "status": f"error: {e}"})
+    return results
+
+# =============================================================================
+# BUILDER FUNCTION
+# =============================================================================
 # =============================================================================
 # BUILDER FUNCTION
 # =============================================================================
