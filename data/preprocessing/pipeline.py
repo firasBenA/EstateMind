@@ -112,6 +112,9 @@ class PreprocessingPipeline:
         if export:
             self._step_export(records, report, run_id)
 
+        # ── Auto-retrain if enough fresh data ────────────────────────────────
+        self._maybe_retrain(records, report) 
+
         # ── Final report ──────────────────────────────────────────────────────
         elapsed = round(time.time() - start_time, 1)
         report["elapsed_s"]    = elapsed
@@ -124,6 +127,30 @@ class PreprocessingPipeline:
         )
         self._log_summary(report)
         return report
+
+    # At the very end of run(), before returning:
+    def _maybe_retrain(self, records: List, report: Dict) -> None:
+        """Retrain scorer if enough new/updated records exist."""
+        try:
+            from preprocessing.steps.scorer import train_scorer
+            
+            # Count records that are new or recently updated
+            fresh_count = sum(
+                1 for r in records 
+                if r.get("change_type") in ["new", "price_changed"] 
+                or not r.get("has_price_history")
+            )
+            
+            # Retrain if 500+ fresh records (adjust threshold as needed)
+            if fresh_count >= 500:
+                logger.info(f"[Pipeline] {fresh_count} fresh records — triggering retrain")
+                train_scorer(records, force=False)  # Won't retrain if model exists
+                report["retrained"] = True
+            else:
+                report["retrained"] = False
+        except Exception as e:
+            logger.warning(f"[Pipeline] Retraining skipped: {e}")
+            report["retrained"] = False
 
     # ── Step implementations ──────────────────────────────────────────────────
 
@@ -242,6 +269,8 @@ class PreprocessingPipeline:
                 rec["reliability_level"] = score_result["level"]
                 rec["should_drop"]       = score_result["should_drop"]
                 rec["model_weight"]      = compute_model_weight(score_result["score"])
+                rec["score_explanation"] = score_result["explanation"]  # Plain-language XAI explanation
+                rec["scored_via_ml"]     = score_result["used_model"]   # True if ML model was used
                 scored_records.append(rec)
 
             levels = {}
@@ -299,6 +328,7 @@ class PreprocessingPipeline:
                 "suspected_duplicate", "canonical_id",
                 "change_type", "price_delta", "price_delta_pct",
                 "has_price_history", "price_per_m2",
+                "score_explanation", "scored_via_ml", #added for XAI and transparency
             ]
             # Batch upsert metadata updates
             batch = []
