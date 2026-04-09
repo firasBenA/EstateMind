@@ -1694,6 +1694,38 @@ class ZitounaImmoScraper(BaseScraper):
             scraped_at=datetime.utcnow(),
         )
 
+ 
+# =============================================================================
+# BCT SCRAPER — Banque Centrale de Tunisie
+# =============================================================================
+def _upsert_macro(conn: sqlite3.Connection, rows: List[Dict]) -> int:
+    """Insert or replace macro indicator rows. Returns count inserted."""
+    count = 0
+    for row in rows:
+        try:
+            conn.execute(
+                """INSERT INTO macro_indicators (date, indicator, value, unit, source, scraped_at)
+                   VALUES (?, ?, ?, ?, ?, ?)
+                   ON CONFLICT(date, indicator) DO UPDATE SET
+                     value=excluded.value, scraped_at=excluded.scraped_at""",
+                (
+                    row["date"],
+                    row["indicator"],
+                    row["value"],
+                    row.get("unit", ""),
+                    row.get("source", ""),
+                    datetime.utcnow().isoformat(),
+                ),
+            )
+            count += 1
+        except Exception as e:
+            log.warning(f"[macro_db] upsert error: {e} | row={row}")
+    conn.commit()
+    return count
+ 
+# =============================================================================
+# BCT SCRAPER — Banque Centrale de Tunisie
+# =============================================================================
 
 # =============================================================================
 # BUILDER FUNCTION
