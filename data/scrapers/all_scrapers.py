@@ -1937,6 +1937,196 @@ class BCTScraper:
 # =============================================================================
 # INS SCRAPER — Institut National de la Statistique
 # =============================================================================
+class INSScraper:
+    """
+    Scrapes macro indicators from the Institut National de la Statistique (ins.tn).
+
+    Indicators collected:
+      - ipc_construction      : Construction price index (base 2015=100) — most important
+      - ipc_general_ins       : General consumer price index from INS
+      - pib_courant           : GDP at current prices (MDT)
+      - permis_construire     : Building permits issued (count)
+
+    The INS website publishes data as downloadable Excel files and HTML tables.
+    This scraper targets their public data pages directly.
+    """
+
+    SOURCE = "INS"
+    BASE_URL = "https://www.ins.tn"
+
+    # INS public data portal endpoints
+    IPC_CONST_URL = "https://www.ins.tn/statistiques/indice-des-prix-a-la-construction"
+    IPC_GENERAL_URL = "https://www.ins.tn/statistiques/indice-des-prix-a-la-consommation"
+    PIB_URL = "https://www.ins.tn/statistiques/comptes-nationaux"
+    PERMIS_URL = "https://www.ins.tn/statistiques/construction-et-travaux-publics"
+
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/123.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "fr-FR,fr;q=0.9",
+        "Referer": "https://www.ins.tn/",
+    }
+
+    def run(self) -> Dict[str, Any]:
+        log.info("[INS] Starting INS macro scraper")
+        rows: List[Dict] = []
+
+        rows += self._scrape_ipc_construction()
+        rows += self._scrape_ipc_general()
+        rows += self._scrape_pib()
+        rows += self._scrape_permis()
+
+        if not rows:
+            log.warning("[INS] No data collected")
+            return {"source": self.SOURCE, "rows": 0, "status": "empty"}
+
+        conn = _get_macro_db()
+        inserted = _upsert_macro(conn, rows)
+        conn.close()
+        log.info(f"[INS] Saved {inserted}/{len(rows)} rows to DB")
+        return {"source": self.SOURCE, "rows": inserted, "status": "ok"}
+
+    def _get(self, url: str, timeout: int = 30) -> Optional[requests.Response]:
+        for attempt in range(3):
+            try:
+                resp = requests.get(url, headers=self.HEADERS, timeout=timeout)
+                resp.raise_for_status()
+                return resp
+            except Exception as e:
+                log.warning(f"[INS] GET {url} attempt {attempt+1} failed: {e}")
+                time.sleep(random.uniform(2, 5))
+        return None
+
+    def _parse_ins_table(self, soup: BeautifulSoup, value_col: int = 1) -> List[Tuple[str, float]]:
+        """
+        Parse an INS statistics table.
+        INS tables typically have: date | value columns.
+        """
+        results = []
+        for table in soup.find_all("table"):
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all(["td", "th"])
+                if len(cells) <= value_col:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = (
+                    cells[value_col]
+                    .get_text(strip=True)
+                    .replace("\xa0", "")
+                    .replace("\u202f", "")
+                    .replace(",", ".")
+                    .strip()
+                )
+                d = BCTScraper._normalise_date(raw_date)
+                if not d:
+                    continue
+                try:
+                    val = float(re.sub(r"[^\d.]", "", raw_val))
+                    results.append((d, val))
+                except ValueError:
+                    continue
+        return results
+
+    def _scrape_ipc_construction(self) -> List[Dict]:
+        """IPC Construction — the most direct proxy for property prices."""
+        log.info("[INS] Scraping IPC Construction")
+        resp = self._get(self.IPC_CONST_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        pairs = self._parse_ins_table(soup)
+        return [
+            {
+                "date": d,
+                "indicator": "ipc_construction",
+                "value": v,
+                "unit": "index_2015=100",
+                "source": self.SOURCE,
+            }
+            for d, v in pairs
+        ]
+
+    def _scrape_ipc_general(self) -> List[Dict]:
+        log.info("[INS] Scraping IPC General")
+        resp = self._get(self.IPC_GENERAL_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        pairs = self._parse_ins_table(soup)
+        return [
+            {
+                "date": d,
+                "indicator": "ipc_general_ins",
+                "value": v,
+                "unit": "index_2015=100",
+                "source": self.SOURCE,
+            }
+            for d, v in pairs
+        ]
+
+    def _scrape_pib(self) -> List[Dict]:
+        log.info("[INS] Scraping PIB")
+        resp = self._get(self.PIB_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        pairs = self._parse_ins_table(soup)
+        return [
+            {
+                "date": d,
+                "indicator": "pib_courant",
+                "value": v,
+                "unit": "MDT",
+                "source": self.SOURCE,
+            }
+            for d, v in pairs
+        ]
+
+    def _scrape_permis(self) -> List[Dict]:
+        log.info("[INS] Scraping permis de construire")
+        resp = self._get(self.PERMIS_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        # Permis page: look for "permis" or "autorisations" column
+        rows_out = []
+        for table in soup.find_all("table"):
+            headers = [th.get_text(strip=True).lower() for th in table.find_all("th")]
+            col = next(
+                (i for i, h in enumerate(headers) if "permis" in h or "autorisation" in h),
+                1,
+            )
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all(["td", "th"])
+                if len(cells) <= col:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = cells[col].get_text(strip=True).replace("\xa0", "").replace(",", "").strip()
+                d = BCTScraper._normalise_date(raw_date)
+                if not d:
+                    continue
+                try:
+                    val = float(re.sub(r"[^\d]", "", raw_val))
+                    rows_out.append(
+                        {
+                            "date": d,
+                            "indicator": "permis_construire",
+                            "value": val,
+                            "unit": "count",
+                            "source": self.SOURCE,
+                        }
+                    )
+                except ValueError:
+                    continue
+        return rows_out
+
+
+# =============================================================================
+# BVMT SCRAPER — Bourse des Valeurs Mobilières de Tunis
+# =============================================================================
 # =============================================================================
 # BUILDER FUNCTION
 # =============================================================================
