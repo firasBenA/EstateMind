@@ -2363,7 +2363,7 @@ def run_all_macro_scrapers() -> List[Dict]:
 # =============================================================================
 
 def build_all_scrapers() -> List[BaseScraper]:
-    """Return one instance of every active scraper."""
+    """Return one instance of every active property scraper."""
     return [
         AffareScraper(),
         Century21Scraper(),
@@ -2375,9 +2375,10 @@ def build_all_scrapers() -> List[BaseScraper]:
         VerdarScraper(),
         ZitounaImmoScraper(),
     ]
-
-
+ 
+ 
 __all__ = [
+    # Property scrapers
     "AffareScraper",
     "Century21Scraper",
     "DarcomScraper",
@@ -2388,4 +2389,9 @@ __all__ = [
     "VerdarScraper",
     "ZitounaImmoScraper",
     "build_all_scrapers",
+    # Macro / time-series scrapers
+    "BCTScraper",
+    "INSScraper",
+    "BVMTScraper",
+    "run_all_macro_scrapers",
 ]
