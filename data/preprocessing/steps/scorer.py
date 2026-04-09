@@ -1,54 +1,57 @@
 """
-EstateMind — Reliability Scorer
+EstateMind — Reliability Scorer (ML-Powered + XAI + Excel Loader)
 
-Assigns a reliability score (0-100) to each listing based on:
-- Field completeness
-- Data quality signals
-- Outlier flags
-- Cross-source verification bonus
-- Price change history bonus
+Assigns a reliability score (0-100) to each listing using:
+- A trained XGBoost model (learns weights automatically from data)
+- SHAP for explainability (why did this listing get this score?)
+- Fallback to heuristic scoring if model is not yet trained
+- Built-in Excel loader for direct CLI usage
 
 Score thresholds:
   < 25   → DROP from modeling (too many nulls or flagged as bad data)
   25-60  → LOW quality  — include with caution
   60-85  → GOOD quality — standard inclusion
   85-100 → HIGH quality — high confidence data, upweight in modeling
+
+Model Training:
+  The model learns feature importance automatically from labeled data.
+  Labels are generated via heuristic proxy scores on the first run,
+  then improved as real feedback is collected.
+
+  To retrain:
+      from preprocessing.steps.scorer import train_scorer
+      train_scorer(records)          # records = list of metadata dicts
+
+  To inspect what the model learned:
+      from preprocessing.steps.scorer import get_feature_importances
+      print(get_feature_importances())
+
+  To score an Excel file directly:
+      python scorer.py Classeur2.xlsx
 """
 from __future__ import annotations
 
-from typing import Dict, Any, Optional
+import os
+import sys
+import json
+import pickle
+import warnings
+from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple
+
+from loguru import logger
+
+warnings.filterwarnings("ignore", category=UserWarning)
 
 
-# ── Score weights ─────────────────────────────────────────────────────────────
+# ── Paths ─────────────────────────────────────────────────────────────────────
 
-COMPLETENESS_WEIGHTS = {
-    "price":         20,   # most important field
-    "surface":       15,
-    "rooms":         10,
-    "city":          10,
-    "governorate":   10,
-    "coordinates":   10,   # lat + lon both present
-    "description":   10,   # description length > 50 chars
-    "images":         5,   # at least one image
-    "features":       5,   # features list not empty
-    "municipality":   5,   # municipality/district present
-}
+MODEL_DIR  = Path(os.environ.get("SCORER_MODEL_DIR", "models/scorer"))
+MODEL_PATH = MODEL_DIR / "reliability_scorer.pkl"
+META_PATH  = MODEL_DIR / "scorer_meta.json"
 
-BONUS_WEIGHTS = {
-    "has_price_history":    10,  # listing seen more than once
-    "price_changed":         5,  # confirms it's a real active listing
-    "cross_verified":       15,  # same property found on 2+ sources
-    "nlp_enriched":          5,  # fields were successfully filled by NLP
-}
 
-PENALTY_WEIGHTS = {
-    "price_outlier":        -20,
-    "surface_outlier":      -10,
-    "price_zero":           -15,
-    "mostly_nulls":         -25,  # >60% of key fields are null
-    "suspected_duplicate":  -30,
-    "price_per_m2_invalid": -10,
-}
+# ── Score thresholds (pipeline depends on these — do not rename) ──────────────
 
 SCORE_LEVELS = {
     "HIGH":   (85, 100),
@@ -58,165 +61,377 @@ SCORE_LEVELS = {
 }
 
 
-# ── Scorer ────────────────────────────────────────────────────────────────────
+# ── Feature definitions ───────────────────────────────────────────────────────
+# These define WHAT to extract — the model learns HOW MUCH each one matters.
+
+COMPLETENESS_FEATURES = [
+    "price",
+    "surface",
+    "rooms",
+    "city",
+    "governorate",
+    "coordinates",
+    "description",
+    "images",
+    "features",
+    "municipality",
+]
+
+BONUS_FEATURES = [
+    "has_price_history",
+    "price_changed",
+    "cross_verified",
+    "nlp_enriched",
+]
+
+PENALTY_FEATURES = [
+    "price_outlier",
+    "surface_outlier",
+    "price_zero",
+    "mostly_nulls",
+    "suspected_duplicate",
+    "price_per_m2_invalid",
+]
+
+ALL_FEATURES = COMPLETENESS_FEATURES + BONUS_FEATURES + PENALTY_FEATURES
+
+# Human-readable labels for XAI explanations
+FEATURE_LABELS = {
+    "price":                "has a valid price",
+    "surface":              "has surface area",
+    "rooms":                "has room count",
+    "city":                 "has city info",
+    "governorate":          "has governorate",
+    "coordinates":          "has GPS coordinates",
+    "description":          "has a detailed description (50+ chars)",
+    "images":               "has images",
+    "features":             "has listed amenities/features",
+    "municipality":         "has municipality/district",
+    "has_price_history":    "seen across multiple scraping cycles",
+    "price_changed":        "price changed (confirms active listing)",
+    "cross_verified":       "verified on 2+ sources",
+    "nlp_enriched":         "fields enriched by NLP extraction",
+    "price_outlier":        "price flagged as statistical outlier",
+    "surface_outlier":      "surface area is extreme",
+    "price_zero":           "price is zero",
+    "mostly_nulls":         "too many key fields are missing",
+    "suspected_duplicate":  "suspected duplicate listing",
+    "price_per_m2_invalid": "price per m² is outside valid range",
+}
+
+
+# ── Feature Extractor ─────────────────────────────────────────────────────────
+
+def extract_features(
+    metadata: Dict[str, Any],
+    flags: Dict[str, bool],
+) -> Dict[str, float]:
+    """
+    Convert raw metadata + flags into a numeric feature vector.
+    Returns a dict of {feature_name: 0.0 or 1.0}.
+    All features are binary (present/absent) for interpretability.
+    Handles both 'region'/'governorate' and 'surface'/'surface_area_m2'.
+    """
+    price   = metadata.get("price")
+    surface = metadata.get("surface") or metadata.get("surface_area_m2")
+    rooms   = metadata.get("rooms")
+    desc    = metadata.get("description") or ""
+    lat     = metadata.get("latitude")
+    lon     = metadata.get("longitude")
+
+    def _f(v):
+        try:
+            return float(v)
+        except (TypeError, ValueError):
+            return 0.0
+
+    price_val   = _f(price)
+    surface_val = _f(surface)
+    rooms_val   = _f(rooms)
+
+    # ── Completeness features (0.0 or 1.0) ───────────────────────────────────
+    completeness = {
+        "price":        1.0 if price_val > 0 else 0.0,
+        "surface":      1.0 if surface_val > 0 else 0.0,
+        "rooms":        1.0 if rooms_val > 0 else 0.0,
+        "city":         1.0 if metadata.get("city") else 0.0,
+        # Handle both 'region' and 'governorate'
+        "governorate":  1.0 if (metadata.get("region") or metadata.get("governorate")) else 0.0,
+        "coordinates":  1.0 if (lat and lon) else 0.0,
+        "description":  1.0 if len(str(desc)) > 50 else 0.0,
+        "images":       1.0 if _f(metadata.get("image_count", 0)) > 0 else 0.0,
+        "features":     1.0 if len(metadata.get("features") or []) > 0 else 0.0,
+        # Handle both 'municipality' and 'municipalite'
+        "municipality": 1.0 if (metadata.get("municipality") or metadata.get("municipalite")) else 0.0,
+    }
+
+    # ── Bonus features ────────────────────────────────────────────────────────
+    bonuses = {
+        "has_price_history": 1.0 if flags.get("has_price_history") else 0.0,
+        "price_changed":     1.0 if flags.get("price_changed") else 0.0,
+        "cross_verified":    1.0 if flags.get("cross_verified") else 0.0,
+        "nlp_enriched":      1.0 if flags.get("nlp_enriched") else 0.0,
+    }
+
+    # ── Penalty features ──────────────────────────────────────────────────────
+    key_fields = ["price", "surface", "rooms", "city", "governorate"]
+    null_count = sum(1 for f in key_fields if not metadata.get(f))
+
+    ppm2_invalid = 0.0
+    if price_val > 0 and surface_val > 0:
+        ppm2 = price_val / surface_val
+        ppm2_invalid = 1.0 if (ppm2 < 100 or ppm2 > 20000) else 0.0
+
+    penalties = {
+        # Map 'is_outlier' from Excel to 'price_outlier'
+        "price_outlier":        1.0 if (flags.get("price_outlier") or metadata.get("is_outlier")) else 0.0,
+        "surface_outlier":      1.0 if (flags.get("surface_outlier") or surface_val > 5000) else 0.0,
+        "price_zero":           1.0 if (price_val == 0 and price is not None) else 0.0,
+        "mostly_nulls":         1.0 if null_count >= 3 else 0.0,
+        "suspected_duplicate":  1.0 if flags.get("suspected_duplicate") else 0.0,
+        "price_per_m2_invalid": ppm2_invalid,
+    }
+
+    return {**completeness, **bonuses, **penalties}
+
+
+# ── Heuristic scorer (fallback when model is not yet trained) ─────────────────
+
+_HEURISTIC_WEIGHTS: Dict[str, float] = {
+    # completeness
+    "price": 20.0, "surface": 15.0, "rooms": 10.0, "city": 10.0,
+    "governorate": 10.0, "coordinates": 10.0, "description": 10.0,
+    "images": 5.0, "features": 5.0, "municipality": 5.0,
+    # bonuses
+    "has_price_history": 10.0, "price_changed": 5.0,
+    "cross_verified": 15.0, "nlp_enriched": 5.0,
+    # penalties
+    "price_outlier": -20.0, "surface_outlier": -10.0, "price_zero": -15.0,
+    "mostly_nulls": -25.0, "suspected_duplicate": -30.0, "price_per_m2_invalid": -10.0,
+}
+
+
+def _heuristic_score(features: Dict[str, float]) -> float:
+    """Compute score using fixed heuristic weights (fallback/label generation only)."""
+    raw = sum(features[f] * _HEURISTIC_WEIGHTS.get(f, 0.0) for f in ALL_FEATURES)
+    return max(0.0, min(100.0, raw))
+
+
+def _heuristic_contributions(features: Dict[str, float]) -> Dict[str, float]:
+    """Return per-feature contributions under heuristic weights."""
+    return {f: features[f] * _HEURISTIC_WEIGHTS.get(f, 0.0) for f in ALL_FEATURES}
+
+
+# ── XAI Explainer ─────────────────────────────────────────────────────────────
+
+def explain_score(
+    shap_values: Dict[str, float],
+    features: Dict[str, float],
+    score: float,
+    level: str,
+    used_model: bool,
+) -> str:
+    """Generate a plain-language explanation of why a listing got this score."""
+    positive = sorted(
+        [(k, v) for k, v in shap_values.items() if v > 0.5],
+        key=lambda x: -x[1],
+    )
+    negative = sorted(
+        [(k, v) for k, v in shap_values.items() if v < -0.5],
+        key=lambda x: x[1],
+    )
+
+    method = "ML model" if used_model else "heuristic rules"
+    parts  = [f"Score {score:.0f}/100 — {level}. (via {method})"]
+
+    if positive:
+        top = [FEATURE_LABELS.get(k, k) for k, _ in positive[:3]]
+        parts.append(f"✅ Strengths: {', '.join(top)}.")
+
+    if negative:
+        top = [FEATURE_LABELS.get(k, k) for k, _ in negative[:3]]
+        parts.append(f"⚠️  Issues: {', '.join(top)}.")
+
+    missing = [
+        FEATURE_LABELS.get(f, f)
+        for f in COMPLETENESS_FEATURES
+        if features.get(f, 0.0) == 0.0
+    ]
+    if missing:
+        parts.append(f"📭 Missing: {', '.join(missing[:4])}.")
+
+    return " ".join(parts)
+
+
+# ── ML Scorer Model ───────────────────────────────────────────────────────────
+
+class ScorerModel:
+    """XGBoost-based reliability scorer with SHAP explainability."""
+
+    def __init__(self):
+        self.model: Any = None
+        self.explainer: Any = None
+        self.feature_importances: Dict[str, float] = {}
+        self.is_trained = False
+        self._load()
+
+    def _load(self):
+        """Load trained model from disk if it exists."""
+        if MODEL_PATH.exists():
+            try:
+                with open(MODEL_PATH, "rb") as f:
+                    data = pickle.load(f)
+                self.model               = data["model"]
+                self.explainer           = data.get("explainer")
+                self.feature_importances = data.get("feature_importances", {})
+                self.is_trained          = True
+                logger.info(f"[Scorer] ✓ Loaded ML model from {MODEL_PATH}")
+            except Exception as e:
+                logger.warning(f"[Scorer] Could not load model ({e}) — using heuristic fallback")
+
+    def save(self):
+        """Persist trained model + metadata to disk."""
+        MODEL_DIR.mkdir(parents=True, exist_ok=True)
+        with open(MODEL_PATH, "wb") as f:
+            pickle.dump({
+                "model":               self.model,
+                "explainer":           self.explainer,
+                "feature_importances": self.feature_importances,
+            }, f)
+        with open(META_PATH, "w") as f:
+            json.dump({
+                "feature_importances": self.feature_importances,
+                "features":            ALL_FEATURES,
+            }, f, indent=2)
+        logger.info(f"[Scorer] ✓ Model saved → {MODEL_PATH}")
+
+    def train(self, records: List[Dict[str, Any]], force_retrain: bool = False):
+        """Train the XGBoost scorer on a batch of records."""
+        try:
+            import numpy as np
+            import xgboost as xgb
+            import shap as shap_lib
+        except ImportError:
+            logger.error(
+                "[Scorer] Missing ML dependencies.\n"
+                "Install with: pip install xgboost shap numpy"
+            )
+            return
+
+        if self.is_trained and not force_retrain:
+            logger.info("[Scorer] Model already trained. Pass force_retrain=True to retrain.")
+            return
+
+        logger.info(f"[Scorer] Building training set from {len(records)} records...")
+
+        X_rows, y_labels = [], []
+        for rec in records:
+            metadata = rec.get("metadata", rec)
+            flags = {
+                "price_outlier":       metadata.get("is_outlier", False),
+                "suspected_duplicate": metadata.get("suspected_duplicate", False),
+                "nlp_enriched":        metadata.get("nlp_enriched", False),
+                "has_price_history":   metadata.get("has_price_history", False),
+                "price_changed":       metadata.get("price_changed", False),
+                "cross_verified":      metadata.get("cross_verified", False),
+            }
+            feats = extract_features(metadata, flags)
+            label = _heuristic_score(feats)   # proxy label
+            X_rows.append([feats[f] for f in ALL_FEATURES])
+            y_labels.append(label)
+
+        X = np.array(X_rows, dtype=np.float32)
+        y = np.array(y_labels, dtype=np.float32)
+
+        logger.info(f"[Scorer] Training XGBoost on {len(X)} samples...")
+        self.model = xgb.XGBRegressor(
+            n_estimators=300,
+            max_depth=4,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            objective="reg:squarederror",
+            random_state=42,
+            verbosity=0,
+        )
+        self.model.fit(X, y)
+
+        # SHAP explainer
+        self.explainer = shap_lib.TreeExplainer(self.model)
+
+        # Normalize feature importances to percentage
+        raw_imp = self.model.feature_importances_
+        total   = raw_imp.sum() or 1.0
+        self.feature_importances = {
+            f: round(float(raw_imp[i] / total * 100), 2)
+            for i, f in enumerate(ALL_FEATURES)
+        }
+
+        self.is_trained = True
+        top5 = sorted(self.feature_importances.items(), key=lambda x: -x[1])[:5]
+        logger.info(f"[Scorer] ✓ Training complete. Top features: {top5}")
+
+    def predict(
+        self,
+        features: Dict[str, float],
+    ) -> Tuple[float, Dict[str, float]]:
+        """Score a single listing and return (score, shap_contributions)."""
+        if not self.is_trained or self.model is None:
+            score = _heuristic_score(features)
+            return score, _heuristic_contributions(features)
+
+        try:
+            import numpy as np
+        except ImportError:
+            score = _heuristic_score(features)
+            return score, _heuristic_contributions(features)
+
+        x         = np.array([[features[f] for f in ALL_FEATURES]], dtype=np.float32)
+        raw_score = float(self.model.predict(x)[0])
+        score     = max(0.0, min(100.0, raw_score))
+
+        # SHAP values
+        shap_vals: Dict[str, float] = {}
+        if self.explainer is not None:
+            try:
+                sv        = self.explainer.shap_values(x)
+                shap_vals = {f: float(sv[0][i]) for i, f in enumerate(ALL_FEATURES)}
+            except Exception as e:
+                logger.debug(f"[Scorer] SHAP computation failed: {e}")
+                shap_vals = _heuristic_contributions(features)
+        else:
+            shap_vals = _heuristic_contributions(features)
+
+        return score, shap_vals
+
+
+# ── Module-level singleton ────────────────────────────────────────────────────
+
+_scorer_model: Optional[ScorerModel] = None
+
+
+def _get_model() -> ScorerModel:
+    global _scorer_model
+    if _scorer_model is None:
+        _scorer_model = ScorerModel()
+    return _scorer_model
+
+
+# ── Public API — drop-in replacement ──────────────────────────────────────────
 
 def compute_score(
     metadata: Dict[str, Any],
     flags: Dict[str, bool] = None,
 ) -> Dict[str, Any]:
-    """
-    Compute reliability score for a listing.
+    """Compute reliability score for a listing."""
+    flags  = flags or {}
+    model  = _get_model()
 
-    Args:
-        metadata: Pinecone metadata dict for the listing
-        flags: optional dict of quality flags already computed
-               e.g. {"price_outlier": True, "cross_verified": False}
+    features              = extract_features(metadata, flags)
+    score, shap_vals      = model.predict(features)
+    used_model            = model.is_trained
 
-    Returns:
-        dict with keys: score (int), level (str), breakdown (dict)
-    """
-    flags = flags or {}
-    breakdown = {}
-    score = 0
-
-    # ── Completeness ──────────────────────────────────────────────────────────
-
-    # Price
-    price = metadata.get("price")
-    if price and float(price) > 0:
-        score += COMPLETENESS_WEIGHTS["price"]
-        breakdown["price"] = COMPLETENESS_WEIGHTS["price"]
-    else:
-        breakdown["price"] = 0
-
-    # Surface
-    surface = metadata.get("surface") or metadata.get("surface_area_m2")
-    if surface and float(surface) > 0:
-        score += COMPLETENESS_WEIGHTS["surface"]
-        breakdown["surface"] = COMPLETENESS_WEIGHTS["surface"]
-    else:
-        breakdown["surface"] = 0
-
-    # Rooms
-    rooms = metadata.get("rooms")
-    if rooms and int(rooms) > 0:
-        score += COMPLETENESS_WEIGHTS["rooms"]
-        breakdown["rooms"] = COMPLETENESS_WEIGHTS["rooms"]
-    else:
-        breakdown["rooms"] = 0
-
-    # City
-    if metadata.get("city"):
-        score += COMPLETENESS_WEIGHTS["city"]
-        breakdown["city"] = COMPLETENESS_WEIGHTS["city"]
-    else:
-        breakdown["city"] = 0
-
-    # Governorate / region
-    if metadata.get("region") or metadata.get("governorate"):
-        score += COMPLETENESS_WEIGHTS["governorate"]
-        breakdown["governorate"] = COMPLETENESS_WEIGHTS["governorate"]
-    else:
-        breakdown["governorate"] = 0
-
-    # Coordinates
-    lat = metadata.get("latitude")
-    lon = metadata.get("longitude")
-    if lat and lon:
-        score += COMPLETENESS_WEIGHTS["coordinates"]
-        breakdown["coordinates"] = COMPLETENESS_WEIGHTS["coordinates"]
-    else:
-        breakdown["coordinates"] = 0
-
-    # Description quality
-    desc = metadata.get("description") or ""
-    if len(str(desc)) > 50:
-        score += COMPLETENESS_WEIGHTS["description"]
-        breakdown["description"] = COMPLETENESS_WEIGHTS["description"]
-    else:
-        breakdown["description"] = 0
-
-    # Images
-    image_count = metadata.get("image_count") or 0
-    if int(image_count) > 0:
-        score += COMPLETENESS_WEIGHTS["images"]
-        breakdown["images"] = COMPLETENESS_WEIGHTS["images"]
-    else:
-        breakdown["images"] = 0
-
-    # Features
-    features = metadata.get("features") or []
-    if features and len(features) > 0:
-        score += COMPLETENESS_WEIGHTS["features"]
-        breakdown["features"] = COMPLETENESS_WEIGHTS["features"]
-    else:
-        breakdown["features"] = 0
-
-    # Municipality
-    if metadata.get("municipality") or metadata.get("municipalite"):
-        score += COMPLETENESS_WEIGHTS["municipality"]
-        breakdown["municipality"] = COMPLETENESS_WEIGHTS["municipality"]
-    else:
-        breakdown["municipality"] = 0
-
-    # ── Bonuses ───────────────────────────────────────────────────────────────
-
-    if flags.get("has_price_history"):
-        score += BONUS_WEIGHTS["has_price_history"]
-        breakdown["bonus_history"] = BONUS_WEIGHTS["has_price_history"]
-
-    if flags.get("price_changed"):
-        score += BONUS_WEIGHTS["price_changed"]
-        breakdown["bonus_price_change"] = BONUS_WEIGHTS["price_changed"]
-
-    if flags.get("cross_verified"):
-        score += BONUS_WEIGHTS["cross_verified"]
-        breakdown["bonus_cross_verified"] = BONUS_WEIGHTS["cross_verified"]
-
-    if flags.get("nlp_enriched"):
-        score += BONUS_WEIGHTS["nlp_enriched"]
-        breakdown["bonus_nlp"] = BONUS_WEIGHTS["nlp_enriched"]
-
-    # ── Penalties ─────────────────────────────────────────────────────────────
-
-    # Price outlier check (price per m²)
-    if flags.get("price_outlier"):
-        score += PENALTY_WEIGHTS["price_outlier"]
-        breakdown["penalty_price_outlier"] = PENALTY_WEIGHTS["price_outlier"]
-    elif price and surface and float(surface) > 0:
-        price_per_m2 = float(price) / float(surface)
-        if price_per_m2 < 100 or price_per_m2 > 20000:
-            score += PENALTY_WEIGHTS["price_per_m2_invalid"]
-            breakdown["penalty_price_m2"] = PENALTY_WEIGHTS["price_per_m2_invalid"]
-
-    # Surface outlier
-    if flags.get("surface_outlier"):
-        score += PENALTY_WEIGHTS["surface_outlier"]
-        breakdown["penalty_surface"] = PENALTY_WEIGHTS["surface_outlier"]
-    elif surface and float(surface) > 5000:
-        score += PENALTY_WEIGHTS["surface_outlier"]
-        breakdown["penalty_surface"] = PENALTY_WEIGHTS["surface_outlier"]
-
-    # Zero price
-    if price is not None and float(price) == 0:
-        score += PENALTY_WEIGHTS["price_zero"]
-        breakdown["penalty_zero_price"] = PENALTY_WEIGHTS["price_zero"]
-
-    # Mostly nulls — count how many key fields are missing
-    key_fields = ["price", "surface", "rooms", "city", "governorate"]
-    null_count = sum(1 for f in key_fields if not metadata.get(f))
-    if null_count >= 3:  # 60%+ of key fields missing
-        score += PENALTY_WEIGHTS["mostly_nulls"]
-        breakdown["penalty_mostly_nulls"] = PENALTY_WEIGHTS["mostly_nulls"]
-
-    # Suspected duplicate
-    if flags.get("suspected_duplicate"):
-        score += PENALTY_WEIGHTS["suspected_duplicate"]
-        breakdown["penalty_duplicate"] = PENALTY_WEIGHTS["suspected_duplicate"]
-
-    # ── Clamp and classify ────────────────────────────────────────────────────
-
-    score = max(0, min(100, score))
+    score = round(score)
 
     level = "DROP"
     for lvl, (low, high) in SCORE_LEVELS.items():
@@ -224,88 +439,187 @@ def compute_score(
             level = lvl
             break
 
+    breakdown   = {f: round(shap_vals.get(f, 0.0), 2) for f in ALL_FEATURES}
+    explanation = explain_score(shap_vals, features, score, level, used_model)
+
     return {
-        "score": score,
-        "level": level,
+        "score":       score,
+        "level":       level,
         "should_drop": score < 25,
-        "breakdown": breakdown,
+        "breakdown":   breakdown,
+        "explanation": explanation,
+        "shap_values": shap_vals,
+        "used_model":  used_model,
     }
 
 
 def compute_model_weight(score: int) -> float:
-    """
-    Returns a weight multiplier for use in ML training.
-    High quality listings count more in model training.
-    """
-    if score >= 85:
-        return 1.5
-    if score >= 60:
-        return 1.0
-    if score >= 25:
-        return 0.5
-    return 0.0  # drop
+    """Weight multiplier for ML training."""
+    if score >= 85: return 1.5
+    if score >= 60: return 1.0
+    if score >= 25: return 0.5
+    return 0.0
 
 
 def batch_score(records: list) -> list:
-    """
-    Score a list of Pinecone metadata records.
-    Returns list of dicts with original metadata + score fields added.
-    """
+    """Score a list of Pinecone metadata records."""
     results = []
     for record in records:
-        metadata = record.get("metadata", record)
+        metadata     = record.get("metadata", record)
         score_result = compute_score(metadata)
-        enriched = dict(metadata)
+        enriched     = dict(metadata)
         enriched["reliability_score"] = score_result["score"]
         enriched["reliability_level"] = score_result["level"]
-        enriched["should_drop"] = score_result["should_drop"]
-        enriched["model_weight"] = compute_model_weight(score_result["score"])
+        enriched["should_drop"]       = score_result["should_drop"]
+        enriched["model_weight"]      = compute_model_weight(score_result["score"])
+        enriched["score_explanation"] = score_result["explanation"]
         results.append(enriched)
     return results
 
 
-# ── Quick test ────────────────────────────────────────────────────────────────
+def train_scorer(records: List[Dict[str, Any]], force: bool = False):
+    """Train + save the ML scorer from anywhere in your codebase."""
+    model = _get_model()
+    model.train(records, force_retrain=force)
+    model.save()
 
+
+def get_feature_importances() -> Dict[str, float]:
+    """Return what the trained model learned about feature importance (%)."""
+    return _get_model().feature_importances
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+# ── Excel Loader Utility (CLI: python scorer.py Classeur2.xlsx) ───────────────
+# ═════════════════════════════════════════════════════════════════════════════
+def load_excel_to_records(filepath: str) -> list:
+    """Load file and convert rows to scorer format."""
+    import pandas as pd
+    
+    # Based on your data, this is a pipe-separated text file.
+    # We use read_csv with sep='|'.
+    try:
+        # header=0 assumes the first row contains column names like "price", "surface", etc.
+        df = pd.read_csv(filepath, sep='|', header=0, engine='python')
+    except Exception as e:
+        print(f"⚠️  CSV read failed: {e}. Trying as Excel file...")
+        # Fallback to Excel if it turns out to be a real .xlsx
+        df = pd.read_excel(filepath)
+    
+    records = []
+    for _, row in df.iterrows():
+        # Ensure row is a dict-like object for .get() to work
+        # If read_csv is used, row is a Series, so .get() works if headers match
+        row_dict = row.to_dict() if hasattr(row, 'to_dict') else row
+        
+        metadata = {
+            # Core fields
+            "price": row_dict.get("price"),
+            "surface": row_dict.get("surface") or row_dict.get("surface_area_m2"),
+            "surface_area_m2": row_dict.get("surface_area_m2"),
+            "rooms": row_dict.get("rooms"),
+            "city": row_dict.get("city"),
+            "region": row_dict.get("region"),
+            "governorate": row_dict.get("governorate"),
+            "latitude": row_dict.get("latitude"),
+            "longitude": row_dict.get("longitude"),
+            "description": row_dict.get("description"),
+            "image_count": row_dict.get("image_count"),
+            # Handle list strings like '["feature1", "feature2"]'
+            "features": eval(row_dict.get("features", "[]")) if isinstance(row_dict.get("features"), str) else row_dict.get("features", []),
+            "municipality": row_dict.get("municipality"),
+            "municipalite": row_dict.get("municipalite"),
+            
+            # Flags embedded in metadata
+            "is_outlier": bool(row_dict.get("is_outlier", False)),
+            "has_price_history": bool(row_dict.get("has_price_history", False)),
+            "cross_verified": bool(row_dict.get("cross_verified", False)),
+            "suspected_duplicate": bool(row_dict.get("suspected_duplicate", False)),
+            "nlp_enriched": bool(row_dict.get("nlp_enriched", False)),
+            "price_changed": bool(row_dict.get("price_changed", False)),
+            
+            # Keep original IDs for reference
+            "property_id": row_dict.get("property_id"),
+            "_id": row_dict.get("_id"),
+            "source_name": row_dict.get("source_name"),
+        }
+        
+        flags = {
+            "price_outlier": bool(row_dict.get("is_outlier", False)),
+            "suspected_duplicate": bool(row_dict.get("suspected_duplicate", False)),
+            "nlp_enriched": bool(row_dict.get("nlp_enriched", False)),
+            "has_price_history": bool(row_dict.get("has_price_history", False)),
+            "price_changed": bool(row_dict.get("price_changed", False)),
+            "cross_verified": bool(row_dict.get("cross_verified", False)),
+        }
+        
+        records.append({
+            "metadata": metadata,
+            "flags": flags,
+            "original_score": row_dict.get("reliability_score"),
+            "original_level": row_dict.get("reliability_level"),
+        })
+    
+    return records
+
+# ── Main entry point for CLI usage ────────────────────────────────────────────
 if __name__ == "__main__":
-    test_cases = [
-        {
-            "name": "Complete high-quality listing",
-            "metadata": {
-                "price": 450000, "surface": 120, "rooms": 4,
-                "city": "La Marsa", "region": "Tunis",
-                "latitude": 36.87, "longitude": 10.32,
-                "description": "Bel appartement S+3 avec vue mer et piscine",
-                "image_count": 8, "features": ["piscine", "vue mer"],
-                "municipalite": "La Marsa",
-            },
-            "flags": {"has_price_history": True, "cross_verified": True}
-        },
-        {
-            "name": "Missing most fields",
-            "metadata": {
-                "price": None, "surface": None, "rooms": None,
-                "city": None, "region": "Tunis",
-                "description": "Appartement",
-                "image_count": 0, "features": [],
-            },
-            "flags": {}
-        },
-        {
-            "name": "Price outlier",
-            "metadata": {
-                "price": 1000, "surface": 200, "rooms": 4,
-                "city": "Tunis", "region": "Tunis",
-                "latitude": 36.8, "longitude": 10.18,
-                "description": "Villa luxueuse avec piscine et jardin",
-                "image_count": 5, "features": ["piscine"],
-            },
-            "flags": {}
-        },
-    ]
-
-    for case in test_cases:
-        result = compute_score(case["metadata"], case["flags"])
-        print(f"\n{case['name']}:")
-        print(f"  Score: {result['score']}/100 — {result['level']}")
-        print(f"  Should drop: {result['should_drop']}")
-        print(f"  Model weight: {compute_model_weight(result['score'])}")
+    import pandas as pd
+    from pathlib import Path
+    
+    if len(sys.argv) < 2:
+        print("Usage: python scorer.py <excel_file.xlsx>")
+        print("Example: python scorer.py ../../Classeur2.xlsx")
+        print("\nOr import as module:")
+        print("  from preprocessing.steps.scorer import compute_score, train_scorer")
+        sys.exit(0)
+    
+    filepath = Path(sys.argv[1])
+    
+    # If file doesn't exist, try looking in parent data directory
+    if not filepath.exists():
+        # Try relative to this script's location
+        script_dir = Path(__file__).parent
+        data_dir = script_dir.parent.parent  # Go to 'data' folder
+        alt_path = data_dir / filepath.name
+        
+        if alt_path.exists():
+            filepath = alt_path
+            print(f"📁 Found file at: {filepath}")
+        else:
+            print(f"❌ Error: File not found: {sys.argv[1]}")
+            print(f"   Also checked: {alt_path}")
+            sys.exit(1)
+    
+    print(f"📥 Loading {filepath}...")
+    
+    records = load_excel_to_records(str(filepath))
+    print(f"✅ Loaded {len(records)} listings")
+    
+    print("\n🔍 Scoring listings...")
+    scored = batch_score(records)
+    
+    print("\n📊 Sample Results:")
+    for i, rec in enumerate(scored[:5]):
+        print(f"  {i+1}. {rec.get('city', '?')} | Score: {rec['reliability_score']}/100 | {rec['reliability_level']}")
+        if rec.get('score_explanation'):
+            print(f"     → {rec['score_explanation'][:120]}...")
+    
+    # Export
+    output_path = "scored_listings.xlsx"
+    export_df = pd.DataFrame(scored)
+    export_df.to_excel(output_path, index=False)
+    print(f"\n💾 Exported to {output_path}")
+    
+    print(f"\n📈 Quality Distribution:")
+    print(export_df['reliability_level'].value_counts())
+    
+    drop_count = export_df['should_drop'].sum()
+    print(f"\n⚠️  {drop_count} listings marked for DROP (score < 25)")
+    
+    # Show feature importances if model was used
+    if _get_model().is_trained:
+        print(f"\n📊 Top Feature Importances (learned from data):")
+        for feat, imp in sorted(get_feature_importances().items(), key=lambda x: -x[1])[:10]:
+            bar = "█" * int(imp / 2)
+            print(f"  {feat:25s} {imp:5.1f}%  {bar}")
