@@ -1726,7 +1726,217 @@ def _upsert_macro(conn: sqlite3.Connection, rows: List[Dict]) -> int:
 # =============================================================================
 # BCT SCRAPER — Banque Centrale de Tunisie
 # =============================================================================
-
+class BCTScraper:
+    """
+    Scrapes macro indicators from the Banque Centrale de Tunisie (bct.gov.tn).
+ 
+    Indicators collected:
+      - taux_directeur        : BCT key interest rate (%)
+      - ipc_general           : Consumer price index, general (base 2015=100)
+      - credits_immobiliers   : Outstanding real estate credit volume (MDT)
+      - tnd_eur               : TND/EUR exchange rate
+ 
+    Data is scraped from BCT's public statistics pages and saved to
+    macro_indicators in estatemind_timeseries.db.
+    """
+ 
+    SOURCE = "BCT"
+    BASE_URL = "https://www.bct.gov.tn"
+ 
+    # BCT statistics URLs (their actual public stats portal paths)
+    TAUX_URL = "https://www.bct.gov.tn/bct/siteprod/statistiques.jsp?id=55"
+    IPC_URL = "https://www.bct.gov.tn/bct/siteprod/statistiques.jsp?id=49"
+    CREDITS_URL = "https://www.bct.gov.tn/bct/siteprod/statistiques.jsp?id=42"
+    CHANGE_URL = "https://www.bct.gov.tn/bct/siteprod/statistiques.jsp?id=74"
+ 
+    # BCT also publishes a bulletin PDF — we try the HTML stats page first
+    HEADERS = {
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/123.0.0.0 Safari/537.36"
+        ),
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+    }
+ 
+    def run(self) -> Dict[str, Any]:
+        """Run all BCT sub-scrapers and write results to DB. Returns summary."""
+        log.info("[BCT] Starting BCT macro scraper")
+        rows: List[Dict] = []
+ 
+        rows += self._scrape_taux_directeur()
+        rows += self._scrape_ipc()
+        rows += self._scrape_credits_immobiliers()
+        rows += self._scrape_exchange_rate()
+ 
+        if not rows:
+            log.warning("[BCT] No data collected — site may be down or layout changed")
+            return {"source": self.SOURCE, "rows": 0, "status": "empty"}
+ 
+        conn = _get_macro_db()
+        inserted = _upsert_macro(conn, rows)
+        conn.close()
+        log.info(f"[BCT] Saved {inserted}/{len(rows)} rows to DB")
+        return {"source": self.SOURCE, "rows": inserted, "status": "ok"}
+ 
+    # ------------------------------------------------------------------
+    # private helpers
+    # ------------------------------------------------------------------
+ 
+    def _get(self, url: str, timeout: int = 30) -> Optional[requests.Response]:
+        for attempt in range(3):
+            try:
+                resp = requests.get(url, headers=self.HEADERS, timeout=timeout)
+                resp.raise_for_status()
+                return resp
+            except Exception as e:
+                log.warning(f"[BCT] GET {url} attempt {attempt+1} failed: {e}")
+                time.sleep(random.uniform(2, 5))
+        return None
+ 
+    def _parse_bct_table(self, soup: BeautifulSoup) -> List[Tuple[str, float]]:
+        """
+        BCT stats pages all share a common table layout:
+        column 0 = period (e.g. "2024-Q3", "2024-03", "2024"),
+        column 1 = value.
+        Returns list of (date_str, value) tuples.
+        """
+        results = []
+        for table in soup.find_all("table"):
+            rows = table.find_all("tr")
+            for tr in rows[1:]:  # skip header
+                cells = tr.find_all(["td", "th"])
+                if len(cells) < 2:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = cells[1].get_text(strip=True).replace("\xa0", "").replace(",", ".").replace("\u202f", "").strip()
+                # Normalise date → YYYY-MM-01
+                d = self._normalise_date(raw_date)
+                if not d:
+                    continue
+                try:
+                    val = float(re.sub(r"[^\d.]", "", raw_val))
+                    results.append((d, val))
+                except ValueError:
+                    continue
+        return results
+ 
+    @staticmethod
+    def _normalise_date(raw: str) -> Optional[str]:
+        """Convert BCT date formats to YYYY-MM-01 string."""
+        raw = raw.strip()
+        # "2024-03" or "2024/03"
+        m = re.match(r"(\d{4})[-/](\d{2})$", raw)
+        if m:
+            return f"{m.group(1)}-{m.group(2)}-01"
+        # "03/2024"
+        m = re.match(r"(\d{2})/(\d{4})$", raw)
+        if m:
+            return f"{m.group(2)}-{m.group(1)}-01"
+        # "2024" (annual)
+        m = re.match(r"(\d{4})$", raw)
+        if m:
+            return f"{m.group(1)}-01-01"
+        # "T1-2024" or "2024-T1"
+        m = re.search(r"T(\d)[-/](\d{4})|( \d{4})[-/]T(\d)", raw, re.IGNORECASE)
+        if m:
+            q = int(m.group(1) or m.group(4))
+            yr = m.group(2) or m.group(3).strip()
+            month = {1: "01", 2: "04", 3: "07", 4: "10"}.get(q, "01")
+            return f"{yr}-{month}-01"
+        return None
+ 
+    def _scrape_taux_directeur(self) -> List[Dict]:
+        log.info("[BCT] Scraping taux directeur")
+        resp = self._get(self.TAUX_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        pairs = self._parse_bct_table(soup)
+        return [
+            {"date": d, "indicator": "taux_directeur", "value": v, "unit": "%", "source": self.SOURCE}
+            for d, v in pairs
+        ]
+ 
+    def _scrape_ipc(self) -> List[Dict]:
+        log.info("[BCT] Scraping IPC general")
+        resp = self._get(self.IPC_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        pairs = self._parse_bct_table(soup)
+        return [
+            {"date": d, "indicator": "ipc_general", "value": v, "unit": "index_2015=100", "source": self.SOURCE}
+            for d, v in pairs
+        ]
+ 
+    def _scrape_credits_immobiliers(self) -> List[Dict]:
+        log.info("[BCT] Scraping credits immobiliers")
+        resp = self._get(self.CREDITS_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        # Credits page has multiple columns — look for immobilier column
+        rows_out = []
+        for table in soup.find_all("table"):
+            headers = [th.get_text(strip=True).lower() for th in table.find_all("th")]
+            immo_col = next(
+                (i for i, h in enumerate(headers) if "immobilier" in h or "habitat" in h),
+                1,  # fallback: use column 1
+            )
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all(["td", "th"])
+                if len(cells) <= immo_col:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = cells[immo_col].get_text(strip=True).replace("\xa0", "").replace(",", ".").strip()
+                d = self._normalise_date(raw_date)
+                if not d:
+                    continue
+                try:
+                    val = float(re.sub(r"[^\d.]", "", raw_val))
+                    rows_out.append(
+                        {"date": d, "indicator": "credits_immobiliers", "value": val, "unit": "MDT", "source": self.SOURCE}
+                    )
+                except ValueError:
+                    continue
+        return rows_out
+ 
+    def _scrape_exchange_rate(self) -> List[Dict]:
+        log.info("[BCT] Scraping TND/EUR exchange rate")
+        resp = self._get(self.CHANGE_URL)
+        if not resp:
+            return []
+        soup = BeautifulSoup(resp.text, "html.parser")
+        # Try to find EUR column specifically
+        rows_out = []
+        for table in soup.find_all("table"):
+            headers = [th.get_text(strip=True).upper() for th in table.find_all("th")]
+            eur_col = next((i for i, h in enumerate(headers) if "EUR" in h), None)
+            if eur_col is None:
+                continue
+            for tr in table.find_all("tr")[1:]:
+                cells = tr.find_all(["td", "th"])
+                if len(cells) <= eur_col:
+                    continue
+                raw_date = cells[0].get_text(strip=True)
+                raw_val = cells[eur_col].get_text(strip=True).replace(",", ".").strip()
+                d = self._normalise_date(raw_date)
+                if not d:
+                    continue
+                try:
+                    val = float(re.sub(r"[^\d.]", "", raw_val))
+                    rows_out.append(
+                        {"date": d, "indicator": "tnd_eur", "value": val, "unit": "TND/EUR", "source": self.SOURCE}
+                    )
+                except ValueError:
+                    continue
+        return rows_out
+ 
+ 
+# =============================================================================
+# INS SCRAPER — Institut National de la Statistique
+# =============================================================================
 # =============================================================================
 # BUILDER FUNCTION
 # =============================================================================
