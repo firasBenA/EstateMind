@@ -1698,6 +1698,40 @@ class ZitounaImmoScraper(BaseScraper):
 # =============================================================================
 # BCT SCRAPER — Banque Centrale de Tunisie
 # =============================================================================
+import os as _os
+from pathlib import Path as _Path
+
+try:
+    _MACRO_DB_PATH: _Path = _Path(settings.TIMESERIES_DB_PATH)
+except Exception:
+    _MACRO_DB_PATH = _Path("data/estatemind_timeseries.db")
+
+_MACRO_SCHEMA = """
+CREATE TABLE IF NOT EXISTS macro_indicators (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    date        TEXT NOT NULL,
+    indicator   TEXT NOT NULL,
+    value       REAL NOT NULL,
+    unit        TEXT,
+    source      TEXT,
+    scraped_at  TEXT,
+    UNIQUE(date, indicator)
+);
+CREATE INDEX IF NOT EXISTS idx_macro_date      ON macro_indicators(date);
+CREATE INDEX IF NOT EXISTS idx_macro_indicator ON macro_indicators(indicator);
+CREATE INDEX IF NOT EXISTS idx_macro_source    ON macro_indicators(source);
+"""
+
+def _get_macro_db() -> sqlite3.Connection:
+    db_path = _MACRO_DB_PATH
+    parent = str(db_path.parent)
+    if parent and parent != ".":
+        _os.makedirs(parent, exist_ok=True)
+    conn = sqlite3.connect(str(db_path))
+    conn.row_factory = sqlite3.Row
+    conn.executescript(_MACRO_SCHEMA)
+    conn.commit()
+    return conn
 def _upsert_macro(conn: sqlite3.Connection, rows: List[Dict]) -> int:
     """Insert or replace macro indicator rows. Returns count inserted."""
     count = 0
