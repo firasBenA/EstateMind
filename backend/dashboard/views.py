@@ -353,10 +353,12 @@ def eda_metrics(request):
 
 @csrf_exempt
 def api_login(request):
+    
     if request.method != "POST":
         return JsonResponse({"detail": "Method not allowed"}, status=405)
     try:
         payload = json.loads(request.body.decode("utf-8"))
+        
     except Exception:
         return JsonResponse({"detail": "Invalid JSON"}, status=400)
     username = payload.get("username")
