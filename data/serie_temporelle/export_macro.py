@@ -1,21 +1,19 @@
 """
-EstateMind — export_macro.py  (corrected)
-==========================================
-Exports time-series data from estatemind_timeseries.db into CSV files
-ready for Prophet / SARIMAX / LSTM modeling.
+EstateMind — export_macro.py
+=============================
+Exports all time-series data to CSV files ready for modeling.
 
-Three exports produced:
-  1. price_history_full.csv     — every raw row from price_history
-  2. price_history_monthly.csv  — monthly aggregates (median, mean, count)
-                                  broken down by transaction_type & property_type
-  3. macro_indicators.csv       — BCT / INS / BVMT macro indicators
-                                  (empty if macro scrapers haven't run yet)
+WHERE THIS FILE LIVES:
+    EstateMind/data/serie_temporelle/export_macro.py
 
-WHERE TO PUT THIS FILE:
-    EstateMind/serie_temporelle/export_macro.py   ← replace the existing one
-
-HOW TO RUN (from EstateMind/ root):
+HOW TO RUN (from EstateMind/data/):
     python serie_temporelle/export_macro.py
+
+FILES PRODUCED in serie_temporelle/timeseries_exports/:
+    price_history_full_YYYYMMDD.csv     — every raw listing
+    price_history_monthly_YYYYMMDD.csv  — monthly aggregates (your target variable)
+    macro_indicators_YYYYMMDD.csv       — BCT + INS + BVMT indicators (exogenous features)
+    macro_wide_YYYYMMDD.csv             — macro pivoted: one row/month, one col/indicator
 """
 from __future__ import annotations
 
@@ -27,27 +25,28 @@ from pathlib import Path
 import pandas as pd
 
 # =============================================================================
-# PATHS — resolves correctly regardless of where you run the script from
+# PATHS
 # =============================================================================
+# This file is at:  EstateMind/data/serie_temporelle/export_macro.py
+# _HERE  = EstateMind/data/serie_temporelle/
+# _ROOT  = EstateMind/data/                 ← your working directory
+_HERE = Path(__file__).resolve().parent
+_ROOT = _HERE.parent
 
-# This file lives at:  EstateMind/serie_temporelle/export_macro.py
-# So parent = serie_temporelle/, parent.parent = EstateMind/
-_HERE     = Path(__file__).resolve().parent   # serie_temporelle/
-_ROOT     = _HERE.parent                      # EstateMind/
+# The main DB with price_history (2087 rows) AND macro_indicators
+# config/settings.py sets TIMESERIES_DB_PATH = "data/estatemind_timeseries.db"
+# which resolves to EstateMind/data/data/estatemind_timeseries.db
+_DB_PATH = _ROOT / "data" / "estatemind_timeseries.db"
 
-# The DB is at EstateMind/data/estatemind_timeseries.db
-# (matches TIMESERIES_DB_PATH in config/settings.py)
-_DB_PATH  = _ROOT / "data" / "estatemind_timeseries.db"
-
-# Fallback: some runs put it directly under EstateMind/
+# Fallback: DB at root level
 if not _DB_PATH.exists():
     _DB_PATH = _ROOT / "estatemind_timeseries.db"
 
-# Output folder: EstateMind/serie_temporelle/timeseries_exports/
 OUT_DIR = _HERE / "timeseries_exports"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 TS = datetime.now().strftime("%Y%m%d_%H%M%S")
+
 
 # =============================================================================
 # HELPERS
@@ -55,11 +54,11 @@ TS = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 def _conn() -> sqlite3.Connection:
     if not _DB_PATH.exists():
-        print(f"\nERROR: Database not found at:\n  {_DB_PATH}")
-        print("\nMake sure you have run the scrapers at least once:")
-        print("  python main.py run\n")
+        print(f"\nERROR: Database not found.")
+        print(f"  Looked at: {_DB_PATH}")
+        print(f"  Run scrapers first: python main.py run\n")
         sys.exit(1)
-    return sqlite3.connect(_DB_PATH)
+    return sqlite3.connect(str(_DB_PATH))
 
 
 def _tables() -> list:
@@ -70,46 +69,44 @@ def _tables() -> list:
     conn.close()
     return tables
 
+
 # =============================================================================
-# 1. Raw price_history — every listing ever scraped
+# 1. Raw price_history
 # =============================================================================
 
 def export_price_history_full() -> Path:
     conn = _conn()
-    df = pd.read_sql("SELECT * FROM price_history ORDER BY scraped_at", conn)
+    df   = pd.read_sql("SELECT * FROM price_history ORDER BY scraped_at", conn)
     conn.close()
 
     out = OUT_DIR / f"price_history_full_{TS}.csv"
     df.to_csv(out, index=False, encoding="utf-8-sig")
 
-    print(f"[1/3] price_history_full    → {out.name}")
+    print(f"[1/4] price_history_full    → {out.name}")
     print(f"      {len(df)} rows")
-    print(f"      sources : {df['source_name'].value_counts().to_dict()}")
+    print(f"      sources: {df['source_name'].value_counts().to_dict()}")
     return out
 
 
 # =============================================================================
-# 2. Monthly aggregates — this is your actual time series target variable
+# 2. Monthly aggregates (target variable for your model)
 # =============================================================================
 
 def export_price_history_monthly() -> Path:
     conn = _conn()
-    df = pd.read_sql("SELECT * FROM price_history", conn)
+    df   = pd.read_sql("SELECT * FROM price_history", conn)
     conn.close()
 
-    # parse dates
     df["scraped_at"] = pd.to_datetime(df["scraped_at"], errors="coerce")
     df["month"]      = df["scraped_at"].dt.to_period("M").dt.to_timestamp()
 
-    # remove noise: prices below 1000 TND are likely bad data
+    # filter noise
     valid = df[(df["price"] > 1000) & df["price"].notna()].copy()
-
-    # price per m2 (only where surface is known and > 0)
     valid["price_per_m2"] = (
         valid["price"] / valid["surface"]
     ).replace([float("inf"), float("-inf")], None)
 
-    # ── national monthly (all types) ─────────────────────────────────────────
+    # national (all)
     national = (
         valid.groupby("month")
         .agg(
@@ -122,12 +119,12 @@ def export_price_history_monthly() -> Path:
         )
         .reset_index()
     )
-    national["segment"]          = "all"
+    national["segment"] = "all"
     national["transaction_type"] = "all"
     national["property_type"]    = "all"
     national["region"]           = "all"
 
-    # ── by transaction type ───────────────────────────────────────────────────
+    # by transaction type
     by_txn = (
         valid.groupby(["month", "transaction_type"])
         .agg(
@@ -138,11 +135,11 @@ def export_price_history_monthly() -> Path:
         )
         .reset_index()
     )
-    by_txn["segment"]      = by_txn["transaction_type"]
+    by_txn["segment"]       = by_txn["transaction_type"]
     by_txn["property_type"] = "all"
     by_txn["region"]        = "all"
 
-    # ── by property type ──────────────────────────────────────────────────────
+    # by property type
     by_prop = (
         valid.groupby(["month", "property_type"])
         .agg(
@@ -157,7 +154,7 @@ def export_price_history_monthly() -> Path:
     by_prop["transaction_type"] = "all"
     by_prop["region"]           = "all"
 
-    # ── by region ─────────────────────────────────────────────────────────────
+    # by region
     by_region = (
         valid[valid["region"].notna()]
         .groupby(["month", "region"])
@@ -173,10 +170,8 @@ def export_price_history_monthly() -> Path:
     by_region["transaction_type"] = "all"
     by_region["property_type"]    = "all"
 
-    # ── combine all segments ──────────────────────────────────────────────────
     combined = pd.concat(
-        [national, by_txn, by_prop, by_region],
-        ignore_index=True,
+        [national, by_txn, by_prop, by_region], ignore_index=True
     )
     combined["month"] = combined["month"].dt.strftime("%Y-%m-%d")
     combined = combined.sort_values(["month", "segment"]).reset_index(drop=True)
@@ -184,50 +179,83 @@ def export_price_history_monthly() -> Path:
     out = OUT_DIR / f"price_history_monthly_{TS}.csv"
     combined.to_csv(out, index=False, encoding="utf-8-sig")
 
-    print(f"[2/3] price_history_monthly → {out.name}")
+    print(f"[2/4] price_history_monthly → {out.name}")
     print(f"      {len(combined)} rows | {combined['month'].nunique()} month(s)")
     return out
 
 
 # =============================================================================
-# 3. Macro indicators — BCT + INS + BVMT economic time series
+# 3. Macro indicators — long format (one row per indicator per date)
 # =============================================================================
 
 def export_macro_indicators() -> Path:
     out = OUT_DIR / f"macro_indicators_{TS}.csv"
 
     if "macro_indicators" not in _tables():
-        print("[3/3] macro_indicators      → SKIPPED")
-        print("      Table not found — run macro scrapers first:")
-        print("      python -m scrapers.macro_scrapers --source all --start 2005")
-        # write empty placeholder so downstream code doesn't break
+        print("[3/4] macro_indicators      → SKIPPED")
+        print("      Run: python -m scrapers.macro_scrapers --source all --start 2005")
         pd.DataFrame(
             columns=["date", "indicator", "value", "source", "unit"]
         ).to_csv(out, index=False, encoding="utf-8-sig")
         return out
 
     conn = _conn()
-    df = pd.read_sql(
-        """SELECT date, indicator, value, source, unit
-           FROM macro_indicators
-           ORDER BY date, indicator""",
+    df   = pd.read_sql(
+        "SELECT date, indicator, value, source, unit "
+        "FROM macro_indicators ORDER BY date, indicator",
         conn,
     )
     conn.close()
 
     df.to_csv(out, index=False, encoding="utf-8-sig")
 
-    print(f"[3/3] macro_indicators      → {out.name}")
+    print(f"[3/4] macro_indicators      → {out.name}")
     if not df.empty:
-        summary = df.groupby("indicator").agg(
+        summary = df.groupby(["source", "indicator"]).agg(
             rows      = ("value", "count"),
             from_date = ("date",  "min"),
             to_date   = ("date",  "max"),
         )
         print(summary.to_string())
-    else:
-        print("      0 rows — run macro scrapers to populate")
+    return out
 
+
+# =============================================================================
+# 4. Macro wide format (one row per month, one column per indicator)
+#    This is the format you pass directly to Prophet / XGBoost / LSTM
+# =============================================================================
+
+def export_macro_wide() -> Path:
+    out = OUT_DIR / f"macro_wide_{TS}.csv"
+
+    if "macro_indicators" not in _tables():
+        print("[4/4] macro_wide            → SKIPPED (no macro_indicators table)")
+        return out
+
+    conn = _conn()
+    df   = pd.read_sql(
+        "SELECT date, indicator, value FROM macro_indicators",
+        conn,
+    )
+    conn.close()
+
+    if df.empty:
+        print("[4/4] macro_wide            → SKIPPED (0 rows)")
+        return out
+
+    wide = df.pivot_table(
+        index="date", columns="indicator", values="value", aggfunc="mean"
+    )
+    wide.index      = pd.to_datetime(wide.index)
+    wide            = wide.sort_index()
+    wide.columns.name = None
+
+    wide.to_csv(out, encoding="utf-8-sig")
+
+    print(f"[4/4] macro_wide            → {out.name}")
+    print(f"      {wide.shape[0]} months × {wide.shape[1]} indicators")
+    print(f"      indicators: {list(wide.columns)}")
+    print(f"      date range: {wide.index.min().date()} → {wide.index.max().date()}")
     return out
 
 
@@ -240,34 +268,36 @@ def print_summary(df: pd.DataFrame) -> None:
     print("=" * 55)
     print("  DATASET SUMMARY")
     print("=" * 55)
-    print(f"  DB path:           {_DB_PATH}")
-    print(f"  Total listings:    {len(df)}")
-    print(f"  Date range:        "
-          f"{str(df['scraped_at'].min())[:10]} → "
-          f"{str(df['scraped_at'].max())[:10]}")
-    print(f"  Sources:           {df['source_name'].nunique()}")
+    print(f"  DB:             {_DB_PATH}")
+    print(f"  Total listings: {len(df)}")
+
+    if df["scraped_at"].notna().any():
+        print(f"  Date range:     "
+              f"{str(df['scraped_at'].min())[:10]} → "
+              f"{str(df['scraped_at'].max())[:10]}")
+
+    print(f"  Sources:        {df['source_name'].nunique()}")
 
     valid = df[df["price"] > 1000]["price"]
     if len(valid):
-        print(f"  Valid prices:      {len(valid)}")
-        print(f"  Median price:      {valid.median():,.0f} TND")
-        print(f"  Price range:       {valid.min():,.0f} – {valid.max():,.0f} TND")
+        print(f"  Valid prices:   {len(valid)}")
+        print(f"  Median price:   {valid.median():,.0f} TND")
+        print(f"  Price range:    {valid.min():,.0f} – {valid.max():,.0f} TND")
 
     print()
-    print("  Listings by source:")
+    print("  By source:")
     for src, cnt in df["source_name"].value_counts().items():
         print(f"    {src:<22} {cnt}")
 
     print()
-    print("  Listings by region:")
+    print("  By region:")
     for reg, cnt in df["region"].value_counts().head(8).items():
         print(f"    {str(reg):<22} {cnt}")
 
-    months = df["scraped_at"].nunique()
-    print()
     if df["scraped_at"].dt.to_period("M").nunique() < 3:
-        print("  ⚠  Less than 3 months of data.")
-        print("  Keep scrapers running to build the time series.")
+        print()
+        print("  ⚠  Less than 3 months of listing data.")
+        print("  Run scrapers monthly to build time series.")
         print("  Target: 12+ months for SARIMAX, 24+ for LSTM.")
     print("=" * 55)
 
@@ -288,8 +318,9 @@ def main():
     export_price_history_full()
     export_price_history_monthly()
     export_macro_indicators()
+    export_macro_wide()
 
-    conn = _conn()
+    conn    = _conn()
     df_full = pd.read_sql("SELECT * FROM price_history", conn)
     conn.close()
     df_full["scraped_at"] = pd.to_datetime(df_full["scraped_at"], errors="coerce")
