@@ -4,7 +4,7 @@ EstateMind — Main entry point.
 Usage:
     python main.py run               # run once immediately
     python main.py schedule          # run once then every 24h
-    python main.py run --no-vectors  # scrape only, skip Pinecone
+    python main.py run --no-vectors  # scrape only, skip embeddings
     python main.py run --site mubawab  # single site
     python main.py status            # show agent status
 """
@@ -18,24 +18,23 @@ from typing import Optional
 
 from dotenv import load_dotenv
 import os
+import os
 load_dotenv()
 
 from config.logging_config import log
+from scrapers.all_scrapers import build_all_scrapers
 from scrapers.all_scrapers import build_all_scrapers
 from ai_agent.agent import IntelligentScrapingAgent
 
 
 def _build_vector_db(strategy: str = "huggingface"):
-    """
-    Initialize Pinecone. Returns None if API key missing (scraping still works).
-    """
     try:
         from database.vector_db import VectorDBHandler
         db = VectorDBHandler(strategy=strategy)
-        log.info(f"Pinecone connected (strategy={strategy})")
+        log.info(f"pgvector connected (strategy={strategy})")
         return db
     except Exception as e:
-        log.warning(f"Pinecone unavailable: {e} — running without vector storage")
+        log.warning(f"pgvector unavailable: {e} — running without vector storage")
         return None
 
 
@@ -44,15 +43,9 @@ def run_job(
     site_filter: Optional[str] = None,
     embedding_strategy: str = "huggingface",
     ) -> dict:
-    """
-    Run one full scraping cycle.
-    Returns the agent summary dict.
-    """
+
     scrapers = build_all_scrapers()
     if site_filter:
-        # Flexible site filtering (case-insensitive, handles aliases)
-        site_map = {s.source_name.lower(): s for s in scrapers}
-        # Add common aliases
         aliases = {
             "zitouna": "zitouna_immo",
             "tunisie-annonce": "tunisieannonce",
@@ -61,17 +54,15 @@ def run_job(
             "c21": "century21",
             "affar": "affare",
         }
-        
         target = site_filter.lower()
         if target in aliases:
             target = aliases[target]
-            
         filtered = [s for s in scrapers if s.source_name.lower() == target]
-        
         if not filtered:
             available = ", ".join([s.source_name for s in scrapers])
             log.error(f"Unknown site '{site_filter}'. Available sites: {available}")
             sys.exit(1)
+        scrapers = filtered
         scrapers = filtered
 
     vector_db = None
@@ -79,10 +70,15 @@ def run_job(
         vector_db = _build_vector_db(strategy=embedding_strategy)
 
     dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
+    dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
     agent = IntelligentScrapingAgent(
         scrapers=scrapers,
         vector_db=vector_db,
         store_vectors=store_vectors,
+        deduplicate=not dedup_disabled,
+        pipeline=None,
+        enrich=True,
+        fetch_pois=True,
         deduplicate=not dedup_disabled,
         pipeline=None,
         enrich=True,
@@ -103,34 +99,24 @@ def run_job(
     log.info(f"  Dupes skipped: {summary.get('total_duplicates_skipped')}")
     log.info(f"  Error rate: {summary.get('global_error_rate', 0):.1%}")
     log.info(f"  Elapsed:  {summary.get('elapsed_s')}s")
-    log.info("Per source:")
     for src, stats in summary.get("per_source", {}).items():
         log.info(
             f"  {src:20s} fetched={stats.get('fetched',0)} "
-            f"stored={stats.get('stored',0)} errors={stats.get('errors',0)} "
-            f"status={stats.get('status','?')}"
+            f"stored={stats.get('stored',0)} errors={stats.get('errors',0)}"
         )
     log.info("=" * 60)
 
     if store_vectors and vector_db:
         try:
-            log.info("=" * 60)
             log.info("Starting preprocessing pipeline...")
             from preprocessing.pipeline import PreprocessingPipeline
-            pipeline = PreprocessingPipeline(vector_db,force_reprocess=True)
+            pipeline = PreprocessingPipeline(vector_db, force_reprocess=True)
             report = pipeline.run(export=True)
             log.info(f"Preprocessing complete: {report.get('total_records', 0)} records")
-            if 'steps' in report and 'scorer' in report['steps']:
-                log.info(f"Quality scores: {report['steps']['scorer'].get('score_distribution', {})}")
-                unknown_count = score_dist.get('UNKNOWN', 0)
-                if unknown_count > 0:
-                    log.warning(f"  ⚠️ {unknown_count} records still have UNKNOWN scores!")
         except Exception as e:
             log.error(f"Preprocessing pipeline failed: {e}", exc_info=True)
     elif not store_vectors:
         log.info("Preprocessing pipeline skipped: store_vectors=False")
-    elif not vector_db:
-        log.warning("Preprocessing pipeline skipped: vector_db is None")
 
     return summary
 
@@ -138,11 +124,7 @@ def run_job(
 def start_scheduler(store_vectors: bool = True, embedding_strategy: str = "huggingface"):
     log.info("Scheduler started — running every 24 hours")
     run_job(store_vectors=store_vectors, embedding_strategy=embedding_strategy)
-    schedule.every(24).hours.do(
-        run_job,
-        store_vectors=store_vectors,
-        embedding_strategy=embedding_strategy,
-    )
+    schedule.every(24).hours.do(run_job, store_vectors=store_vectors, embedding_strategy=embedding_strategy)
     while True:
         schedule.run_pending()
         time.sleep(60)
@@ -150,28 +132,19 @@ def start_scheduler(store_vectors: bool = True, embedding_strategy: str = "huggi
 
 def main():
     parser = argparse.ArgumentParser(description="EstateMind Scraping Framework")
-    parser.add_argument("action", choices=["run", "schedule", "status"],
-                        help="run | schedule | status")
-    parser.add_argument("--no-vectors", action="store_true",
-                        help="Disable Pinecone storage")
-    parser.add_argument("--site", type=str, default=None,
-                        help="Scrape a single site by name")
-    parser.add_argument("--strategy", type=str, default="huggingface",
-                        choices=["huggingface", "openai"],
-                        help="Embedding model strategy")
+    parser.add_argument("action", choices=["run", "schedule", "status"])
+    parser.add_argument("--no-vectors", action="store_true")
+    parser.add_argument("--site", type=str, default=None)
+    parser.add_argument("--strategy", type=str, default="huggingface", choices=["huggingface", "openai"])
     args = parser.parse_args()
 
     store = not args.no_vectors
 
     if args.action == "run":
-        run_job(store_vectors=store, site_filter=args.site,
-                embedding_strategy=args.strategy)
-
+        run_job(store_vectors=store, site_filter=args.site, embedding_strategy=args.strategy)
     elif args.action == "schedule":
         start_scheduler(store_vectors=store, embedding_strategy=args.strategy)
-
     elif args.action == "status":
-        # Quick status check — build agent without running
         scrapers = build_all_scrapers()
         agent = IntelligentScrapingAgent(scrapers=scrapers, store_vectors=False)
         import json
