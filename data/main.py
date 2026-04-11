@@ -18,9 +18,11 @@ from typing import Optional
 
 from dotenv import load_dotenv
 import os
+import os
 load_dotenv()
 
 from config.logging_config import log
+from scrapers.all_scrapers import build_all_scrapers
 from scrapers.all_scrapers import build_all_scrapers
 from ai_agent.agent import IntelligentScrapingAgent
 
@@ -61,16 +63,22 @@ def run_job(
             log.error(f"Unknown site '{site_filter}'. Available sites: {available}")
             sys.exit(1)
         scrapers = filtered
+        scrapers = filtered
 
     vector_db = None
     if store_vectors:
         vector_db = _build_vector_db(strategy=embedding_strategy)
 
     dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
+    dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
     agent = IntelligentScrapingAgent(
         scrapers=scrapers,
         vector_db=vector_db,
         store_vectors=store_vectors,
+        deduplicate=not dedup_disabled,
+        pipeline=None,
+        enrich=True,
+        fetch_pois=True,
         deduplicate=not dedup_disabled,
         pipeline=None,
         enrich=True,

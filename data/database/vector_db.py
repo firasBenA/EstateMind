@@ -11,11 +11,13 @@ from __future__ import annotations
 import os
 import time
 from pathlib import Path
+
 from typing import List, Optional, Dict, Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from loguru import logger
+from sympy import limit
 
 from core.models import PropertyListing
 
@@ -124,6 +126,7 @@ class VectorDBHandler:
     def upsert_listings(self, listings: List[PropertyListing], batch_size: int = 100) -> Dict[str, int]:
         stats = {"success": 0, "failed": 0}
         for i in range(0, len(listings), batch_size):
+            batch = listings[i: i + batch_size]
             batch = listings[i: i + batch_size]
             texts = [l.to_embedding_text() for l in batch]
             try:
