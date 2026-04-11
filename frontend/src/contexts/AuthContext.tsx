@@ -47,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       body: JSON.stringify({ username, password }),
     });
     if (!res.ok) {
+      console.log(res.json());
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || "Login failed");
     }
