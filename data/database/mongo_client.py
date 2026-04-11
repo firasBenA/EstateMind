@@ -4,7 +4,7 @@ from config.settings import settings
 from config.logging_config import log
 from typing import Optional, Dict, Any, Tuple
 from core.geolocation import infer_region_and_zone
-
+from loguru import logger
 class PostgresClient:
     def __init__(self):
         try:
@@ -146,105 +146,87 @@ class PostgresClient:
             log.error(f"Error inserting listing: {e}")
             return False
 
-    def upsert_listing(self, listing_data: Dict[str, Any]) -> str:
+    def upsert_listing(self, listing) -> bool:
+        """Insert or update a single listing."""
         try:
             with self.conn.cursor() as cur:
-                payload = self._prepare_payload(listing_data)
+                # ✅ CHANGE: property_id → source_id
+                cur.execute("""
+                    SELECT 1 FROM listings 
+                    WHERE source_name = %s AND source_id = %s
+                """, (listing.source_name, listing.source_id))
                 
-                # First check if it exists to distinguish insert vs update
-                cur.execute(
-                    "SELECT 1 FROM listings WHERE source_name = %s AND property_id = %s",
-                    (payload['source_name'], payload['property_id'])
-                )
                 exists = cur.fetchone() is not None
-
-                cur.execute(
-                    """
-                    INSERT INTO listings (
-                        property_id,
-                        source_name,
-                        url,
-                        type,
-                        title,
-                        description,
-                        price,
-                        surface,
-                        rooms,
-                        region,
-                        zone,
-                        city,
-                        municipalite,
-                        latitude,
-                        longitude,
-                        pdf_link,
-                        images,
-                        features,
-                        scraped_at,
-                        last_update,
-                        transaction_type,
-                        currency,
-                        raw_data_path,
-                        poi
-                    )
-                    VALUES (
-                        %(property_id)s,
-                        %(source_name)s,
-                        %(url)s,
-                        %(type)s,
-                        %(title)s,
-                        %(description)s,
-                        %(price)s,
-                        %(surface)s,
-                        %(rooms)s,
-                        %(region)s,
-                        %(zone)s,
-                        %(city)s,
-                        %(municipalite)s,
-                        %(latitude)s,
-                        %(longitude)s,
-                        %(pdf_link)s,
-                        %(images)s,
-                        %(features)s,
-                        %(scraped_at)s,
-                        %(last_update)s,
-                        %(transaction_type)s,
-                        %(currency)s,
-                        %(raw_data_path)s,
-                        %(poi)s
-                    )
-                    ON CONFLICT (source_name, property_id)
-                    DO UPDATE SET
-                        url = EXCLUDED.url,
-                        title = EXCLUDED.title,
-                        description = EXCLUDED.description,
-                        price = EXCLUDED.price,
-                        surface = EXCLUDED.surface,
-                        rooms = EXCLUDED.rooms,
-                        region = EXCLUDED.region,
-                        zone = EXCLUDED.zone,
-                        city = EXCLUDED.city,
-                        municipalite = EXCLUDED.municipalite,
-                        latitude = EXCLUDED.latitude,
-                        longitude = EXCLUDED.longitude,
-                        pdf_link = EXCLUDED.pdf_link,
-                        images = EXCLUDED.images,
-                        features = EXCLUDED.features,
-                        scraped_at = EXCLUDED.scraped_at,
-                        last_update = EXCLUDED.last_update,
-                        transaction_type = EXCLUDED.transaction_type,
-                        currency = EXCLUDED.currency,
-                        raw_data_path = EXCLUDED.raw_data_path,
-                        poi = EXCLUDED.poi,
-                        etl_status = 'pending'
-                    """,
-                    payload,
-                )
-            self.conn.commit()
-            return "updated" if exists else "inserted"
+                
+                if exists:
+                    # UPDATE
+                    cur.execute("""
+                        UPDATE listings SET
+                            url = %s,
+                            title = %s,
+                            price = %s,
+                            surface = %s,
+                            rooms = %s,
+                            city = %s,
+                            region = %s,
+                            transaction_type = %s,
+                            property_type = %s,
+                            last_updated = NOW()
+                        WHERE source_name = %s AND source_id = %s
+                    """, (
+                        listing.url,
+                        listing.title,
+                        listing.price,
+                        listing.surface_area_m2,
+                        listing.rooms,
+                        listing.location.city if listing.location else None,
+                        listing.location.governorate if listing.location else None,
+                        listing.transaction_type,
+                        getattr(listing, 'property_type', 'Other'),
+                        listing.source_name,
+                        listing.source_id
+                    ))
+                else:
+                    # INSERT
+                    import hashlib
+                    unique_id = hashlib.md5(f"{listing.source_name}:{listing.source_id}".encode()).hexdigest()[:16]
+                    
+                    cur.execute("""
+                        INSERT INTO listings (
+                            id, source_id, source_name, url, title, description,
+                            price, currency, transaction_type, property_type,
+                            rooms, city, region, surface,
+                            scraped_at, last_updated
+                        ) VALUES (
+                            %s, %s, %s, %s, %s, %s,
+                            %s, %s, %s, %s,
+                            %s, %s, %s, %s,
+                            NOW(), NOW()
+                        )
+                    """, (
+                        unique_id,
+                        listing.source_id,
+                        listing.source_name,
+                        listing.url,
+                        listing.title,
+                        listing.description,
+                        listing.price,
+                        listing.currency,
+                        listing.transaction_type,
+                        getattr(listing, 'property_type', 'Other'),
+                        listing.rooms,
+                        listing.location.city if listing.location else None,
+                        listing.location.governorate if listing.location else None,
+                        listing.surface_area_m2
+                    ))
+                
+                self.conn.commit()
+                return True
+                
         except Exception as e:
+            logger.error(f"Error upserting listing: {e}")
             self.conn.rollback()
-            log.error(f"Error upserting listing: {e}")
-            return "error"
+            return False
 
     def log_agent_metrics(self, record: Dict[str, Any]) -> None:
         try:
@@ -300,6 +282,20 @@ class PostgresClient:
                 return cur.fetchone() is not None
         except Exception as e:
             log.error(f"Error checking listing existence: {e}")
+            return False
+
+    def check_duplicate(self, listing) -> bool:
+        """Check if listing exists."""
+        try:
+            with self.conn.cursor() as cur:
+                # ✅ CHANGE: property_id → source_id
+                cur.execute("""
+                    SELECT 1 FROM listings 
+                    WHERE source_name = %s AND source_id = %s
+                """, (listing.source_name, listing.source_id))
+                return cur.fetchone() is not None
+        except Exception as e:
+            logger.error(f"Error checking duplicate: {e}")
             return False
 
     def iterate_listings(self, batch_size: int = 500):
