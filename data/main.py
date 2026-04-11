@@ -197,6 +197,7 @@ Usage:
     python main.py run               # run once immediately
     python main.py schedule          # run once then every 24h
     python main.py run --no-vectors  # scrape only, skip embeddings
+    python main.py run --no-vectors  # scrape only, skip embeddings
     python main.py run --site mubawab  # single site
     python main.py status            # show agent status
 """
@@ -210,9 +211,11 @@ from typing import Optional
 
 from dotenv import load_dotenv
 import os
+import os
 load_dotenv()
 
 from config.logging_config import log
+from scrapers.all_scrapers import build_all_scrapers
 from scrapers.all_scrapers import build_all_scrapers
 from ai_agent.agent import IntelligentScrapingAgent
 
@@ -231,6 +234,7 @@ def _build_vector_db(strategy: str = "huggingface"):
         
         return db
     except Exception as e:
+        log.warning(f"pgvector unavailable: {e} — running without vector storage")
         log.warning(f"pgvector unavailable: {e} — running without vector storage")
         return None
 
@@ -278,6 +282,7 @@ def run_job(
             log.error(f"Unknown site '{site_filter}'. Available sites: {available}")
             sys.exit(1)
         scrapers = filtered
+        scrapers = filtered
 
     vector_db = None
     if store_vectors:
@@ -288,6 +293,10 @@ def run_job(
         scrapers=scrapers,
         vector_db=vector_db,
         store_vectors=store_vectors,
+        deduplicate=not dedup_disabled,
+        pipeline=None,
+        enrich=True,
+        fetch_pois=True,
         deduplicate=not dedup_disabled,
         pipeline=None,
         enrich=True,
@@ -308,10 +317,10 @@ def run_job(
     log.info(f"  Dupes skipped: {summary.get('total_duplicates_skipped')}")
     log.info(f"  Error rate: {summary.get('global_error_rate', 0):.1%}")
     log.info(f"  Elapsed:  {summary.get('elapsed_s')}s")
-    log.info("Per source:")
     for src, stats in summary.get("per_source", {}).items():
         log.info(
             f"  {src:20s} fetched={stats.get('fetched',0)} "
+            f"stored={stats.get('stored',0)} errors={stats.get('errors',0)}"
             f"stored={stats.get('stored',0)} errors={stats.get('errors',0)}"
         )
     log.info("=" * 60)
@@ -319,9 +328,9 @@ def run_job(
     # Run preprocessing pipeline
     if store_vectors and vector_db:
         try:
-            log.info("=" * 60)
             log.info("Starting preprocessing pipeline...")
             from preprocessing.pipeline import PreprocessingPipeline
+            pipeline = PreprocessingPipeline(vector_db, force_reprocess=True)
             pipeline = PreprocessingPipeline(vector_db, force_reprocess=True)
             report = pipeline.run(export=True)
             log.info(f"Preprocessing complete: {report.get('total_records', 0)} records processed")

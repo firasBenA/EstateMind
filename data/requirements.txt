@@ -9,16 +9,14 @@ fake-useragent>=1.4.0
 # JavaScript-heavy sites
 selenium>=4.15.0
 webdriver-manager>=4.0.0
-playwright>=1.40.0          # optional — only if switching from selenium
+playwright>=1.40.0
 
-# Vector database
-pinecone==5.0.0
+# Vector database — pgvector (remplace Pinecone)
+psycopg2-binary>=2.9.0
+pgvector>=0.2.0
 
 # Embeddings — FREE, no API key
 sentence-transformers>=2.2.0
-
-# Embeddings — PAID optional
-# openai>=1.6.0
 
 # Data models
 pydantic>=2.5.0

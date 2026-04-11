@@ -15,6 +15,8 @@ from typing import List, Optional, Dict, Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import psycopg2
+from psycopg2.extras import RealDictCursor
 from loguru import logger
 
 from core.models import PropertyListing  # ✅ IMPORT IS HERE
