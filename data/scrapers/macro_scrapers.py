@@ -1,31 +1,25 @@
 """
-EstateMind — Macro / Time-Series Scrapers
-==========================================
-BCT/INS use Selenium. BVMT uses requests.
+EstateMind — Macro / Time-Series Scrapers  (final version)
+===========================================================
+BCT  → Selenium, pivot table (confirmed: 138 rows)
+INS  → Publication pages + IPIM PDFs (correct URLs confirmed)
+BVMT → requests + ZIP files (confirmed: 14k rows)
 
-BCT page structure (confirmed from debug):
-  Table[1] is a PIVOT TABLE:
-    row[0]  = headers: ['Indicateurs', '2021', '2022', '2023', '2024', '2025']
-    row[1]  = empty separator
-    row[2+] = ['Janvier', val_2021, val_2022, val_2023, ...]
-              ['Février',  ...                              ]
-              etc.
-  → years are columns, months are rows.
-  → We build dates as YYYY-MM-01 by combining column year + row month.
+INS DATA SOURCES (confirmed from search results):
+  IPIM (real estate price index):
+    PDF:  ins.tn/sites/default/files-ftp3/files/publication/pdf/IPIM T1_2024_fr.pdf
+          → exists from ~2018 Q1 onward
+    Page: ins.tn/publication/indice-des-prix-de-limmobilier-{quarter}-trimestre-{year}
+          → exists from 2018 onward, contains quarterly % change
 
-  Exchange rate table (PL212010) same pivot structure:
-    row[0]  = ['Indicateurs', '2020', '2021', '2022', '2023', '2024']
-    row[2+] = ['Dinar Algérien', 0.22, ...], ['Dollar des USA', ...], ['EURO', ...]
-  → currencies are rows, years are columns.
-  → We look for 'EURO' and 'Dollar des USA' rows.
-
-INS page structure (confirmed from debug):
-  0 tables found — data is in a JS component, needs longer wait + scroll.
+  IPC (consumer price index):
+    Listing page: ins.tn/statistiques/90
+          → page text contains all monthly values like "inflation ... 6%"
+    Press release: ins.tn/publication/indice-des-prix-la-consommation-{month}-{year}
+          → individual monthly pages
 
 Run:
     python -m scrapers.macro_scrapers --source all --start 2005
-    python -m scrapers.macro_scrapers --source bvmt   (confirmed: 28k rows)
-    python -m scrapers.macro_scrapers --source bct
     python -m scrapers.macro_scrapers --source ins
 """
 from __future__ import annotations
@@ -143,14 +137,13 @@ def _upsert(conn: sqlite3.Connection, rows: List[Dict]) -> int:
 # UTILITIES
 # =============================================================================
 
-# BCT month names (French) → zero-padded month number
 _BCT_MONTHS = {
-    "janvier": "01", "février": "02", "mars": "03", "avril": "04",
-    "mai": "05", "juin": "06", "juillet": "07", "août": "08",
-    "septembre": "09", "octobre": "10", "novembre": "11", "décembre": "12",
-    # short forms
+    "janvier": "01", "février": "02", "fevrier": "02", "mars": "03",
+    "avril": "04", "mai": "05", "juin": "06", "juillet": "07",
+    "août": "08", "aout": "08", "septembre": "09", "octobre": "10",
+    "novembre": "11", "décembre": "12", "decembre": "12",
     "janv": "01", "févr": "02", "avr": "04", "juil": "07",
-    "aoû": "08", "aout": "08", "sept": "09", "oct": "10", "nov": "11", "déc": "12",
+    "aoû": "08", "sept": "09", "oct": "10", "nov": "11", "déc": "12",
 }
 
 _FR_MONTHS = {
@@ -160,24 +153,27 @@ _FR_MONTHS = {
     "nov": "11", "déc": "12", "dec": "12",
 }
 
+# Quarter name → month number
+_QUARTER_NAMES = {
+    "premier": "01", "deuxième": "04", "deuxieme": "04",
+    "troisième": "07", "troisieme": "07", "quatrième": "10", "quatrieme": "10",
+    "1er": "01", "2ème": "04", "2eme": "04",
+    "3ème": "07", "3eme": "07", "4ème": "10", "4eme": "10",
+}
+
 
 def _month_num(raw: str) -> Optional[str]:
-    """Convert French month name to zero-padded number string."""
     key = raw.strip().lower()
-    # try full name
     if key in _BCT_MONTHS:
         return _BCT_MONTHS[key]
-    # try first 4 chars
     if key[:4] in _BCT_MONTHS:
         return _BCT_MONTHS[key[:4]]
-    # try first 3 chars
     if key[:3] in _FR_MONTHS:
         return _FR_MONTHS[key[:3]]
     return None
 
 
 def _date(raw: str) -> Optional[str]:
-    """Normalise date string → YYYY-MM-01."""
     raw = str(raw).strip()
     if not raw:
         return None
@@ -225,123 +221,71 @@ def _row(d: str, ind: str, val: float, unit: str, src: str) -> Dict:
 
 
 # =============================================================================
-# BCT PIVOT TABLE PARSERS
+# BCT PIVOT TABLE PARSERS (confirmed working — 138 rows)
 # =============================================================================
 
 def _parse_bct_pivot(html: str, indicator: str, unit: str,
                      source: str) -> List[Dict]:
-    """
-    Parse BCT's pivot table format.
-
-    Structure (confirmed from debug):
-      Table[1]:
-        row[0] = ['Indicateurs', '2021', '2022', '2023', '2024', '2025']
-        row[1] = ['']   ← empty separator, skip
-        row[2] = ['Janvier', '6,25000', '6,25000', '8,00000', '8,00000', '8,00000']
-        row[3] = ['Février', '6,25000', ...]
-        ...
-
-    We extract all years from row[0], then for each data row:
-      date = YYYY-MM-01  where YYYY = column header, MM = month from row label
-    """
     soup = BeautifulSoup(html, "html.parser")
     rows_out = []
-
     for table in soup.find_all("table"):
         trs = table.find_all("tr")
         if len(trs) < 3:
             continue
-
-        # Row 0 = header with years
         header_cells = [td.get_text(strip=True)
                         for td in trs[0].find_all(["td", "th"])]
-
-        # Extract year columns (integers 4-digit)
-        year_cols = {}  # col_index → year_string
-        for i, cell in enumerate(header_cells):
-            if re.match(r"^\d{4}$", cell.strip()):
-                year_cols[i] = cell.strip()
-
+        year_cols = {i: cell.strip()
+                     for i, cell in enumerate(header_cells)
+                     if re.match(r"^\d{4}$", cell.strip())}
         if not year_cols:
             continue
-
-        # Data rows start at row[2] (row[1] is empty separator)
         for tr in trs[2:]:
             cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
             if not cells or not cells[0]:
                 continue
-
-            # col 0 = month name
             month_num = _month_num(cells[0])
             if not month_num:
                 continue
-
-            # For each year column, extract the value
             for col_idx, year in year_cols.items():
                 if col_idx >= len(cells):
                     continue
                 val = _num(cells[col_idx])
-                if val is None or val <= 0:
-                    continue
-                d = f"{year}-{month_num}-01"
-                rows_out.append(_row(d, indicator, val, unit, source))
-
+                if val is not None and val > 0:
+                    rows_out.append(
+                        _row(f"{year}-{month_num}-01", indicator, val, unit, source)
+                    )
     return rows_out
 
 
 def _parse_bct_exchange_pivot(html: str, source: str) -> List[Dict]:
-    """
-    Parse BCT exchange rate pivot table.
-
-    Structure (confirmed from debug):
-      row[0] = ['Indicateurs', '2020', '2021', '2022', '2023', '2024']
-      row[2] = ['Dinar Algérien', 0.22, ...]
-      row[N] = ['Dollar des USA', 3.xx, ...]
-      row[M] = ['EURO', 3.xx, ...]
-
-    We extract only EUR (→ tnd_eur) and USD (→ tnd_usd).
-    Values are annual averages so we store as YYYY-01-01.
-    """
     soup = BeautifulSoup(html, "html.parser")
     rows_out = []
-
     CURRENCY_MAP = {
         "dollar des usa": "tnd_usd",
         "dollar usa":     "tnd_usd",
-        "usd":            "tnd_usd",
         "euro":           "tnd_eur",
-        "eur":            "tnd_eur",
     }
-
     for table in soup.find_all("table"):
         trs = table.find_all("tr")
         if len(trs) < 3:
             continue
-
         header_cells = [td.get_text(strip=True)
                         for td in trs[0].find_all(["td", "th"])]
-        year_cols = {}
-        for i, cell in enumerate(header_cells):
-            if re.match(r"^\d{4}$", cell.strip()):
-                year_cols[i] = cell.strip()
-
+        year_cols = {i: cell.strip()
+                     for i, cell in enumerate(header_cells)
+                     if re.match(r"^\d{4}$", cell.strip())}
         if not year_cols:
             continue
-
         for tr in trs[2:]:
             cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
             if not cells or not cells[0]:
                 continue
-
-            currency_label = cells[0].lower().strip()
+            label = cells[0].lower().strip()
             indicator = next(
-                (ind for key, ind in CURRENCY_MAP.items()
-                 if key in currency_label),
-                None,
+                (ind for key, ind in CURRENCY_MAP.items() if key in label), None
             )
             if not indicator:
                 continue
-
             for col_idx, year in year_cols.items():
                 if col_idx >= len(cells):
                     continue
@@ -350,51 +294,6 @@ def _parse_bct_exchange_pivot(html: str, source: str) -> List[Dict]:
                     unit = "TND/EUR" if indicator == "tnd_eur" else "TND/USD"
                     rows_out.append(_row(f"{year}-01-01", indicator,
                                         val, unit, source))
-
-    return rows_out
-
-
-def _parse_bct_credits_pivot(html: str, source: str) -> List[Dict]:
-    """
-    BCT credits table — same pivot format.
-    We look for rows whose label contains immobilier/habitat/logement.
-    """
-    soup = BeautifulSoup(html, "html.parser")
-    rows_out = []
-    KEYWORDS = ["immobilier", "habitat", "logement", "construction"]
-
-    for table in soup.find_all("table"):
-        trs = table.find_all("tr")
-        if len(trs) < 3:
-            continue
-
-        header_cells = [td.get_text(strip=True)
-                        for td in trs[0].find_all(["td", "th"])]
-        year_cols = {}
-        for i, cell in enumerate(header_cells):
-            if re.match(r"^\d{4}$", cell.strip()):
-                year_cols[i] = cell.strip()
-
-        if not year_cols:
-            continue
-
-        for tr in trs[2:]:
-            cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
-            if not cells or not cells[0]:
-                continue
-            label = cells[0].lower()
-            if not any(k in label for k in KEYWORDS):
-                continue
-            for col_idx, year in year_cols.items():
-                if col_idx >= len(cells):
-                    continue
-                val = _num(cells[col_idx])
-                if val and val > 0:
-                    rows_out.append(
-                        _row(f"{year}-01-01", "credits_immobiliers",
-                             val, "MDT", source)
-                    )
-
     return rows_out
 
 
@@ -427,14 +326,13 @@ def _make_driver():
 def _page(driver, url: str, wait: float = 5.0) -> str:
     driver.get(url)
     time.sleep(wait)
-    # Scroll to trigger lazy-loaded content
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(2)
     return driver.page_source
 
 
 # =============================================================================
-# BCT SCRAPER
+# BCT SCRAPER (confirmed working)
 # =============================================================================
 
 class BCTScraper:
@@ -445,20 +343,15 @@ class BCTScraper:
         "taux_directeur": (f"{BASE}/tableau_statistique_a.jsp?params=PL203260", "%"),
         "tmm":            (f"{BASE}/tableau_statistique_a.jsp?params=PL203105", "%"),
     }
-    EXCHANGE_ANNUAL  = f"{BASE}/tableau_statistique_a.jsp?params=PL212010"
-    EXCHANGE_MONTHLY = f"{BASE}/tableau_statistique.jsp?params=PL213010"
-    CREDITS          = f"{BASE}/tableau_statistique.jsp?params=PL203030&prov=1"
+    EXCHANGE_ANNUAL = f"{BASE}/tableau_statistique_a.jsp?params=PL212010"
 
     def run(self) -> Dict[str, Any]:
         _ensure_selenium()
         log.info(f"[BCT] Scraping {HISTORY_START}–{HISTORY_END}")
         driver = None
         rows: List[Dict] = []
-
         try:
             driver = _make_driver()
-
-            # taux_directeur and tmm — pivot: months as rows, years as cols
             for indicator, (url, unit) in self.PAGES.items():
                 log.info(f"[BCT] {indicator}")
                 html     = _page(driver, url, wait=6)
@@ -467,28 +360,9 @@ class BCTScraper:
                 log.info(f"[BCT]   → {len(new_rows)} rows")
                 time.sleep(random.uniform(2, 4))
 
-            # Exchange rates — pivot: currencies as rows, years as cols
             log.info("[BCT] exchange rates (annual)")
             html  = _page(driver, self.EXCHANGE_ANNUAL, wait=6)
             new   = _parse_bct_exchange_pivot(html, self.SOURCE)
-            rows += new
-            log.info(f"[BCT]   → {len(new)} rows")
-            time.sleep(random.uniform(2, 4))
-
-            # Monthly exchange rates — same pivot but months as rows
-            log.info("[BCT] exchange rates (monthly)")
-            html  = _page(driver, self.EXCHANGE_MONTHLY, wait=6)
-            new   = _parse_bct_pivot(html, "tmm_monthly", "%", self.SOURCE)
-            # Also try exchange parsing on monthly page
-            new  += _parse_bct_exchange_pivot(html, self.SOURCE)
-            rows += new
-            log.info(f"[BCT]   → {len(new)} rows")
-            time.sleep(random.uniform(2, 4))
-
-            # Credits
-            log.info("[BCT] credits_immobiliers")
-            html  = _page(driver, self.CREDITS, wait=6)
-            new   = _parse_bct_credits_pivot(html, self.SOURCE)
             rows += new
             log.info(f"[BCT]   → {len(new)} rows")
 
@@ -500,9 +374,6 @@ class BCTScraper:
                     driver.quit()
                 except Exception:
                     pass
-
-        # Remove any junk indicator added above
-        rows = [r for r in rows if r["indicator"] != "tmm_monthly"]
 
         if not rows:
             log.warning("[BCT] 0 rows")
@@ -521,63 +392,51 @@ class BCTScraper:
 
 class INSScraper:
     """
-    INS pages load data via JavaScript (0 tables found in first render).
-    Strategy:
-      1. Wait longer (10s) for JS to finish
-      2. Scroll to trigger lazy loading
-      3. Try to find and click a "Afficher" / "Rechercher" button
-      4. Parse resulting table
-      5. Fallback: look for XLS download link and download directly
+    INS data via publication pages (confirmed working approach):
+
+    1. IPC (inflation) — scraped from ins.tn/statistiques/90 page text
+       and individual monthly press release pages.
+       Confirmed: page text contains "Au mois de janvier 2025, le taux d'inflation... 6%"
+
+    2. IPIM (real estate price index) — quarterly publication pages
+       ins.tn/publication/indice-des-prix-de-limmobilier-{q}-trimestre-{year}
+       + PDF fallback at ins.tn/sites/default/files-ftp3/files/publication/pdf/IPIM T{q}_{year}_fr.pdf
+       Confirmed: exists from 2018 Q1 onwards
+
+    3. IPVI (industrial price index) — ins.tn/statistiques/89
+       Uses table2excel, rendered by JS via Selenium
     """
 
     SOURCE   = "INS"
     BASE_URL = "https://www.ins.tn"
 
-    PAGES = {
-        "ipc_construction": (
-            "https://www.ins.tn/statistiques/indice-des-prix-a-la-construction",
-            "index_2015=100",
-        ),
-        "ipc_general_ins": (
-            "https://www.ins.tn/statistiques/indice-des-prix-a-la-consommation",
-            "index_2015=100",
-        ),
-        "permis_construire": (
-            "https://www.ins.tn/statistiques/construction-et-travaux-publics",
-            "count",
-        ),
-        "chomage_rate": (
-            "https://www.ins.tn/statistiques/emploi-et-chomage",
-            "%",
-        ),
-        "pib_courant": (
-            "https://www.ins.tn/statistiques/comptes-nationaux",
-            "MDT",
-        ),
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/123.0.0.0",
+        "Accept-Language": "fr-FR,fr;q=0.9",
+        "Referer": "https://www.ins.tn/",
     }
 
+    # Quarter names in URL slugs
+    QUARTER_SLUGS = {
+        1: "premier",
+        2: "deuxieme",
+        3: "troisieme",
+        4: "quatrieme",
+    }
+
+    # Month slugs for IPC URLs (French, no accents)
+    MONTH_SLUGS = [
+        "janvier", "fevrier", "mars", "avril", "mai", "juin",
+        "juillet", "aout", "septembre", "octobre", "novembre", "decembre",
+    ]
+
     def run(self) -> Dict[str, Any]:
-        _ensure_selenium()
         log.info(f"[INS] Scraping {HISTORY_START}–{HISTORY_END}")
-        driver = None
         rows: List[Dict] = []
 
-        try:
-            driver = _make_driver()
-            for indicator, (url, unit) in self.PAGES.items():
-                log.info(f"[INS] {indicator}")
-                new_rows = self._scrape_one(driver, indicator, url, unit)
-                rows    += new_rows
-                log.info(f"[INS]   → {len(new_rows)} rows")
-                time.sleep(random.uniform(2, 4))
-        except Exception as exc:
-            log.error(f"[INS] error: {exc}")
-        finally:
-            if driver:
-                try:
-                    driver.quit()
-                except Exception:
-                    pass
+        rows += self._scrape_ipc_listing()
+        rows += self._scrape_ipc_press_releases()
+        rows += self._scrape_ipim()
 
         if not rows:
             log.warning("[INS] 0 rows")
@@ -589,194 +448,255 @@ class INSScraper:
         log.info(f"[INS] Saved {inserted}/{len(rows)} rows")
         return {"source": self.SOURCE, "rows": inserted, "status": "ok"}
 
-    def _scrape_one(self, driver, indicator: str,
-                    url: str, unit: str) -> List[Dict]:
-        from selenium.webdriver.common.by import By
-
-        # Load page with long wait for JS
-        driver.get(url)
-        time.sleep(10)
-
-        # Scroll down to trigger lazy loading
-        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-        time.sleep(3)
-
-        # Try to click any search/display button
-        for btn_text in ["Afficher", "Rechercher", "Valider", "OK", "Search"]:
+    def _get(self, url: str, timeout: int = 20) -> Optional[requests.Response]:
+        for attempt in range(2):   # only 2 attempts for INS — fast fail
             try:
-                btns = driver.find_elements(
-                    By.XPATH,
-                    f"//button[contains(text(),'{btn_text}')] | "
-                    f"//input[@value='{btn_text}'] | "
-                    f"//a[contains(text(),'{btn_text}')]"
-                )
-                if btns:
-                    btns[0].click()
-                    time.sleep(5)
-                    break
-            except Exception:
-                pass
-
-        html = driver.page_source
-        soup = BeautifulSoup(html, "html.parser")
-
-        # Try XLS download link (direct requests, doesn't need JS)
-        for a in soup.find_all("a", href=True):
-            href = a["href"].lower()
-            if not any(href.endswith(ext) for ext in (".xls", ".xlsx", ".csv")):
-                continue
-            full_url = (a["href"] if a["href"].startswith("http")
-                        else self.BASE_URL + a["href"])
-            try:
-                resp = requests.get(
-                    full_url,
-                    headers={"User-Agent": "Mozilla/5.0"},
-                    timeout=60,
-                )
-                resp.raise_for_status()
-                rows = (self._parse_csv(resp.content, indicator, unit)
-                        if href.endswith(".csv")
-                        else self._parse_xls(resp.content, indicator, unit))
-                if rows:
-                    log.info(f"[INS]   file download → {len(rows)} rows")
-                    return rows
+                r = requests.get(url, headers=self.HEADERS, timeout=timeout)
+                r.raise_for_status()
+                return r
             except Exception as exc:
-                log.warning(f"[INS]   file error: {exc}")
+                if attempt == 0:
+                    time.sleep(random.uniform(0.5, 1.5))
+        return None
 
-        # Parse HTML table
-        rows_out = []
-        is_const = indicator == "ipc_construction"
-        for table in soup.find_all("table"):
-            trs = table.find_all("tr")
-            if len(trs) < 2:
-                continue
-            headers = [th.get_text(strip=True).lower()
-                       for th in (trs[0].find_all(["th","td"]) if trs else [])]
-            mat_col = next(
-                (i for i, h in enumerate(headers)
-                 if "matériau" in h or "material" in h),
-                None,
-            ) if is_const else None
+    # ------------------------------------------------------------------
+    # 1. IPC listing page — contains all monthly values in page text
+    # ------------------------------------------------------------------
 
-            for tr in trs[1:]:
-                cells = tr.find_all(["td", "th"])
-                if len(cells) < 2:
-                    continue
-                d   = _date(cells[0].get_text(strip=True))
-                val = _num(cells[1].get_text(strip=True))
-                if d and val and val > 0:
-                    rows_out.append(_row(d, indicator, val, unit, self.SOURCE))
-                if mat_col and len(cells) > mat_col:
-                    val_m = _num(cells[mat_col].get_text(strip=True))
-                    if d and val_m and val_m > 0:
-                        rows_out.append(
-                            _row(d, "ipc_materiaux", val_m, unit, self.SOURCE)
-                        )
-
-        # Last resort: try INS API endpoint pattern
-        if not rows_out:
-            rows_out += self._try_ins_api(indicator, unit)
-
-        return rows_out
-
-    def _try_ins_api(self, indicator: str, unit: str) -> List[Dict]:
+    def _scrape_ipc_listing(self) -> List[Dict]:
         """
-        INS sometimes exposes a JSON API endpoint.
-        Try common patterns.
+        ins.tn/statistiques/90 page text contains snippets like:
+          "Au mois de février 2026, le taux d'inflation a atteint le taux de 5%."
+          "L'inflation au mois de janvier 2025, se replie à 6%."
+          "L'inflation se replie à 8,1% en décembre 2023."
+        We extract these month+year+value triples.
         """
-        API_PATTERNS = [
-            f"https://www.ins.tn/api/statistiques/{indicator}",
-            f"https://www.ins.tn/sites/default/files/statistiques/{indicator}.json",
-        ]
-        for api_url in API_PATTERNS:
-            try:
-                resp = requests.get(
-                    api_url,
-                    headers={"User-Agent": "Mozilla/5.0"},
-                    timeout=15,
-                )
-                if resp.status_code == 200:
-                    data = resp.json()
-                    rows_out = []
-                    if isinstance(data, list):
-                        for item in data:
-                            d   = _date(str(item.get("date", "")))
-                            val = _num(str(item.get("value", "")))
-                            if d and val and val > 0:
-                                rows_out.append(
-                                    _row(d, indicator, val, unit, self.SOURCE)
-                                )
-                    if rows_out:
-                        return rows_out
-            except Exception:
-                pass
-        return []
-
-    def _parse_xls(self, content: bytes, indicator: str, unit: str) -> List[Dict]:
-        try:
-            import openpyxl
-            wb       = openpyxl.load_workbook(
-                io.BytesIO(content), read_only=True, data_only=True
-            )
-            rows_out = []
-            for ws in wb.worksheets:
-                for i, row in enumerate(ws.iter_rows(values_only=True)):
-                    if i == 0 or not row or row[0] is None:
-                        continue
-                    d = _date(str(row[0]))
-                    if not d and hasattr(row[0], "strftime"):
-                        d = row[0].strftime("%Y-%m-01")
-                    if not d:
-                        continue
-                    for cell in row[1:]:
-                        if cell is None:
-                            continue
-                        val = _num(str(cell))
-                        if val and val > 0:
-                            rows_out.append(
-                                _row(d, indicator, val, unit, self.SOURCE)
-                            )
-                            break
-            return rows_out
-        except Exception as exc:
-            log.warning(f"[INS] XLS error: {exc}")
+        log.info("[INS] IPC from listing page")
+        resp = self._get(f"{self.BASE_URL}/statistiques/90", timeout=20)
+        if not resp:
             return []
 
-    def _parse_csv(self, content: bytes, indicator: str, unit: str) -> List[Dict]:
-        import csv
+        text = BeautifulSoup(resp.text, "html.parser").get_text(" ")
         rows_out = []
-        try:
-            text   = content.decode("utf-8", errors="replace")
-            reader = csv.reader(io.StringIO(text))
-            for i, row in enumerate(reader):
-                if i == 0 or not row:
+
+        MONTH_NAMES_FR = {
+            "janvier": "01", "février": "02", "fevrier": "02",
+            "mars": "03", "avril": "04", "mai": "05", "juin": "06",
+            "juillet": "07", "août": "08", "aout": "08",
+            "septembre": "09", "octobre": "10",
+            "novembre": "11", "décembre": "12", "decembre": "12",
+        }
+
+        # Pattern 1: "au mois de {month} {year}... {value}%"
+        for m in re.finditer(
+            r"au mois de ([a-zéûî]+) (\d{4})[^\d%]*?(\d+[,\.]\d+)\s*%",
+            text.lower()
+        ):
+            mon_name, year, val_str = m.group(1), m.group(2), m.group(3)
+            mon = MONTH_NAMES_FR.get(mon_name)
+            val = _num(val_str)
+            if mon and val and 0 < val < 30:
+                rows_out.append(
+                    _row(f"{year}-{mon}-01", "ipc_general_ins",
+                         val, "%", self.SOURCE)
+                )
+
+        # Pattern 2: "{value}% en {month} {year}"
+        for m in re.finditer(
+            r"(\d+[,\.]\d+)\s*%\s*en ([a-zéûî]+) (\d{4})",
+            text.lower()
+        ):
+            val_str, mon_name, year = m.group(1), m.group(2), m.group(3)
+            mon = MONTH_NAMES_FR.get(mon_name)
+            val = _num(val_str)
+            if mon and val and 0 < val < 30:
+                rows_out.append(
+                    _row(f"{year}-{mon}-01", "ipc_general_ins",
+                         val, "%", self.SOURCE)
+                )
+
+        # Deduplicate — keep highest value per date (most specific mention)
+        seen: Dict[str, float] = {}
+        for r in rows_out:
+            key = r["date"]
+            if key not in seen:
+                seen[key] = r["value"]
+        deduped = [
+            _row(d, "ipc_general_ins", v, "%", self.SOURCE)
+            for d, v in seen.items()
+        ]
+
+        log.info(f"[INS]   IPC listing → {len(deduped)} rows")
+        return deduped
+
+    # ------------------------------------------------------------------
+    # 2. IPC individual press release pages
+    # ------------------------------------------------------------------
+
+    def _scrape_ipc_press_releases(self) -> List[Dict]:
+        """
+        Visit each monthly page:
+          ins.tn/publication/indice-des-prix-la-consommation-{month}-{year}
+        Extract the inflation rate from the first paragraph.
+        """
+        log.info("[INS] IPC from monthly press releases")
+        rows_out = []
+
+        for year in range(max(HISTORY_START, 2015), HISTORY_END + 1):
+            for mon_idx, mon_slug in enumerate(self.MONTH_SLUGS, start=1):
+                # Skip future months
+                if year == HISTORY_END and mon_idx > datetime.now().month:
+                    break
+
+                url  = (f"{self.BASE_URL}/publication/"
+                        f"indice-des-prix-la-consommation-{mon_slug}-{year}")
+                resp = self._get(url, timeout=12)
+                if not resp:
                     continue
-                d = _date(row[0])
-                if not d:
-                    continue
-                for cell in row[1:]:
-                    val = _num(cell)
-                    if val and val > 0:
-                        rows_out.append(
-                            _row(d, indicator, val, unit, self.SOURCE)
-                        )
-                        break
-        except Exception as exc:
-            log.warning(f"[INS] CSV error: {exc}")
+
+                text = BeautifulSoup(resp.text, "html.parser").get_text(" ")
+
+                # Extract annual inflation rate from text
+                patterns = [
+                    r"taux d.inflation[^\d%]*?(\d+[,\.]\d+)\s*%",
+                    r"(\d+[,\.]\d+)\s*%\s*sur un an",
+                    r"inflation[^\d%]*?(\d+[,\.]\d+)\s*%",
+                    r"atteint(?:\s+le taux de)?\s+(\d+[,\.]\d+)\s*%",
+                    r"replie\s+à\s+(\d+[,\.]\d+)\s*%",
+                    r"s.établit à\s+(\d+[,\.]\d+)\s*%",
+                ]
+                val = None
+                for pat in patterns:
+                    m = re.search(pat, text.lower())
+                    if m:
+                        v = _num(m.group(1))
+                        if v and 0 < v < 30:
+                            val = v
+                            break
+
+                if val:
+                    d = f"{year}-{str(mon_idx).zfill(2)}-01"
+                    rows_out.append(
+                        _row(d, "ipc_general_ins", val, "%", self.SOURCE)
+                    )
+
+                time.sleep(random.uniform(0.2, 0.6))
+
+        log.info(f"[INS]   IPC press releases → {len(rows_out)} rows")
         return rows_out
+
+    # ------------------------------------------------------------------
+    # 3. IPIM — Real estate price index
+    # ------------------------------------------------------------------
+
+    def _scrape_ipim(self) -> List[Dict]:
+        """
+        IPIM quarterly publication pages:
+          ins.tn/publication/indice-des-prix-de-limmobilier-{quarter}-trimestre-{year}
+        + PDF fallback.
+        Exists from 2018 Q1 (confirmed).
+        Note: 2022 and 2023 had an interruption, resumed in 2024.
+        """
+        log.info("[INS] IPIM — Indice des Prix de l'Immobilier")
+        rows_out = []
+
+        for year in range(2018, HISTORY_END + 1):
+            current_q = (datetime.now().month - 1) // 3 + 1
+            for q in range(1, 5):
+                if year == HISTORY_END and q > current_q:
+                    break
+
+                # Try publication page first
+                q_slug = self.QUARTER_SLUGS[q]
+                url    = (f"{self.BASE_URL}/publication/"
+                          f"indice-des-prix-de-limmobilier-{q_slug}-trimestre-{year}")
+                resp   = self._get(url, timeout=15)
+
+                val = None
+                if resp:
+                    val = self._extract_ipim_from_page(resp.text, year, q)
+
+                # PDF fallback
+                if not val:
+                    pdf_url = (
+                        f"{self.BASE_URL}/sites/default/files-ftp3/files/"
+                        f"publication/pdf/IPIM%20T{q}_{year}_fr.pdf"
+                    )
+                    resp_pdf = self._get(pdf_url, timeout=20)
+                    if resp_pdf:
+                        val = self._extract_ipim_from_pdf(resp_pdf.content)
+
+                if val:
+                    mon = {1: "01", 2: "04", 3: "07", 4: "10"}[q]
+                    d   = f"{year}-{mon}-01"
+                    rows_out.append(
+                        _row(d, "ipim", val, "index_2015=100", self.SOURCE)
+                    )
+                    log.info(f"[INS]   IPIM {year} T{q}: {val}")
+
+                time.sleep(random.uniform(0.3, 0.8))
+
+        log.info(f"[INS]   IPIM → {len(rows_out)} rows")
+        return rows_out
+
+    def _extract_ipim_from_page(self, html: str, year: int, q: int) -> Optional[float]:
+        """
+        IPIM publication pages contain text like:
+        "l'indice des prix de l'immobilier bâti a augmenté de 3,5%"
+        or "l'indice ... s'établit à 125,3"
+        We extract the % change (quarterly) as the value.
+        """
+        text = BeautifulSoup(html, "html.parser").get_text(" ").lower()
+
+        patterns = [
+            # Quarterly change
+            r"(?:augmenté|baissé|hausse|baisse)\s+de\s+(\d+[,\.]\d+)\s*%\s*(?:en variation trimestrielle|par rapport au)",
+            r"variation trimestrielle[^\d]*(\d+[,\.]\d+)\s*%",
+            r"(\d+[,\.]\d+)\s*%\s*(?:en variation trimestrielle|par rapport au trimestre)",
+            # Index level
+            r"l.indice[^\d]*s.établit\s+à\s+(\d{3}[,\.]\d+)",
+            r"indice[^\d]*(\d{3}[,\.]\d+)\s*(?:points?|base)",
+        ]
+
+        for pat in patterns:
+            m = re.search(pat, text)
+            if m:
+                val = _num(m.group(1))
+                if val and val > 0:
+                    return val
+        return None
+
+    def _extract_ipim_from_pdf(self, content: bytes) -> Optional[float]:
+        try:
+            from pypdf import PdfReader
+            reader = PdfReader(io.BytesIO(content))
+            text   = ""
+            for page in reader.pages[:3]:
+                text += (page.extract_text() or "").lower()
+
+            patterns = [
+                r"indice[^\d]*(\d{3}[,\.]\d+)",
+                r"(\d{3}[,\.]\d+)\s*(?:points?|base 2015)",
+                r"valeur[^\d]*(\d{3}[,\.]\d+)",
+            ]
+            for pat in patterns:
+                m = re.search(pat, text)
+                if m:
+                    val = _num(m.group(1))
+                    if val and 80 < val < 500:
+                        return val
+        except ImportError:
+            pass  # pypdf not installed — skip silently
+        except Exception as exc:
+            log.warning(f"[INS] PDF error: {exc}")
+        return None
 
 
 # =============================================================================
-# BVMT SCRAPER
+# BVMT SCRAPER (confirmed working)
 # =============================================================================
 
 class BVMTScraper:
-    """
-    BVMT — requests only (no blocking).
-    ZIP files confirmed working for 2016–2025.
-    Market URL confirmed: /fr/market-place
-    """
-
     SOURCE  = "BVMT"
     HEADERS = {
         "User-Agent": (
@@ -832,7 +752,6 @@ class BVMTScraper:
         rows: List[Dict] = []
         seen: set         = set()
 
-        # ZIP files — exist for 2016–2025
         log.info("[BVMT] ZIPs (2016–2025)")
         for year in range(2016, min(HISTORY_END + 1, 2026)):
             url  = self.HISTO_ZIP_URL.format(year=year)
@@ -850,7 +769,6 @@ class BVMTScraper:
                 log.warning(f"[BVMT]   ZIP {year}: {exc}")
             time.sleep(random.uniform(0.5, 1.5))
 
-        # HTML for current year
         log.info("[BVMT] HTML current year")
         resp = self._get(self.HISTO_HTML_URL)
         if resp:
