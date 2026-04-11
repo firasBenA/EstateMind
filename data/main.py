@@ -23,6 +23,7 @@ load_dotenv()
 from config.logging_config import log
 from scrapers.all_scrapers import build_all_scrapers
 from ai_agent.agent import IntelligentScrapingAgent
+from scrapers.macro_scrapers import run_all_macro_scrapers
 
 
 def _build_vector_db(strategy: str = "huggingface"):
@@ -38,6 +39,13 @@ def _build_vector_db(strategy: str = "huggingface"):
         log.warning(f"Pinecone unavailable: {e} — running without vector storage")
         return None
 
+def run_macro_job() -> None:
+    """Scrape economic time-series data from BCT, INS, BVMT."""
+    log.info("Starting macro scraping (BCT + INS + BVMT)...")
+    results = run_all_macro_scrapers()
+    for r in results:
+        log.info(f"  {r['source']}: {r['rows']} rows saved — {r['status']}")
+    log.info("Macro scraping done.")
 
 def run_job(
     store_vectors: bool = True,
@@ -48,6 +56,8 @@ def run_job(
     Run one full scraping cycle.
     Returns the agent summary dict.
     """
+    run_macro_job()
+    
     scrapers = build_all_scrapers()
     if site_filter:
         # Flexible site filtering (case-insensitive, handles aliases)
