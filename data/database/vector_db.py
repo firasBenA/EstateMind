@@ -15,8 +15,6 @@ from typing import List, Optional, Dict, Any
 
 import psycopg2
 from psycopg2.extras import RealDictCursor
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from loguru import logger
 
 from core.models import PropertyListing  # ✅ IMPORT IS HERE
@@ -135,38 +133,100 @@ class VectorDBHandler:
     def _embed_images(self, image_urls: List[str]) -> List[List[float]]:
         return EmbeddingModel.embed_images(image_urls)
     
-    def upsert_listing(self, listing: PropertyListing) -> bool:
-        """Insert or update a single listing with ALL columns."""
+    def upsert_listing(self, listing) -> bool:
+        """Insert or update a single listing with ALL columns.
+        
+        Handles both PropertyListing objects and dictionaries.
+        """
         try:
+            # ✅ Handle both PropertyListing objects and dictionaries
+            if isinstance(listing, dict):
+                # It's a dictionary - convert to PropertyListing or access directly
+                source_name = listing.get('source_name')
+                source_id = listing.get('source_id')
+                title = listing.get('title', '')
+                description = listing.get('description', '')
+                price = listing.get('price')
+                currency = listing.get('currency', 'TND')
+                transaction_type = listing.get('transaction_type')
+                property_type = listing.get('property_type', 'Other')
+                rooms = listing.get('rooms')
+                surface_area_m2 = listing.get('surface') or listing.get('surface_area_m2')
+                url = listing.get('url', '')
+                images = listing.get('images', [])
+                features = listing.get('features', [])
+                
+                # Location handling
+                city = listing.get('city')
+                municipality = listing.get('municipality') or listing.get('municipalite')
+                zone = listing.get('zone')
+                region = listing.get('region')
+                latitude = listing.get('latitude')
+                longitude = listing.get('longitude')
+                
+                # Create a simple object or dict for embedding text
+                text = f"{title} {description} {property_type} {city} {region}"
+                
+            else:
+                # It's a PropertyListing object
+                source_name = listing.source_name
+                source_id = listing.source_id
+                title = listing.title
+                description = listing.description
+                price = listing.price
+                currency = listing.currency
+                transaction_type = listing.transaction_type
+                property_type = getattr(listing, 'property_type', 'Other')
+                rooms = listing.rooms
+                surface_area_m2 = listing.surface_area_m2
+                url = listing.url
+                images = listing.images
+                features = listing.features
+                
+                # Location handling
+                loc = getattr(listing, 'location', None)
+                if loc:
+                    city = getattr(loc, 'city', None)
+                    municipality = getattr(loc, 'municipalite', None)
+                    zone = getattr(loc, 'zone', None)
+                    region = getattr(loc, 'governorate', None) or getattr(loc, 'region', None)
+                    latitude = getattr(loc, 'latitude', None)
+                    longitude = getattr(loc, 'longitude', None)
+                else:
+                    city = getattr(listing, 'city', None)
+                    municipality = getattr(listing, 'municipality', None)
+                    zone = getattr(listing, 'zone', None)
+                    region = getattr(listing, 'region', None)
+                    latitude = getattr(listing, 'latitude', None)
+                    longitude = getattr(listing, 'longitude', None)
+                
+                text = listing.to_embedding_text() if hasattr(listing, 'to_embedding_text') else f"{title} {description}"
+            
             # Generate text embedding
-            text = listing.to_embedding_text()
             embedding = self._embed_text([text])[0]
             
             # Build vector ID and unique ID
-            vector_id = f"{listing.source_name}:{listing.source_id}"
+            vector_id = f"{source_name}:{source_id}"
             unique_id = hashlib.md5(vector_id.encode()).hexdigest()[:16]
-            
-            # Get location info
-            loc = listing.location
-            property_type = getattr(listing, 'property_type', None) or 'Other'
             
             # Compute price_per_m2
             price_per_m2 = None
-            if listing.price and listing.surface_area_m2 and listing.surface_area_m2 > 0:
-                price_per_m2 = listing.price / listing.surface_area_m2
+            if price and surface_area_m2 and surface_area_m2 > 0:
+                price_per_m2 = price / surface_area_m2
             
             # Get POI data
             poi_data = None
-            if hasattr(listing, 'pois') and listing.pois:
-                poi_data = [{"name": p.name, "category": p.category, "distance": p.distance_m} 
-                           for p in listing.pois]
+            if not isinstance(listing, dict):
+                if hasattr(listing, 'pois') and listing.pois:
+                    poi_data = [{"name": p.name, "category": p.category, "distance": p.distance_m} 
+                            for p in listing.pois]
             
             with self.conn.cursor() as cur:
                 # Check if exists
                 cur.execute("""
                     SELECT id FROM listings 
                     WHERE source_id = %s AND source_name = %s
-                """, (listing.source_id, listing.source_name))
+                """, (source_id, source_name))
                 
                 row = cur.fetchone()
                 
@@ -199,24 +259,24 @@ class VectorDBHandler:
                             last_updated = NOW()
                         WHERE id = %s
                     """, (
-                        listing.url,
-                        listing.title,
-                        listing.description,
-                        listing.price,
-                        listing.currency,
-                        listing.transaction_type,
+                        url,
+                        title,
+                        description,
+                        price,
+                        currency,
+                        transaction_type,
                         property_type,
-                        listing.rooms,
-                        loc.governorate if loc else None,
-                        loc.zone if loc else None,
-                        loc.city if loc else None,
-                        loc.municipalite if loc else None,
-                        loc.latitude if loc else None,
-                        loc.longitude if loc else None,
-                        listing.surface_area_m2,
-                        json.dumps(listing.images) if listing.images else None,
-                        len(listing.images) if listing.images else 0,
-                        json.dumps(listing.features) if listing.features else None,
+                        rooms,
+                        region,
+                        zone,
+                        city,
+                        municipality,
+                        latitude,
+                        longitude,
+                        surface_area_m2,
+                        json.dumps(images) if images else None,
+                        len(images) if images else 0,
+                        json.dumps(features) if features else None,
                         json.dumps(poi_data) if poi_data else None,
                         price_per_m2,
                         embedding,
@@ -245,26 +305,26 @@ class VectorDBHandler:
                         )
                     """, (
                         unique_id,
-                        listing.source_id,
-                        listing.source_name,
-                        listing.url,
-                        listing.title,
-                        listing.description,
-                        listing.price,
-                        listing.currency,
-                        listing.transaction_type,
+                        source_id,
+                        source_name,
+                        url,
+                        title,
+                        description,
+                        price,
+                        currency,
+                        transaction_type,
                         property_type,
-                        listing.rooms,
-                        loc.governorate if loc else None,
-                        loc.zone if loc else None,
-                        loc.city if loc else None,
-                        loc.municipalite if loc else None,
-                        loc.latitude if loc else None,
-                        loc.longitude if loc else None,
-                        listing.surface_area_m2,
-                        json.dumps(listing.images) if listing.images else None,
-                        len(listing.images) if listing.images else 0,
-                        json.dumps(listing.features) if listing.features else None,
+                        rooms,
+                        region,
+                        zone,
+                        city,
+                        municipality,
+                        latitude,
+                        longitude,
+                        surface_area_m2,
+                        json.dumps(images) if images else None,
+                        len(images) if images else 0,
+                        json.dumps(features) if features else None,
                         json.dumps(poi_data) if poi_data else None,
                         price_per_m2,
                         embedding
@@ -272,9 +332,9 @@ class VectorDBHandler:
                     used_id = unique_id
                 
                 # Handle image embeddings
-                if listing.images:
-                    image_embeddings = self._embed_images(listing.images[:5])
-                    for i, (img_url, img_emb) in enumerate(zip(listing.images[:5], image_embeddings)):
+                if images:
+                    image_embeddings = self._embed_images(images[:5])
+                    for i, (img_url, img_emb) in enumerate(zip(images[:5], image_embeddings)):
                         img_id = f"{used_id}_img_{i}"
                         cur.execute("""
                             INSERT INTO image_embeddings (id, listing_id, image_url, image_index, embedding)
@@ -290,7 +350,7 @@ class VectorDBHandler:
             return True
             
         except Exception as e:
-            logger.error(f"Failed to upsert {listing.source_id}: {e}")
+            logger.error(f"Error upserting listing: {e}")
             self.conn.rollback()
             return False
     

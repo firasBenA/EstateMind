@@ -297,10 +297,6 @@ def run_job(
         pipeline=None,
         enrich=True,
         fetch_pois=True,
-        deduplicate=not dedup_disabled,
-        pipeline=None,
-        enrich=True,
-        fetch_pois=True,
     )
 
     log.info("=" * 60)
