@@ -47,7 +47,7 @@ class PostgresClient:
                     images JSONB,
                     features JSONB,
                     scraped_at TIMESTAMP,
-                    last_update TIMESTAMP,
+                    last_updated TIMESTAMP,
                     transaction_type TEXT,
                     currency TEXT,
                     raw_data_path TEXT,
@@ -104,7 +104,7 @@ class PostgresClient:
                         images,
                         features,
                         scraped_at,
-                        last_update,
+                        last_updated,
                         transaction_type,
                         currency,
                         raw_data_path,
@@ -130,7 +130,7 @@ class PostgresClient:
                         %(images)s,
                         %(features)s,
                         %(scraped_at)s,
-                        %(last_update)s,
+                        %(last_updated)s,
                         %(transaction_type)s,
                         %(currency)s,
                         %(raw_data_path)s,
@@ -147,14 +147,60 @@ class PostgresClient:
             return False
 
     def upsert_listing(self, listing) -> bool:
-        """Insert or update a single listing."""
+        """Insert or update a single listing.
+        
+        Handles both PropertyListing objects and dictionaries.
+        """
         try:
+            # ✅ Handle both dictionary and object
+            if isinstance(listing, dict):
+                # It's a dictionary
+                source_name = listing.get('source_name')
+                source_id = listing.get('source_id') or listing.get('property_id')
+                title = listing.get('title', '')
+                description = listing.get('description', '')
+                price = listing.get('price')
+                currency = listing.get('currency', 'TND')
+                transaction_type = listing.get('transaction_type')
+                property_type = listing.get('property_type', 'Other')
+                rooms = listing.get('rooms')
+                surface = listing.get('surface') or listing.get('surface_area_m2')
+                url = listing.get('url', '')
+                
+                # Location handling
+                location = listing.get('location', {})
+                city = listing.get('city') or location.get('city')
+                region = listing.get('region') or location.get('governorate') or location.get('region')
+                
+            else:
+                # It's a PropertyListing object
+                source_name = listing.source_name
+                source_id = listing.source_id
+                title = listing.title
+                description = listing.description
+                price = listing.price
+                currency = listing.currency
+                transaction_type = listing.transaction_type
+                property_type = getattr(listing, 'property_type', 'Other')
+                rooms = listing.rooms
+                surface = listing.surface_area_m2
+                url = listing.url
+                
+                # Location handling
+                loc = getattr(listing, 'location', None)
+                if loc:
+                    city = getattr(loc, 'city', None)
+                    region = getattr(loc, 'governorate', None) or getattr(loc, 'region', None)
+                else:
+                    city = getattr(listing, 'city', None)
+                    region = getattr(listing, 'region', None)
+            
             with self.conn.cursor() as cur:
-                # ✅ CHANGE: property_id → source_id
+                # Check if exists using source_name and source_id
                 cur.execute("""
                     SELECT 1 FROM listings 
                     WHERE source_name = %s AND source_id = %s
-                """, (listing.source_name, listing.source_id))
+                """, (source_name, source_id))
                 
                 exists = cur.fetchone() is not None
                 
@@ -164,32 +210,36 @@ class PostgresClient:
                         UPDATE listings SET
                             url = %s,
                             title = %s,
+                            description = %s,
                             price = %s,
-                            surface = %s,
+                            currency = %s,
+                            transaction_type = %s,
+                            property_type = %s,
                             rooms = %s,
                             city = %s,
                             region = %s,
-                            transaction_type = %s,
-                            property_type = %s,
+                            surface = %s,
                             last_updated = NOW()
                         WHERE source_name = %s AND source_id = %s
                     """, (
-                        listing.url,
-                        listing.title,
-                        listing.price,
-                        listing.surface_area_m2,
-                        listing.rooms,
-                        listing.location.city if listing.location else None,
-                        listing.location.governorate if listing.location else None,
-                        listing.transaction_type,
-                        getattr(listing, 'property_type', 'Other'),
-                        listing.source_name,
-                        listing.source_id
+                        url,
+                        title,
+                        description,
+                        price,
+                        currency,
+                        transaction_type,
+                        property_type,
+                        rooms,
+                        city,
+                        region,
+                        surface,
+                        source_name,
+                        source_id
                     ))
                 else:
-                    # INSERT
+                    # INSERT - generate a unique ID
                     import hashlib
-                    unique_id = hashlib.md5(f"{listing.source_name}:{listing.source_id}".encode()).hexdigest()[:16]
+                    unique_id = hashlib.md5(f"{source_name}:{source_id}".encode()).hexdigest()[:16]
                     
                     cur.execute("""
                         INSERT INTO listings (
@@ -205,19 +255,19 @@ class PostgresClient:
                         )
                     """, (
                         unique_id,
-                        listing.source_id,
-                        listing.source_name,
-                        listing.url,
-                        listing.title,
-                        listing.description,
-                        listing.price,
-                        listing.currency,
-                        listing.transaction_type,
-                        getattr(listing, 'property_type', 'Other'),
-                        listing.rooms,
-                        listing.location.city if listing.location else None,
-                        listing.location.governorate if listing.location else None,
-                        listing.surface_area_m2
+                        source_id,
+                        source_name,
+                        url,
+                        title,
+                        description,
+                        price,
+                        currency,
+                        transaction_type,
+                        property_type,
+                        rooms,
+                        city,
+                        region,
+                        surface
                     ))
                 
                 self.conn.commit()
@@ -274,7 +324,7 @@ class PostgresClient:
                     """
                     SELECT 1
                     FROM listings
-                    WHERE source_name = %s AND property_id = %s
+                    WHERE source_name = %s AND source_id = %s
                     LIMIT 1
                     """,
                     (source_name, source_id),
@@ -287,12 +337,19 @@ class PostgresClient:
     def check_duplicate(self, listing) -> bool:
         """Check if listing exists."""
         try:
+            # Handle both dictionary and object
+            if isinstance(listing, dict):
+                source_name = listing.get('source_name')
+                source_id = listing.get('source_id') or listing.get('property_id')
+            else:
+                source_name = listing.source_name
+                source_id = listing.source_id
+            
             with self.conn.cursor() as cur:
-                # ✅ CHANGE: property_id → source_id
                 cur.execute("""
                     SELECT 1 FROM listings 
                     WHERE source_name = %s AND source_id = %s
-                """, (listing.source_name, listing.source_id))
+                """, (source_name, source_id))
                 return cur.fetchone() is not None
         except Exception as e:
             logger.error(f"Error checking duplicate: {e}")
@@ -390,7 +447,7 @@ class PostgresClient:
         images = listing_data.get("images") or []
         features = listing_data.get("features") or []
         region, zone = self._infer_region_and_zone(location)
-        last_update = listing_data.get("last_update") or listing_data.get("published_at") or listing_data.get("scraped_at")
+        last_updated = listing_data.get("last_updated") or listing_data.get("published_at") or listing_data.get("scraped_at")
         return {
             "property_id": listing_data.get("source_id"),
             "source_name": listing_data.get("source_name"),
@@ -411,7 +468,7 @@ class PostgresClient:
             "images": Json(images),
             "features": Json(features),
             "scraped_at": listing_data.get("scraped_at"),
-            "last_update": last_update,
+            "last_updated": last_updated,
             "transaction_type": listing_data.get("transaction_type"),
             "currency": listing_data.get("currency"),
             "raw_data_path": listing_data.get("raw_data_path"),
