@@ -206,73 +206,78 @@ def listing_detail(request, pk):
 
 
 def listings_meta(request):
-    """GET /api/listings/meta/"""
-    qs = Listing.objects.filter(Q(should_drop=False) | Q(should_drop__isnull=True))
-
-    cities  = sorted(
-        qs.exclude(city__isnull=True)
-          .values_list("city", flat=True).distinct()
-    )
-    regions = sorted(
-        qs.exclude(region__isnull=True)
-          .values_list("region", flat=True).distinct()
-    )
-    total = qs.count()
-
-    avg_price_m2 = (
-        qs.exclude(price_per_m2__isnull=True)
-          .filter(price_per_m2__gt=0)
-          .aggregate(v=Avg("price_per_m2"))["v"] or 0
-    )
-
-    week_ago      = date.today() - timedelta(days=7)
-    week_listings = qs.filter(scraped_at__date__gte=week_ago).count()
-
-    return JsonResponse({
-        "total_listings":     total,
-        "cities_covered":     len(cities),
-        "avg_price_per_m2":   round(float(avg_price_m2), 2),
-        "listings_this_week": week_listings,
-        "cities":             cities,
-        "regions":            regions,
-    
-        "price":               price,
-        "currency":            currency or "TND",
-        "transaction_type":    transaction_type,
-        "type":                type,
-        "rooms":               rooms,
-        "city":                city,
-        "municipality":        municipalite,
-        "zone":                zone,
-        "region":              region,
-        "surface":             surface,
-        "price_per_m2":        price_per_m2,
-        "latitude":            latitude,
-        "longitude":           longitude,
-        "features":            features or [],
-        "images":              images or [],
-        "images_count":        images_count or 0,
-        "fraud_flag":          fraud_flag,
-        "fraud_score":         fraud_score,
-        "fraud_reason":        fraud_reason,
-        "reliability_score":   reliability_score,
-        "reliability_level":   reliability_level,
-        "is_outlier":          is_outlier,
-        "outlier_flags":       outlier_flags or [],
-        "suspected_duplicate": suspected_duplicate,
-        "change_type":         change_type,
-        "has_price_history":   has_price_history,
-        "price_delta":         price_delta,
-        "price_delta_pct":     price_delta_pct,
-        "scraped_at":          scraped_at.isoformat() if scraped_at else None,
-        "last_updated":        last_updated.isoformat() if last_updated else None,
-        "nlp_enriched":        nlp_enriched,
-        "normalized":          normalized,
-        "should_drop":         should_drop,
-    })
-
-
-
+    """Return metadata for listings: cities, price ranges, property types, etc."""
+    try:
+        # Use Django ORM directly (no need for get_db_connection)
+        qs = Listing.objects.filter(Q(should_drop=False) | Q(should_drop__isnull=True))
+        
+        # Get unique cities
+        cities = sorted(
+            qs.exclude(city__isnull=True)
+              .exclude(city__exact='')
+              .values_list("city", flat=True)
+              .distinct()
+        )
+        
+        # Get price statistics using Django ORM
+        price_stats = qs.exclude(price__isnull=True).filter(price__gt=0).aggregate(
+            min_price=Min("price"),
+            max_price=Max("price"),
+            avg_price=Avg("price"),
+        )
+        
+        # Get median price using raw SQL
+        from django.db import connection
+        with connection.cursor() as cur:
+            cur.execute("""
+                SELECT PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price)
+                FROM listings
+                WHERE price IS NOT NULL AND price > 0 
+                AND (should_drop = FALSE OR should_drop IS NULL)
+            """)
+            median_price = cur.fetchone()[0]
+        
+        # Get property types
+        property_types = sorted(
+            qs.exclude(property_type__isnull=True)
+              .exclude(property_type__exact='')
+              .values_list("property_type", flat=True)
+              .distinct()
+        )
+        
+        # Get transaction types
+        transaction_types = sorted(
+            qs.exclude(transaction_type__isnull=True)
+              .exclude(transaction_type__exact='')
+              .values_list("transaction_type", flat=True)
+              .distinct()
+        )
+        
+        # Get regions
+        regions = sorted(
+            qs.exclude(region__isnull=True)
+              .exclude(region__exact='')
+              .values_list("region", flat=True)
+              .distinct()
+        )
+        
+        return JsonResponse({
+            "cities": cities,
+            "regions": regions,
+            "property_types": property_types,
+            "transaction_types": transaction_types,
+            "price_range": {
+                "min": float(price_stats["min_price"] or 0),
+                "max": float(price_stats["max_price"] or 0),
+                "avg": float(price_stats["avg_price"] or 0),
+                "median": float(median_price or 0),
+            }
+        })
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return JsonResponse({"error": str(e)}, status=500)
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 2 — Auth (register, login, logout, session)
 # ─────────────────────────────────────────────────────────────────────────────

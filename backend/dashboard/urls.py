@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-
+from . import report_views
 urlpatterns = [
     # ── Public: listings ────────────────────────────────────────────────────
     path("api/listings/",          views.listings_list,   name="listings_list"),
@@ -18,4 +18,10 @@ urlpatterns = [
     path("api/metrics/",  views.metrics_api,       name="metrics_api"),
     path("api/eda/",      views.eda_metrics,       name="eda_metrics"),
     path("api/quality/",  views.data_quality_api,  name="data_quality_api"),
+
+    # ── Reports (auth required) ───────────────────────────────────────────────
+    path("api/reports/generate/",  report_views.generate_report, name="report_generate"),
+    path("api/reports/",           report_views.list_reports,    name="report_list"),
+    path("api/reports/save/",      report_views.save_report,     name="report_save"),
+    path("api/reports/<int:pk>/",  report_views.get_report,      name="report_detail"),
 ]
