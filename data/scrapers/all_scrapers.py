@@ -475,7 +475,7 @@ class Century21Scraper(BaseScraper):
 # =============================================================================
 
 class DarcomScraper(BaseScraper):
-    """Scraper for darcomtunisia.com - Fixed with all property types"""
+    """Scraper for darcomtunisia.com - Fixed with all property types and proper methods"""
     
     def __init__(self):
         super().__init__(source_name="darcom", base_url="https://www.darcomtunisia.com")
@@ -522,50 +522,225 @@ class DarcomScraper(BaseScraper):
                     url = cat_url if page == 1 else f"{cat_url}?page={page}"
                     log.info(f"[{self.source_name}] {trans_type} p{page}: {url}")
                     
-                    driver.get(url)
-                    time.sleep(random.uniform(2, 4))
-                    
-                    # Scroll to load lazy content
-                    driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                    time.sleep(2)
-                    
-                    soup = BeautifulSoup(driver.page_source, "html.parser")
-                    
-                    # Find property detail links - look for /bien/details/
-                    links = []
-                    for a in soup.find_all("a", href=True):
-                        href = a["href"]
-                        if "/bien/details/" in href:
-                            full_url = href if href.startswith("http") else urljoin(self.base_url, href)
-                            links.append(full_url)
-                    
-                    links = list(dict.fromkeys(links))
-                    if not links:
-                        log.info(f"[{self.source_name}] No links found on page {page}")
+                    try:
+                        driver.get(url)
+                        time.sleep(random.uniform(2, 4))
+                        
+                        # Scroll to load lazy content
+                        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                        time.sleep(2)
+                        
+                        soup = BeautifulSoup(driver.page_source, "html.parser")
+                        
+                        # Find property detail links - look for /bien/details/
+                        links = []
+                        for a in soup.find_all("a", href=True):
+                            href = a["href"]
+                            if "/bien/details/" in href:
+                                full_url = href if href.startswith("http") else urljoin(self.base_url, href)
+                                links.append(full_url)
+                        
+                        links = list(dict.fromkeys(links))
+                        if not links:
+                            log.info(f"[{self.source_name}] No links found on page {page}")
+                            break
+                        
+                        new_urls = [u for u in links if u not in seen_urls]
+                        seen_urls.update(new_urls)
+                        
+                        if not new_urls:
+                            log.info(f"[{self.source_name}] No new listings on page {page}")
+                            break
+                        
+                        log.info(f"[{self.source_name}] Found {len(new_urls)} new listings on page {page}")
+                        
+                        for detail_url in new_urls:
+                            listing = self._scrape_detail(detail_url, trans_type)
+                            if listing:
+                                yield listing
+                            self._random_delay(1.5, 3)
+                        
+                        page += 1
+                        self._random_delay(2, 4)
+                        
+                    except Exception as e:
+                        log.error(f"[{self.source_name}] Error on page {page}: {e}")
                         break
-                    
-                    new_urls = [u for u in links if u not in seen_urls]
-                    seen_urls.update(new_urls)
-                    
-                    if not new_urls:
-                        log.info(f"[{self.source_name}] No new listings on page {page}")
-                        break
-                    
-                    log.info(f"[{self.source_name}] Found {len(new_urls)} new listings on page {page}")
-                    
-                    for detail_url in new_urls:
-                        listing = self._scrape_detail(detail_url, trans_type)
-                        if listing:
-                            yield listing
-                        self._random_delay(1.5, 3)
-                    
-                    page += 1
-                    self._random_delay(2, 4)
                     
         finally:
             if self._driver:
                 self._driver.quit()
                 self._driver = None
+
+    def _scrape_detail(self, url: str, transaction_type: str) -> Optional[PropertyListing]:
+        """Scrape a single property detail page"""
+        try:
+            resp = self._get_request(url)
+            if not resp:
+                return None
+                
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            # Title
+            title = ""
+            h1 = soup.find("h1", class_="breadcrumbs-title")
+            if h1:
+                title = h1.get_text(strip=True)
+            if not title:
+                h1 = soup.find("h1")
+                if h1:
+                    title = h1.get_text(strip=True)
+            
+            # Description
+            description = ""
+            desc_div = soup.find("div", class_="pro-details-description")
+            if desc_div:
+                description = desc_div.get_text(" ", strip=True)
+            
+            # Price
+            price = None
+            price_span = soup.find("span", class_="prix-slider")
+            if price_span:
+                price = self.parse_tunisian_price(price_span.get_text(strip=True))
+            
+            # Property type
+            property_type = self.infer_property_type(title, description)
+            
+            # Location from breadcrumbs
+            city = None
+            governorate = None
+            municipalite = None
+            lat = None
+            lon = None
+            
+            breadcrumbs = soup.find("ul", class_="breadcrumbs-list")
+            if breadcrumbs:
+                for li in breadcrumbs.find_all("li"):
+                    text = li.get_text(strip=True)
+                    if "Tunis" in text:
+                        governorate = "Tunis"
+                    elif "Ben arous" in text.lower():
+                        governorate = "Ben Arous"
+                    elif "Ariana" in text:
+                        governorate = "Ariana"
+                    elif "Nabeul" in text:
+                        governorate = "Nabeul"
+                    elif "Sousse" in text:
+                        governorate = "Sousse"
+                    elif "Sfax" in text:
+                        governorate = "Sfax"
+                    elif "Monastir" in text:
+                        governorate = "Monastir"
+                    elif "Mahdia" in text:
+                        governorate = "Mahdia"
+            
+            location_span = soup.find("span", class_="breadcrumbs-sub-title")
+            if location_span:
+                city_text = location_span.get_text(strip=True)
+                if city_text and "Tunis" not in city_text:
+                    city = city_text.strip()
+            
+            # Surface, rooms, features
+            surface = None
+            rooms = None
+            bathrooms = None
+            features = []
+            
+            condition_ul = soup.find("ul", class_="condition-list")
+            if condition_ul:
+                for li in condition_ul.find_all("li"):
+                    text = li.get_text(strip=True)
+                    lower = text.lower()
+                    
+                    if "m²" in text and surface is None:
+                        surface = self.parse_surface(text)
+                    
+                    if "nb chambres" in lower and rooms is None:
+                        rooms = self.parse_rooms(text)
+                    
+                    if "sdb" in lower or ("salle" in lower and "bain" in lower):
+                        b = self.parse_rooms(text)
+                        if b:
+                            bathrooms = b
+                            features.append(f"SDB: {b}")
+                    
+                    if "wc" in lower:
+                        wc = self.parse_rooms(text)
+                        if wc:
+                            features.append(f"WC: {wc}")
+                    
+                    if "place parking" in lower:
+                        parking = self.parse_rooms(text)
+                        if parking:
+                            features.append(f"Parking: {parking}")
+            
+            # Extract features from description
+            if description:
+                desc_lower = description.lower()
+                if "jardin" in desc_lower:
+                    features.append("Jardin")
+                if "piscine" in desc_lower:
+                    features.append("Piscine")
+                if "parking" in desc_lower:
+                    features.append("Parking")
+                if "climatisation" in desc_lower:
+                    features.append("Climatisation")
+                if "ascenseur" in desc_lower:
+                    features.append("Ascenseur")
+                if "meublé" in desc_lower:
+                    features.append("Meublé")
+            
+            # Images
+            images = []
+            for img in soup.find_all("img", class_="lazy"):
+                src = img.get("data-src") or img.get("src")
+                if src and "property" in src and not any(k in src.lower() for k in ["logo", "icon"]):
+                    full_url = src if src.startswith("http") else urljoin(self.base_url, src)
+                    images.append(full_url)
+            
+            # If no lazy images, try regular images
+            if not images:
+                for img in soup.find_all("img"):
+                    src = img.get("src")
+                    if src and "property" in src:
+                        full_url = src if src.startswith("http") else urljoin(self.base_url, src)
+                        images.append(full_url)
+            
+            # Build location
+            location = self._build_location(
+                city=city,
+                governorate=governorate,
+                municipalite=municipalite,
+                latitude=lat,
+                longitude=lon,
+            )
+            
+            # Generate source ID
+            source_id = self.make_source_id(url, self.source_name)
+            
+            return PropertyListing(
+                source_id=source_id,
+                source_name=self.source_name,
+                url=url,
+                title=title[:500] if title else "Propriété Darcom",
+                description=description[:5000] if description else None,
+                price=price,
+                currency="TND",
+                property_type=property_type,
+                transaction_type=transaction_type,
+                location=location,
+                surface_area_m2=surface,
+                rooms=rooms,
+                bathrooms=bathrooms,
+                images=images,
+                features=features[:30],  # Limit features
+                scraped_at=datetime.utcnow(),
+            )
+            
+        except Exception as e:
+            log.error(f"[{self.source_name}] Error scraping {url}: {e}")
+            return None
+
 # =============================================================================
 # MUBAWAB.TN SCRAPER
 # =============================================================================
