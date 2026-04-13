@@ -216,8 +216,9 @@ load_dotenv()
 
 from config.logging_config import log
 from scrapers.all_scrapers import build_all_scrapers
-from scrapers.all_scrapers import build_all_scrapers
+
 from ai_agent.agent import IntelligentScrapingAgent
+from scrapers.macro_scrapers import run_all_macro_scrapers
 
 
 def _build_vector_db(strategy: str = "huggingface"):
@@ -238,6 +239,13 @@ def _build_vector_db(strategy: str = "huggingface"):
         log.warning(f"pgvector unavailable: {e} — running without vector storage")
         return None
 
+def run_macro_job() -> None:
+    """Scrape economic time-series data from BCT, INS, BVMT."""
+    log.info("Starting macro scraping (BCT + INS + BVMT)...")
+    results = run_all_macro_scrapers()
+    for r in results:
+        log.info(f"  {r['source']}: {r['rows']} rows saved — {r['status']}")
+    log.info("Macro scraping done.")
 def auto_sync_to_supabase():
     """Automatically sync to Supabase after scraping."""
     if os.getenv("AUTO_SYNC_SUPABASE", "false").lower() != "true":
@@ -260,8 +268,12 @@ def run_job(
     store_vectors: bool = True,
     site_filter: Optional[str] = None,
     embedding_strategy: str = "huggingface",
-) -> dict:
-    """Run one full scraping cycle."""
+    ) -> dict:
+    """
+    Run one full scraping cycle.
+    Returns the agent summary dict.
+    """
+    run_macro_job()
     
     scrapers = build_all_scrapers()
     if site_filter:
