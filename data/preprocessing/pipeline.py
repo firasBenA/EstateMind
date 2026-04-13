@@ -100,20 +100,24 @@ class PreprocessingPipeline:
             report["steps"]["null_handler"] = {"status": "error", "error": str(e)}
             return records
 
-    def _step_deduplicate(self, records, report):
-        logger.info("[Pipeline] Step 4: Deduplication")
-        try:
-            dupes = find_duplicates_in_batch(records)
-            dupe_ids = {d["duplicate_id"] for d in dupes}
-            for r in records:
-                if r.get("property_id") in dupe_ids:
-                    r["suspected_duplicate"] = True
-            report["steps"]["deduplication"] = {"status": "ok", "duplicates_found": len(dupes)}
-            return records
-        except Exception as e:
-            logger.error(f"[Pipeline] Deduplication failed: {e}")
-            report["steps"]["deduplication"] = {"status": "error", "error": str(e)}
-            return records
+def _step_deduplicate(self, records, report):
+    logger.info("[Pipeline] Step 4: Deduplication")
+    try:
+        dupes = find_duplicates_in_batch(records)
+        dupe_ids = set()
+        for d in dupes:
+            did = d.get("duplicate_id") or d.get("id") or d.get("property_id")
+            if did:
+                dupe_ids.add(did)
+        for r in records:
+            if r.get("property_id") in dupe_ids:
+                r["suspected_duplicate"] = True
+        report["steps"]["deduplication"] = {"status": "ok", "duplicates_found": len(dupes)}
+        return records
+    except Exception as e:
+        logger.error(f"[Pipeline] Deduplication failed: {e}")
+        report["steps"]["deduplication"] = {"status": "error", "error": str(e)}
+        return records
 
     def _step_flag_outliers(self, records, report):
         logger.info("[Pipeline] Step 5: Flagging outliers")

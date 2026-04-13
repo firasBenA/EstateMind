@@ -70,20 +70,15 @@ def run_job(
         vector_db = _build_vector_db(strategy=embedding_strategy)
 
     dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
-    dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
     agent = IntelligentScrapingAgent(
-        scrapers=scrapers,
-        vector_db=vector_db,
-        store_vectors=store_vectors,
-        deduplicate=not dedup_disabled,
-        pipeline=None,
-        enrich=True,
-        fetch_pois=True,
-        deduplicate=not dedup_disabled,
-        pipeline=None,
-        enrich=True,
-        fetch_pois=True,
-    )
+    scrapers=scrapers,
+    vector_db=vector_db,
+    store_vectors=store_vectors,
+    deduplicate=not dedup_disabled,
+    pipeline=None,
+    enrich=True,
+    fetch_pois=True,
+)
 
     log.info("=" * 60)
     log.info(f"Starting EstateMind scraping run ({len(scrapers)} scrapers)")
