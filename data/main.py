@@ -70,7 +70,6 @@ def run_job(
         vector_db = _build_vector_db(strategy=embedding_strategy)
 
     dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
-    dedup_disabled = os.getenv("DEDUP_DISABLE", "").lower() in ("1","true","yes","on")
     agent = IntelligentScrapingAgent(
         scrapers=scrapers,
         vector_db=vector_db,
@@ -79,10 +78,7 @@ def run_job(
         pipeline=None,
         enrich=True,
         fetch_pois=True,
-        deduplicate=not dedup_disabled,
-        pipeline=None,
-        enrich=True,
-        fetch_pois=True,
+
     )
 
     log.info("=" * 60)
