@@ -7,22 +7,20 @@ from statsmodels.tsa.statespace.sarimax import SARIMAX
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # ==============================
-# PATHS (ADAPTÉS À TON PROJET)
+# PATHS
 # ==============================
-BASE_DIR = Path(__file__).resolve().parent  # Series_temporelles
-DATA_DIR = BASE_DIR.parent                  # data/
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR.parent
 
-# 🔥 CSV depuis exports
 csv_path = DATA_DIR / "exports" / "macro_features_final.csv"
 
-# 🔥 outputs dans Series_temporelles
 output_dir = BASE_DIR / "outputs"
-output_dir.mkdir(exist_ok=True)
+output_dir.mkdir(parents=True, exist_ok=True)
 
 print(f"📂 Chargement fichier : {csv_path}")
 
 # ==============================
-# 1. Chargement des données
+# 1. Chargement
 # ==============================
 df = pd.read_csv(csv_path, parse_dates=["date"])
 df.set_index("date", inplace=True)
@@ -36,7 +34,7 @@ print("Colonnes disponibles :", df.columns.tolist())
 # 2. Feature Engineering
 # ==============================
 df["tunindex_ret_1m"] = df["tunindex"].pct_change()
-df["tunindex_ma3"] = df["tunindex"].rolling(window=3).mean()
+df["tunindex_ma3"] = df["tunindex"].rolling(3).mean()
 
 # ==============================
 # 3. Variables
@@ -44,19 +42,18 @@ df["tunindex_ma3"] = df["tunindex"].rolling(window=3).mean()
 target = df["tunindex"]
 
 features = [
+    "tunindex_ret_1m",
+    "tunindex_ma3",
     "inflation_pct",
     "pib_par_habitant",
     "taux_chomage",
-    "taux_urbanisation",
-    "tunindex_ret_1m",
-    "tunindex_ma3"
+    "taux_urbanisation"
 ]
 
 features = [col for col in features if col in df.columns]
+exog = df[features]
 
 print("Variables utilisées :", features)
-
-exog = df[features]
 
 # ==============================
 # 4. Nettoyage
@@ -114,6 +111,7 @@ print("RMSE :", round(rmse, 4))
 # 9. FORECAST FUTUR
 # ==============================
 n_steps = 60
+## a augmenter 
 
 avg_exog = X_test.tail(12).mean()
 
@@ -122,6 +120,7 @@ future_exog = pd.DataFrame(
     columns=X_test.columns
 )
 
+# évolution progressive
 for i in range(n_steps):
     future_exog.iloc[i] *= (1 + 0.002 * i)
 
@@ -134,7 +133,7 @@ forecast_values = forecast.predicted_mean
 forecast_ci = forecast.conf_int()
 
 # ==============================
-# VOLATILITÉ
+# VOLATILITÉ (réalisme)
 # ==============================
 residuals = y_test - predictions
 volatility = np.std(residuals)
@@ -152,32 +151,43 @@ forecast_ci.index = future_dates
 # ==============================
 plt.figure(figsize=(12,6))
 
-plt.plot(target.index, target, label="Historique", color="blue")
-plt.plot(y_test.index, predictions, label="Test", linestyle="--", color="orange")
-plt.plot(forecast_values.index, forecast_values, label="Forecast 5 ans", linestyle="--", color="red")
+plt.plot(target.index, target, label="Historique")
+plt.plot(y_test.index, predictions, label="Test", linestyle="--")
+plt.plot(forecast_values.index, forecast_values, label="Forecast 5 ans", linestyle="--")
 
 plt.fill_between(
     forecast_values.index,
     forecast_ci.iloc[:, 0],
     forecast_ci.iloc[:, 1],
-    color='red',
     alpha=0.2,
     label="Intervalle confiance"
 )
 
 plt.legend()
-plt.title("Prévision du Tunindex avec SARIMAX (Forecast réaliste)")
-plt.xlabel("Date")
-plt.ylabel("Tunindex")
+plt.title("Prévision Tunindex (SARIMAX)")
 plt.grid()
 
 # ==============================
-# 11. SAUVEGARDE
+# 11. SAUVEGARDE IMAGE
 # ==============================
-file_path = output_dir / "forecast_tunindex.png"
+img_path = output_dir / "forecast_tunindex.png"
+plt.savefig(img_path, dpi=300, bbox_inches='tight')
 
-plt.savefig(file_path, dpi=300, bbox_inches='tight')
+print(f"📁 Image sauvegardée : {img_path}")
 
-print(f"\n📁 Graphique sauvegardé dans : {file_path}")
+# ==============================
+# 12. SAUVEGARDE CSV
+# ==============================
+forecast_df = pd.DataFrame({
+    "date": forecast_values.index,
+    "forecast": forecast_values.values,
+    "lower_ci": forecast_ci.iloc[:, 0].values,
+    "upper_ci": forecast_ci.iloc[:, 1].values
+})
+
+csv_path_out = output_dir / "forecast_tunindex.csv"
+forecast_df.to_csv(csv_path_out, index=False)
+
+print(f"📁 CSV sauvegardé : {csv_path_out}")
 
 plt.show()
