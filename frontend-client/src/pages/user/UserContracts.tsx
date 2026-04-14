@@ -1,0 +1,137 @@
+import { UserDashboardLayout } from "@/components/UserDashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { FileSignature, Loader2, Download, Send, CheckCircle2 } from "lucide-react";
+import { useState } from "react";
+import { toast } from "sonner";
+
+const contractTypes = [
+  { value: "sale", label: "Sale Contract" },
+  { value: "rent", label: "Rental Agreement" },
+  { value: "promise", label: "Promise to Sell" },
+];
+
+const pastContracts = [
+  { id: "c1", title: "Sale — Apartment Les Berges du Lac", buyer: "Ahmed B.", date: "20 Mar 2026", status: "signed" },
+  { id: "c2", title: "Rental — Villa La Marsa", buyer: "Sara K.", date: "15 Mar 2026", status: "pending" },
+];
+
+export default function UserContracts() {
+  const [generating, setGenerating] = useState(false);
+  const [contractType, setContractType] = useState("sale");
+  const [buyerName, setBuyerName] = useState("");
+  const [buyerEmail, setBuyerEmail] = useState("");
+  const [generated, setGenerated] = useState(false);
+
+  const handleGenerate = () => {
+    if (!buyerName || !buyerEmail) { toast.error("Please fill in buyer details"); return; }
+    setGenerating(true);
+    setTimeout(() => {
+      setGenerating(false);
+      setGenerated(true);
+      toast.success("Contract generated with AI!");
+    }, 2000);
+  };
+
+  const handleSend = () => {
+    toast.success(`Contract sent to ${buyerEmail} for signature!`);
+    setGenerated(false);
+    setBuyerName("");
+    setBuyerEmail("");
+  };
+
+  return (
+    <UserDashboardLayout>
+      <div className="space-y-8">
+        <div>
+          <h1 className="text-2xl font-bold">Contracts</h1>
+          <p className="text-muted-foreground">Generate legally compliant contracts auto-filled with listing data</p>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Generate New Contract</CardTitle>
+            <CardDescription>The contract will be auto-filled with your listing data using AI to ensure compliance with Tunisian law</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label>Contract Type</Label>
+                <Select value={contractType} onValueChange={setContractType}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {contractTypes.map(t => <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Buyer/Tenant Name</Label>
+                <Input value={buyerName} onChange={e => setBuyerName(e.target.value)} placeholder="Full name" />
+              </div>
+              <div className="space-y-2">
+                <Label>Buyer/Tenant Email</Label>
+                <Input type="email" value={buyerEmail} onChange={e => setBuyerEmail(e.target.value)} placeholder="email@example.com" />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button onClick={handleGenerate} disabled={generating}>
+                {generating ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generating...</> : <><FileSignature className="h-4 w-4 mr-2" /> Generate Contract</>}
+              </Button>
+              {generated && (
+                <>
+                  <Button variant="outline"><Download className="h-4 w-4 mr-2" /> Download PDF</Button>
+                  <Button variant="default" onClick={handleSend}><Send className="h-4 w-4 mr-2" /> Send for Signature</Button>
+                </>
+              )}
+            </div>
+
+            {generated && (
+              <div className="bg-accent rounded-lg p-4 border mt-4">
+                <p className="text-sm font-medium mb-2">Contract Preview</p>
+                <div className="bg-card rounded p-4 text-xs space-y-2 font-mono">
+                  <p className="font-bold text-center">CONTRAT DE {contractType === "sale" ? "VENTE" : contractType === "rent" ? "LOCATION" : "PROMESSE DE VENTE"}</p>
+                  <p>Entre les soussignés:</p>
+                  <p>Le vendeur: [Votre nom], demeurant à [adresse]</p>
+                  <p>L'acheteur: {buyerName}, email: {buyerEmail}</p>
+                  <p>Objet: [Property details auto-filled from listing]</p>
+                  <p>Prix convenu: [Auto-filled from listing price] TND</p>
+                  <p className="text-muted-foreground">... (Full contract content generated by LLM)</p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <div>
+          <h2 className="text-lg font-semibold mb-4">Contract History</h2>
+          <div className="space-y-3">
+            {pastContracts.map(c => (
+              <Card key={c.id}>
+                <CardContent className="flex items-center justify-between py-4">
+                  <div className="flex items-center gap-4">
+                    <FileSignature className="h-8 w-8 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">{c.title}</p>
+                      <p className="text-xs text-muted-foreground">With {c.buyer} · {c.date}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={c.status === "signed" ? "default" : "secondary"} className={c.status === "signed" ? "bg-success" : ""}>
+                      {c.status === "signed" ? <><CheckCircle2 className="h-3 w-3 mr-1" /> Signed</> : "Pending"}
+                    </Badge>
+                    <Button variant="outline" size="sm"><Download className="h-4 w-4" /></Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </div>
+    </UserDashboardLayout>
+  );
+}

@@ -5,9 +5,9 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "change-me-in-production")
-DEBUG = True
-ALLOWED_HOSTS: list[str] = ["*"]
+SECRET_KEY    = os.environ.get("DJANGO_SECRET_KEY", "change-me-in-production")
+DEBUG         = os.environ.get("DEBUG", "true").lower() == "true"
+ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "*").split(",")
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -16,10 +16,12 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "corsheaders",
     "dashboard",
 ]
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -49,21 +51,54 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "estate_admin.wsgi.application"
 
-# Django needs a database for auth/sessions — use SQLite (no PostgreSQL needed)
+# ── Single database — Supabase PostgreSQL ─────────────────────────────────────
+# ALL tables live here: Django auth_user, django_session, user_profiles,
+# listings, agent_metrics. No SQLite. No router.
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    }
+        "ENGINE":   "django.db.backends.postgresql",
+        "NAME":     os.environ.get("PG_NAME",     "postgres"),
+        "USER":     os.environ.get("PG_USER",     "postgres"),
+        "PASSWORD": os.environ.get("PG_PASSWORD", ""),
+        "HOST":     os.environ.get("PG_HOST",     "localhost"),
+        "PORT":     os.environ.get("PG_PORT",     "5432"),
+        "OPTIONS": {
+            "sslmode":         os.environ.get("PG_SSLMODE", "require"),
+            "connect_timeout": 10,
+        },
+        "CONN_MAX_AGE": 60,
+    },
 }
 
-# Pinecone settings (read by views.py)
-PINECONE_API_KEY   = os.environ.get("PINECONE_API_KEY", "")
-PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "property-listings")
+# ── CORS ───────────────────────────────────────────────────────────────────────
+CORS_ALLOWED_ORIGINS = os.environ.get(
+    "CORS_ALLOWED_ORIGINS",
+    "http://localhost:5173,http://localhost:3000",
+).split(",")
+CORS_ALLOW_CREDENTIALS = True
 
+# ── Session & CSRF ────────────────────────────────────────────────────────────
+SESSION_ENGINE          = "django.contrib.sessions.backends.db"
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE   = not DEBUG
+SESSION_COOKIE_AGE      = 60 * 60 * 24 * 14   # 14 days
+
+CSRF_COOKIE_HTTPONLY  = False
+CSRF_COOKIE_SAMESITE  = "Lax"
+CSRF_COOKIE_SECURE    = not DEBUG
+CSRF_TRUSTED_ORIGINS  = os.environ.get(
+    "CSRF_TRUSTED_ORIGINS",
+    "http://localhost:5173,http://localhost:3000,http://localhost:8081",
+).split(",")
+
+# ── Password security ──────────────────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
-    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {
+        "NAME":    "django.contrib.auth.password_validation.MinimumLengthValidator",
+        "OPTIONS": {"min_length": 8},
+    },
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
@@ -73,11 +108,17 @@ PASSWORD_HASHERS = [
     "django.contrib.auth.hashers.PBKDF2PasswordHasher",
 ]
 
-LANGUAGE_CODE = "en-us"
-TIME_ZONE = "UTC"
-USE_I18N = True
-USE_TZ = True
+# ── Cache ─────────────────────────────────────────────────────────────────────
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+    }
+}
 
-STATIC_URL = "/static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
+LANGUAGE_CODE      = "fr-tn"
+TIME_ZONE          = "Africa/Tunis"
+USE_I18N           = True
+USE_TZ             = True
+STATIC_URL         = "/static/"
+STATIC_ROOT        = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
