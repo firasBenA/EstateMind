@@ -1,11 +1,10 @@
 """
-EstateMind — Reliability Scorer (ML-Powered + XAI + Excel Loader)
+EstateMind — Reliability Scorer (ML-Powered + XAI + Supabase Integration)
 
 Assigns a reliability score (0-100) to each listing using:
 - A trained XGBoost model (learns weights automatically from data)
 - SHAP for explainability (why did this listing get this score?)
 - Fallback to heuristic scoring if model is not yet trained
-- Built-in Excel loader for direct CLI usage
 
 Score thresholds:
   < 25   → DROP from modeling (too many nulls or flagged as bad data)
@@ -13,21 +12,8 @@ Score thresholds:
   60-85  → GOOD quality — standard inclusion
   85-100 → HIGH quality — high confidence data, upweight in modeling
 
-Model Training:
-  The model learns feature importance automatically from labeled data.
-  Labels are generated via heuristic proxy scores on the first run,
-  then improved as real feedback is collected.
-
-  To retrain:
-      from preprocessing.steps.scorer import train_scorer
-      train_scorer(records)          # records = list of metadata dicts
-
-  To inspect what the model learned:
-      from preprocessing.steps.scorer import get_feature_importances
-      print(get_feature_importances())
-
-  To score an Excel file directly:
-      python scorer.py Classeur2.xlsx
+Usage:
+  python -m preprocessing.steps.scorer
 """
 from __future__ import annotations
 
@@ -43,6 +29,11 @@ from loguru import logger
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
+try:
+    from .db_client import fetch_listings_for_scoring, update_listing_scores
+except ImportError:
+    # Fallback if running as script directly instead of module
+    from db_client import fetch_listings_for_scoring, update_listing_scores
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 
@@ -159,7 +150,7 @@ def extract_features(
         "governorate":  1.0 if (metadata.get("region") or metadata.get("governorate")) else 0.0,
         "coordinates":  1.0 if (lat and lon) else 0.0,
         "description":  1.0 if len(str(desc)) > 50 else 0.0,
-        "images":       1.0 if _f(metadata.get("image_count", 0)) > 0 else 0.0,
+        "images":       1.0 if _f(metadata.get("images_count", 0)) > 0 else 0.0,
         "features":     1.0 if len(metadata.get("features") or []) > 0 else 0.0,
         # Handle both 'municipality' and 'municipalite'
         "municipality": 1.0 if (metadata.get("municipality") or metadata.get("municipalite")) else 0.0,
@@ -183,7 +174,7 @@ def extract_features(
         ppm2_invalid = 1.0 if (ppm2 < 100 or ppm2 > 20000) else 0.0
 
     penalties = {
-        # Map 'is_outlier' from Excel to 'price_outlier'
+        # Map 'is_outlier' from DB to 'price_outlier'
         "price_outlier":        1.0 if (flags.get("price_outlier") or metadata.get("is_outlier")) else 0.0,
         "surface_outlier":      1.0 if (flags.get("surface_outlier") or surface_val > 5000) else 0.0,
         "price_zero":           1.0 if (price_val == 0 and price is not None) else 0.0,
@@ -326,19 +317,25 @@ class ScorerModel:
 
         X_rows, y_labels = [], []
         for rec in records:
-            metadata = rec.get("metadata", rec)
+            # In Supabase mode, records are flat dicts, not nested {"metadata": ...}
+            metadata = rec if isinstance(rec, dict) and "price" in rec else rec.get("metadata", rec)
+            
             flags = {
                 "price_outlier":       metadata.get("is_outlier", False),
                 "suspected_duplicate": metadata.get("suspected_duplicate", False),
                 "nlp_enriched":        metadata.get("nlp_enriched", False),
                 "has_price_history":   metadata.get("has_price_history", False),
-                "price_changed":       metadata.get("price_changed", False),
-                "cross_verified":      metadata.get("cross_verified", False),
+                "price_changed":       bool(metadata.get("change_type") == "price_changed"),
+                "cross_verified":      False # Add logic if you have multiple sources
             }
             feats = extract_features(metadata, flags)
             label = _heuristic_score(feats)   # proxy label
             X_rows.append([feats[f] for f in ALL_FEATURES])
             y_labels.append(label)
+
+        if not X_rows:
+            logger.warning("[Scorer] No valid records for training.")
+            return
 
         X = np.array(X_rows, dtype=np.float32)
         y = np.array(y_labels, dtype=np.float32)
@@ -417,7 +414,7 @@ def _get_model() -> ScorerModel:
     return _scorer_model
 
 
-# ── Public API — drop-in replacement ──────────────────────────────────────────
+# ── Public API ──────────────────────────────────────────────────────────────────
 
 def compute_score(
     metadata: Dict[str, Any],
@@ -462,18 +459,36 @@ def compute_model_weight(score: int) -> float:
 
 
 def batch_score(records: list) -> list:
-    """Score a list of Pinecone metadata records."""
+    """Score a list of Supabase records."""
     results = []
     for record in records:
-        metadata     = record.get("metadata", record)
-        score_result = compute_score(metadata)
-        enriched     = dict(metadata)
-        enriched["reliability_score"] = score_result["score"]
-        enriched["reliability_level"] = score_result["level"]
-        enriched["should_drop"]       = score_result["should_drop"]
-        enriched["model_weight"]      = compute_model_weight(score_result["score"])
-        enriched["score_explanation"] = score_result["explanation"]
-        results.append(enriched)
+        # Record is a flat dict from Supabase
+        metadata = record
+        
+        # Extract flags from the record itself
+        flags = {
+            "price_outlier":       record.get("is_outlier", False),
+            "suspected_duplicate": record.get("suspected_duplicate", False),
+            "nlp_enriched":        record.get("nlp_enriched", False),
+            "has_price_history":   record.get("has_price_history", False),
+            "price_changed":       bool(record.get("change_type") == "price_changed"),
+            "cross_verified":      False
+        }
+        
+        score_result = compute_score(metadata, flags)
+        
+        # Prepare update payload for Supabase
+        update_payload = {
+            "id": record["id"], # Crucial for upsert
+            "reliability_score": score_result["score"],
+            "reliability_level": score_result["level"],
+            "should_drop":       score_result["should_drop"],
+            "model_weight":      compute_model_weight(score_result["score"]),
+            # Optional: Save explanation for debugging (ensure column exists in DB if you want this)
+            # "score_explanation": score_result["explanation"] 
+        }
+        results.append(update_payload)
+        
     return results
 
 
@@ -489,137 +504,42 @@ def get_feature_importances() -> Dict[str, float]:
     return _get_model().feature_importances
 
 
-# ═════════════════════════════════════════════════════════════════════════════
-# ── Excel Loader Utility (CLI: python scorer.py Classeur2.xlsx) ───────────────
-# ═════════════════════════════════════════════════════════════════════════════
-def load_excel_to_records(filepath: str) -> list:
-    """Load file and convert rows to scorer format."""
-    import pandas as pd
-    
-    # Based on your data, this is a pipe-separated text file.
-    # We use read_csv with sep='|'.
-    try:
-        # header=0 assumes the first row contains column names like "price", "surface", etc.
-        df = pd.read_csv(filepath, sep='|', header=0, engine='python')
-    except Exception as e:
-        print(f"⚠️  CSV read failed: {e}. Trying as Excel file...")
-        # Fallback to Excel if it turns out to be a real .xlsx
-        df = pd.read_excel(filepath)
-    
-    records = []
-    for _, row in df.iterrows():
-        # Ensure row is a dict-like object for .get() to work
-        # If read_csv is used, row is a Series, so .get() works if headers match
-        row_dict = row.to_dict() if hasattr(row, 'to_dict') else row
-        
-        metadata = {
-            # Core fields
-            "price": row_dict.get("price"),
-            "surface": row_dict.get("surface") or row_dict.get("surface_area_m2"),
-            "surface_area_m2": row_dict.get("surface_area_m2"),
-            "rooms": row_dict.get("rooms"),
-            "city": row_dict.get("city"),
-            "region": row_dict.get("region"),
-            "governorate": row_dict.get("governorate"),
-            "latitude": row_dict.get("latitude"),
-            "longitude": row_dict.get("longitude"),
-            "description": row_dict.get("description"),
-            "image_count": row_dict.get("image_count"),
-            # Handle list strings like '["feature1", "feature2"]'
-            "features": eval(row_dict.get("features", "[]")) if isinstance(row_dict.get("features"), str) else row_dict.get("features", []),
-            "municipality": row_dict.get("municipality"),
-            "municipalite": row_dict.get("municipalite"),
-            
-            # Flags embedded in metadata
-            "is_outlier": bool(row_dict.get("is_outlier", False)),
-            "has_price_history": bool(row_dict.get("has_price_history", False)),
-            "cross_verified": bool(row_dict.get("cross_verified", False)),
-            "suspected_duplicate": bool(row_dict.get("suspected_duplicate", False)),
-            "nlp_enriched": bool(row_dict.get("nlp_enriched", False)),
-            "price_changed": bool(row_dict.get("price_changed", False)),
-            
-            # Keep original IDs for reference
-            "property_id": row_dict.get("property_id"),
-            "_id": row_dict.get("_id"),
-            "source_name": row_dict.get("source_name"),
-        }
-        
-        flags = {
-            "price_outlier": bool(row_dict.get("is_outlier", False)),
-            "suspected_duplicate": bool(row_dict.get("suspected_duplicate", False)),
-            "nlp_enriched": bool(row_dict.get("nlp_enriched", False)),
-            "has_price_history": bool(row_dict.get("has_price_history", False)),
-            "price_changed": bool(row_dict.get("price_changed", False)),
-            "cross_verified": bool(row_dict.get("cross_verified", False)),
-        }
-        
-        records.append({
-            "metadata": metadata,
-            "flags": flags,
-            "original_score": row_dict.get("reliability_score"),
-            "original_level": row_dict.get("reliability_level"),
-        })
-    
-    return records
-
 # ── Main entry point for CLI usage ────────────────────────────────────────────
+
 if __name__ == "__main__":
-    import pandas as pd
-    from pathlib import Path
+    from dotenv import load_dotenv
+    load_dotenv() 
     
-    if len(sys.argv) < 2:
-        print("Usage: python scorer.py <excel_file.xlsx>")
-        print("Example: python scorer.py ../../Classeur2.xlsx")
-        print("\nOr import as module:")
-        print("  from preprocessing.steps.scorer import compute_score, train_scorer")
+    print("🚀 Starting EstateMind Reliability Scorer (Supabase Mode)")
+    
+    # 1. Fetch Data
+    print("📥 Fetching listings from Supabase...")
+    records = fetch_listings_for_scoring(limit=500)
+    
+    if not records:
+        print("✅ No new listings to score (all have reliability_score).")
         sys.exit(0)
-    
-    filepath = Path(sys.argv[1])
-    
-    # If file doesn't exist, try looking in parent data directory
-    if not filepath.exists():
-        # Try relative to this script's location
-        script_dir = Path(__file__).parent
-        data_dir = script_dir.parent.parent  # Go to 'data' folder
-        alt_path = data_dir / filepath.name
         
-        if alt_path.exists():
-            filepath = alt_path
-            print(f"📁 Found file at: {filepath}")
-        else:
-            print(f"❌ Error: File not found: {sys.argv[1]}")
-            print(f"   Also checked: {alt_path}")
-            sys.exit(1)
+    print(f"🔍 Found {len(records)} listings to process.")
     
-    print(f"📥 Loading {filepath}...")
+    # 2. Score Data
+    print("\n🧠 Computing scores...")
+    updates = batch_score(records)
     
-    records = load_excel_to_records(str(filepath))
-    print(f"✅ Loaded {len(records)} listings")
-    
-    print("\n🔍 Scoring listings...")
-    scored = batch_score(records)
-    
+    # 3. Print Sample Results
     print("\n📊 Sample Results:")
-    for i, rec in enumerate(scored[:5]):
-        print(f"  {i+1}. {rec.get('city', '?')} | Score: {rec['reliability_score']}/100 | {rec['reliability_level']}")
-        if rec.get('score_explanation'):
-            print(f"     → {rec['score_explanation'][:120]}...")
+    for i, rec in enumerate(updates[:5]):
+        print(f"  {i+1}. ID: {rec['id'][:8]}... | Score: {rec['reliability_score']}/100 | {rec['reliability_level']}")
     
-    # Export
-    output_path = "scored_listings.xlsx"
-    export_df = pd.DataFrame(scored)
-    export_df.to_excel(output_path, index=False)
-    print(f"\n💾 Exported to {output_path}")
+    # 4. Update Supabase
+    print("\n💾 Saving results to Supabase...")
+    update_listing_scores(updates)
     
-    print(f"\n📈 Quality Distribution:")
-    print(export_df['reliability_level'].value_counts())
-    
-    drop_count = export_df['should_drop'].sum()
-    print(f"\n⚠️  {drop_count} listings marked for DROP (score < 25)")
+    print("\n✅ Scoring complete!")
     
     # Show feature importances if model was used
     if _get_model().is_trained:
         print(f"\n📊 Top Feature Importances (learned from data):")
-        for feat, imp in sorted(get_feature_importances().items(), key=lambda x: -x[1])[:10]:
+        for feat, imp in sorted(get_feature_importances().items(), key=lambda x: -x[1])[:5]:
             bar = "█" * int(imp / 2)
             print(f"  {feat:25s} {imp:5.1f}%  {bar}")
