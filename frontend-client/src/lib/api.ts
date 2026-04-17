@@ -252,11 +252,40 @@ export const listingsApi = {
     });
   },
 
-  // ✅ GENERATE DESCRIPTION (Mock - replace with real API later)
   async generateDescription(
-    payload: GenerateDescriptionPayload,
+    payload: GenerateDescriptionPayload & { files?: File[] } // Allow passing files
   ): Promise<GenerateDescriptionResponse> {
-    // Mock delay for UX
+
+    // If files are provided, use the Real API via FormData
+    if (payload.files && payload.files.length > 0) {
+      const formData = new FormData();
+
+      // Append images
+      payload.files.forEach(file => {
+        formData.append("images", file);
+      });
+
+      // Append metadata as JSON string
+      formData.append("metadata", JSON.stringify(payload.metadata));
+
+      // Call Django Proxy (which forwards to FastAPI)
+      // Note: Do NOT set Content-Type header manually for FormData!
+      const res = await fetch(`${BASE_URL}/api/generate-description/`, {
+        method: "POST",
+        credentials: "include", // Send CSRF cookie if needed by Django proxy
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || `AI Generation failed: ${res.status}`);
+      }
+
+      return res.json();
+    }
+
+    // Fallback: Mock behavior if no files provided (for testing without backend)
+    console.warn("Using mock description generator (no images provided)");
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
     const { metadata } = payload;
@@ -266,14 +295,15 @@ export const listingsApi = {
     const rooms = metadata.rooms || "multiple";
     const transaction = metadata.transaction;
 
-    const description = `Beautiful ${type} located in ${city}. This ${surface} m² property features ${rooms} rooms with modern finishes and excellent natural lighting. Perfect for ${transaction === "rent" ? "tenants seeking comfort" : "families or investors"}. Close to amenities, schools, and public transport. Don't miss this opportunity!`;
+    const description = `Beautiful ${type} located in ${city}. This ${surface} m² property features ${rooms} rooms with modern finishes. Perfect for ${transaction === "rent" ? "tenants" : "buyers"}.`;
 
     return {
       description,
-      highlights: ["modern finishes", "great location", "natural lighting"],
+      highlights: ["modern finishes", "great location"],
       tone: "professional",
     };
   },
+
 };
 
 

@@ -5,6 +5,7 @@ Step 1: Public listings API (GET /api/listings/, GET /api/listings/<id>/)
 Step 2: Auth with UserProfile (register, login, logout, session)
         + existing EDA / metrics / quality endpoints → PostgreSQL via ORM
 """
+from asyncio.windows_events import NULL
 import json
 import re
 from datetime import date, timedelta
@@ -867,7 +868,7 @@ def create_listing(request):
             "features": data.get("features", []),
             "images": data.get("images", []),
             "images_count": len(data.get("images", [])),
-            "reliability_score": 50,
+            "reliability_score": NULL,  # To be calculated later
             "reliability_level": "GOOD",
             "is_outlier": False,
             "normalized": True,

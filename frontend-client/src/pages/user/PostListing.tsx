@@ -123,20 +123,23 @@ export default function PostListing() {
             : "low";
 
   // --- HANDLERS ---
+  const [tempFiles, setTempFiles] = useState<File[]>([]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       setUploading(true);
       const files = Array.from(e.target.files);
+
+      // Keep reference for AI generation
+      setTempFiles((prev) => [...prev, ...files]);
+
       try {
         const { urls, errors } = await storageApi.uploadImages(files);
         if (urls.length > 0) {
           setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
           toast.success(`${urls.length} image(s) uploaded!`);
         }
-        if (errors?.length) {
-          errors.forEach((err) => toast.error(`Failed: ${err.filename}`));
-        }
+        // ... error handling ...
       } catch {
         toast.error("Error uploading images");
       } finally {
@@ -153,6 +156,49 @@ export default function PostListing() {
       ...prev,
       images: prev.images.filter((_, i) => i !== index),
     }));
+  };
+
+  // Add this inside the PostListing component, before the return statement
+  const generateAIDescription = async () => {
+    if (tempFiles.length === 0) {
+      toast.error(
+        "Please upload at least one image to generate a description.",
+      );
+      return;
+    }
+    if (!form.city || !form.type) {
+      toast.error("Please fill in City and Property Type first.");
+      return;
+    }
+
+    setGenerating(true);
+    try {
+      // Call the REAL API with files
+      const result = await listingsApi.generateDescription({
+        metadata: {
+          property_type: form.type,
+          transaction: form.transaction,
+          city: form.city,
+          surface_m2: form.surface,
+          rooms: form.rooms,
+          price: form.price,
+          // tone: "professional",
+        },
+        files: tempFiles, // Pass the raw File objects here
+      });
+
+      // The API returns the description directly or with specific properties.
+      // Use the description property if available, otherwise format highlights.
+      const fullDesc = result.description || result.highlights.join(". ");
+
+      setForm((prev) => ({ ...prev, description: fullDesc }));
+      toast.success("AI Description generated!");
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error.message || "Failed to generate description.");
+    } finally {
+      setGenerating(false);
+    }
   };
 
   const generateDescription = async () => {
@@ -407,14 +453,17 @@ export default function PostListing() {
             </CardContent>
           </Card>
         )}
-
         {/* STEP 2: IMAGES & DESCRIPTION */}
         {step === 1 && (
           <Card>
             <CardHeader>
-              <CardTitle>Images & Description</CardTitle>
+              <CardTitle>Images & AI Description</CardTitle>
+              <CardDescription>
+                Upload images and let AI write the perfect description
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
+              {/* Image Upload Section (Existing) */}
               <div className="space-y-2">
                 <Label>Property Images</Label>
                 <input
@@ -441,6 +490,8 @@ export default function PostListing() {
                     PNG, JPG up to 10MB each
                   </p>
                 </div>
+
+                {/* Image Previews */}
                 {form.images.length > 0 && (
                   <div className="grid grid-cols-4 gap-4 mt-4">
                     {form.images.map((url, idx) => (
@@ -461,27 +512,40 @@ export default function PostListing() {
                   </div>
                 )}
               </div>
-              <div className="space-y-2">
+
+              {/* AI Description Generator Section */}
+              <div className="space-y-2 pt-4 border-t">
                 <div className="flex items-center justify-between">
-                  <Label>Description</Label>
+                  <Label>AI-Generated Description</Label>
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={generateDescription}
-                    disabled={generating || !form.city}
+                    onClick={generateAIDescription}
+                    disabled={
+                      generating || form.images.length === 0 || !form.city
+                    }
                   >
                     <Wand2 className="h-4 w-4 mr-2" />
-                    {generating ? "Generating..." : "Generate with AI"}
+                    {generating ? "Writing..." : "Generate with AI"}
                   </Button>
                 </div>
+
                 <Textarea
                   value={form.description}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, description: e.target.value }))
                   }
-                  placeholder="Describe your property..."
-                  rows={6}
+                  placeholder="AI will generate a professional description based on your images and details..."
+                  rows={8}
+                  className="bg-slate-50 dark:bg-slate-900"
                 />
+
+                {form.description && (
+                  <p className="text-xs text-green-600 flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3" /> Description ready for
+                    review
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
