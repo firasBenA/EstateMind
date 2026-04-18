@@ -49,6 +49,59 @@ class ModelRegistry:
             self.device = "cpu"
             logger.info("No GPU detected — running on CPU")
 
+    def _load_llm(self):
+        """Load Qwen2-VL-2B-Instruct (Vision-Language) with 4-bit quantization."""
+        try:
+            from transformers import AutoProcessor, Qwen2VLForConditionalGeneration, BitsAndBytesConfig
+            
+            # ✅ USE VISION-LANGUAGE MODEL
+            model_id = "Qwen/Qwen2-VL-2B-Instruct"
+            cache_dir = os.environ.get("HF_CACHE_DIR", None)
+            logger.info(f"Loading VLM: {model_id} on {self.device}…")
+
+            # Load processor (handles both text and images)
+            self._llm_tokenizer = AutoProcessor.from_pretrained(
+                model_id, 
+                cache_dir=cache_dir, 
+                trust_remote_code=True
+            )
+
+            # Configure 4-bit quantization for low VRAM
+            if self.device == "cuda":
+                bnb_config = BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_compute_dtype=torch.float16,
+                    bnb_4bit_use_double_quant=True,
+                    bnb_4bit_quant_type="nf4",
+                )
+                load_kwargs = dict(
+                    cache_dir=cache_dir,
+                    trust_remote_code=True,
+                    device_map="auto",
+                    quantization_config=bnb_config,
+                )
+                logger.info("Using 4-bit quantization for VLM on GPU")
+            else:
+                # CPU fallback
+                load_kwargs = dict(
+                    cache_dir=cache_dir,
+                    trust_remote_code=True,
+                    device_map="cpu",
+                    torch_dtype=torch.float32,
+                )
+
+            # Load the VLM model
+            self._llm_model = Qwen2VLForConditionalGeneration.from_pretrained(
+                model_id, 
+                **load_kwargs
+            )
+            self._llm_model.eval()
+            logger.info("✅ VLM (Qwen2-VL-2B) loaded successfully")
+            
+        except Exception as exc:
+            logger.error(f"VLM load failed: {exc}", exc_info=True)
+            raise RuntimeError(f"Cannot load VLM: {exc}") from exc
+
     def _load_qwen_vl(self):
         """Load Qwen2-VL-2B-Instruct."""
         try:
@@ -82,3 +135,4 @@ class ModelRegistry:
         except Exception as exc:
             logger.error(f"Qwen2-VL load failed: {exc}", exc_info=True)
             raise RuntimeError(f"Cannot load Qwen2-VL: {exc}") from exc
+

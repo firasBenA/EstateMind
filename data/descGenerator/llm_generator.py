@@ -1,142 +1,191 @@
-# data/generator/llm_generator.py
+# data/descGenerator/llm_generator.py
 
 import json
 import logging
 import re
 import torch
+from PIL import Image
 
 logger = logging.getLogger("llm_generator")
 
-GENERATION_CONFIG = dict(
-    max_new_tokens=512,
-    temperature=0.7,
-    top_p=0.9,
-    top_k=50,
-    repetition_penalty=1.1,
-    do_sample=True,
-)
-
 
 class LLMGenerator:
-    def __init__(self, llm_model, llm_tokenizer, device: str):
-        self.model = llm_model
-        self.tokenizer = llm_tokenizer
+    def __init__(self, vl_model, vl_processor, device: str):
+        self.model = vl_model
+        self.processor = vl_processor
         self.device = device
 
-    def generate(self, yolo_features: dict, clip_features: dict, meta: dict) -> dict:
-        tone = meta.get("tone", "professional")
-        prompt = self._build_prompt(yolo_features, clip_features, meta, tone)
-
-        inputs = self.tokenizer(prompt, return_tensors="pt")
+    # ✅ FIX: Change 'meta' to 'metadata' to match pipeline.py call
+    def generate(self, images: list, metadata: dict) -> dict:
+        """Generate description using Qwen2-VL with actual images."""
+        tone = metadata.get("tone", "professional")
         
-        # ✅ CRITICAL: Move inputs to the same device as the model
-        inputs = inputs.to(self.model.device)
+        # Resize images to save memory
+        pil_images = [self._resize_image(img.convert("RGB")) for img in images]
         
-        input_len = inputs["input_ids"].shape[1]
-
-        with torch.no_grad():
-            output_ids = self.model.generate(
-                **inputs,
-                pad_token_id=self.tokenizer.eos_token_id,
-                **GENERATION_CONFIG,
-            )
-
-        new_ids = output_ids[0][input_len:]
-        raw_text = self.tokenizer.decode(new_ids, skip_special_tokens=True).strip()
-
-        return self._parse_output(raw_text, tone)
-
-    def _build_prompt(self, yolo: dict, clip: dict, meta: dict, tone: str) -> str:
-        prop_type = meta.get("type", "property")
-        city = meta.get("city", "")
-        price = meta.get("price", "")
-        currency = meta.get("currency", "TND")
-        surface = meta.get("surface", "")
-        rooms = meta.get("rooms", "")
-        transaction = meta.get("transaction", "sale")
-
-        room_hints = yolo.get("room_hints", [])
-        feature_tags = yolo.get("feature_tags", [])
-        style = clip.get("style", "modern interior")
-        condition = clip.get("condition", "good condition")
-        lighting = clip.get("lighting", "well lit")
-        space_feel = clip.get("space_feel", "comfortable space")
-
-        rooms_str = f"{rooms}-room " if rooms else ""
-        surface_str = f"{surface} m²" if surface else ""
-        price_str = f"{price:,} {currency}" if price else ""
-
-        detected_features = ", ".join(feature_tags) if feature_tags else "various modern amenities"
-        detected_rooms = ", ".join(room_hints) if room_hints else "multiple rooms"
-
-        tone_instruction = {
-            "professional": "Use clear, factual, professional real estate language.",
-            "luxury": "Use elevated, aspirational language emphasizing exclusivity.",
-            "casual": "Use friendly, approachable language.",
-        }.get(tone, "Use clear, professional real estate language.")
-
-        system = (
-            "You are an expert real estate copywriter specializing in Tunisian property listings. "
-            f"{tone_instruction} "
-            "ALWAYS respond with valid JSON only. No preamble, no explanation."
-        )
-
-        user_content = f"""Generate a real estate description based on this analysis.
-
-PROPERTY DETAILS:
-- Type: {rooms_str}{prop_type}
-- Location: {city}
-- Transaction: {transaction}
-- Surface: {surface_str}
-- Price: {price_str}
-
-AI VISUAL ANALYSIS:
-- Detected rooms: {detected_rooms}
-- Interior style: {style}
-- Condition: {condition}
-- Lighting: {lighting}
-- Space feel: {space_feel}
-- Key features: {detected_features}
-
-OUTPUT FORMAT (strict JSON):
-{{
-  "bullets": ["Feature 1", "Feature 2", "Feature 3", "Feature 4", "Feature 5"],
-  "highlights": ["Highlight 1", "Highlight 2", "Highlight 3"],
-  "tone": "{tone}"
-}}
-
-Respond ONLY with the JSON object."""
-
+        # Build the French prompt with Tunisian context
+        prompt_text = self._build_vl_prompt(metadata, tone)
+        
+        # Build conversation format for Qwen2-VL
         messages = [
-            {"role": "system", "content": system},
-            {"role": "user", "content": user_content}
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image", "image": img} for img in pil_images
+                ] + [
+                    {"type": "text", "text": prompt_text}
+                ]
+            }
         ]
         
-        prompt = self.tokenizer.apply_chat_template(
+        # Apply chat template
+        text_input = self.processor.apply_chat_template(
             messages, 
             tokenize=False, 
             add_generation_prompt=True
         )
         
-        return prompt
+        # Process inputs
+        inputs = self.processor(
+            text=[text_input],
+            images=pil_images,
+            return_tensors="pt",
+            padding=True
+        ).to(self.device)
+        
+        # Generate
+        with torch.no_grad():
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=600,
+                temperature=0.3,
+                do_sample=True,
+                pad_token_id=self.processor.tokenizer.eos_token_id
+            )
+        
+        # Decode
+        generated_ids = [out[len(inp):] for inp, out in zip(inputs.input_ids, output_ids)]
+        raw_text = self.processor.batch_decode(generated_ids, skip_special_tokens=True)[0].strip()
+        
+        logger.info(f"🤖 VLM Raw Output: {raw_text[:200]}...")
+        
+        return self._parse_output(raw_text, tone)
+
+    def _resize_image(self, img, max_size: int = 512):
+        """Resize image to save memory."""
+        img.thumbnail((max_size, max_size), Image.Resampling.LANCZOS)
+        return img
+
+    # In data/descGenerator/llm_generator.py
+
+    def _build_vl_prompt(self, meta: dict, tone: str) -> str:
+        """Build detailed French prompt with Tunisian real estate vocabulary."""
+        
+        # Format metadata
+        meta_lines = []
+        if meta.get("type"): meta_lines.append(f"Type: {meta['type']}")
+        if meta.get("city"): meta_lines.append(f"Ville: {meta['city']}")
+        if meta.get("transaction"): 
+            trans = "Vente" if meta["transaction"] == "sale" else "Location"
+            meta_lines.append(f"Transaction: {trans}")
+        if meta.get("surface"): meta_lines.append(f"Surface: {meta['surface']} m²")
+        if meta.get("rooms"): meta_lines.append(f"Pièces: S+{meta['rooms']}")
+        if meta.get("price"): meta_lines.append(f"Prix: {meta['price']} TND")
+        
+        meta_str = " | ".join(meta_lines)
+        
+        # ✅ MORE DETAILED PROMPT - Forces image analysis
+        return f"""Tu es un expert immobilier tunisien. Ton rôle est d'analyser EN DÉTAIL les images fournies et de rédiger une description complète et professionnelle.
+
+    INFORMATIONS SUR LE BIEN:
+    {meta_str}
+
+    INSTRUCTIONS DÉTAILLÉES:
+    1. **Analyse visuelle approfondie**: Décris précisément ce que tu vois dans CHAQUE image (pièces, équipements, état, luminosité, décoration, meubles, électroménager, etc.)
+    2. **Combine avec les métadonnées**: Intègre les informations techniques (surface, prix, ville) naturellement dans la description
+    3. **Utilise le vocabulaire tunisien**: "S+1", "S+2", "standing", "bien ensoleillé", "vue dégagée", "proche commodités", "cuisine américaine équipée", "dégagement", "débarras", etc.
+    4. **Sois descriptif et vendeur**: Mentionne les points forts visibles (ex: "cuisine équipée avec réfrigérateur et évier", "salon spacieux avec canapé", "parking disponible", "décoration végétale", etc.)
+    5. **Génère 5 puces détaillées** en français, chacune décrivant un aspect différent du bien
+
+    FORMAT DE RÉPONSE EXIGÉ (JSON strict):
+    {{
+    "bullets": [
+        "• [Type de bien] de [surface] m² à [transaction] à [ville] - [détail supplémentaire]",
+        "• [Description d'une pièce ou équipement visible dans les images]",
+        "• [Autre caractéristique visible: meubles, électroménager, décoration, etc.]",
+        "• [Informations sur le prix ou la localisation]",
+        "• [État du bien ou autres avantages visibles]"
+    ],
+    "highlights": [
+        "[Équipement ou caractéristique principale 1]",
+        "[Équipement ou caractéristique principale 2]",
+        "[Équipement ou caractéristique principale 3]"
+    ],
+    "tone": "{tone}"
+    }}
+
+    EXEMPLE DE CE QUE JE VEUX:
+    {{
+    "bullets": [
+        "• Une villa de 100 m² à vendre à Tunis",
+        "• Située dans un quartier résidentiel prestigieux",
+        "• Comprend une cuisine équipée avec un canapé, un évier, une chaise, un parking et une décoration végétale",
+        "• Le prix de la villa est de 120 000 dinars tunisiens",
+        "• Le bien est meublé"
+    ],
+    "highlights": ["Villa moderne et luxueuse", "Cuisine équipée complète", "Parking disponible"],
+    "tone": "professional"
+    }}
+
+    Réponds UNIQUEMENT avec l'objet JSON ci-dessus. Pas de texte avant, pas de texte après."""
+
+        # In data/descGenerator/llm_generator.py
 
     def _parse_output(self, raw: str, tone: str) -> dict:
+        """Parse JSON and format output beautifully."""
         text = re.sub(r"```(?:json)?", "", raw).strip()
+        
         try:
             result = json.loads(text)
-            return self._validate_schema(result, tone)
+            result = self._validate_schema(result, tone)
+            
+            # ✅ LOG THE FORMATTED OUTPUT (like Kaggle)
+            logger.info("\n" + "="*60)
+            logger.info("✅ DESCRIPTION GÉNÉRÉE")
+            logger.info("="*60)
+            for bullet in result.get("bullets", []):
+                logger.info(bullet)
+            logger.info("-"*60)
+            logger.info(f"Points forts: {', '.join(result.get('highlights', []))}")
+            logger.info(f"Ton: {result.get('tone', 'professional')}")
+            logger.info("="*60 + "\n")
+            
+            return result
+            
         except json.JSONDecodeError:
             pass
-
+        
         match = re.search(r"\{[\s\S]*\}", text)
         if match:
             try:
                 result = json.loads(match.group())
-                return self._validate_schema(result, tone)
+                result = self._validate_schema(result, tone)
+                
+                # Log formatted output
+                logger.info("\n" + "="*60)
+                logger.info("✅ DESCRIPTION GÉNÉRÉE")
+                logger.info("="*60)
+                for bullet in result.get("bullets", []):
+                    logger.info(bullet)
+                logger.info("-"*60)
+                logger.info(f"Points forts: {', '.join(result.get('highlights', []))}")
+                logger.info("="*60 + "\n")
+                
+                return result
             except json.JSONDecodeError:
                 pass
-
-        logger.warning(f"Could not parse JSON, using fallback. Raw: {raw[:200]}")
+        
+        logger.warning(f"Could not parse JSON from VLM, using fallback.")
         return self._fallback(raw, tone)
 
     def _validate_schema(self, result: dict, tone: str) -> dict:
@@ -151,9 +200,11 @@ Respond ONLY with the JSON object."""
         }
 
     def _fallback(self, raw: str, tone: str) -> dict:
-        lines = [l.strip("- •*").strip() for l in raw.split("\n") if len(l.strip()) > 20]
+        lines = [l.strip() for l in raw.split('\n') if l.strip().startswith(('•', '-', '*'))]
+        if not lines:
+            lines = [l.strip() for l in raw.split('\n') if len(l.strip()) > 20]
         return {
-            "bullets": lines[:5] if lines else ["Property features modern amenities"],
-            "highlights": lines[:2] if lines else ["Prime location", "Great value"],
+            "bullets": lines[:5] if lines else ["• Description générée automatiquement"],
+            "highlights": ["Immobilier", "Tunisie", "Qualité"],
             "tone": tone,
         }

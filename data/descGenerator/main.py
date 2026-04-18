@@ -20,11 +20,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from PIL import Image
 
-from ModelRegistry import ModelRegistry
-from pipeline import DescriptionPipeline # Updated pipeline
-
+# ✅ Clean imports - remove duplicates
 from ModelRegistry import ModelRegistry
 from pipeline import DescriptionPipeline
+
 
 logging.basicConfig(
     level=logging.INFO,
