@@ -5,11 +5,12 @@ Step 1: Public listings API (GET /api/listings/, GET /api/listings/<id>/)
 Step 2: Auth with UserProfile (register, login, logout, session)
         + existing EDA / metrics / quality endpoints → PostgreSQL via ORM
 """
+from asyncio.windows_events import NULL
 import json
 import re
 from datetime import date, timedelta
 from collections import defaultdict
-
+import traceback
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
@@ -22,7 +23,11 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .models import Listing, AgentMetrics, UserProfile
+import uuid
+from django.utils import timezone
+from .models import Listing # Make sure Listing is imported
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -646,7 +651,256 @@ def eda_metrics(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/listings/ — Create a new user-submitted listing
+# ─────────────────────────────────────────────────────────────────────────────
 
+import json
+import uuid
+import logging
+import traceback
+import os
+import requests
+import math
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
+
+# Initialize Supabase client ONCE at module level (lazy load)
+_supabase_client: Client = None
+def _get_supabase_client() -> Client:
+    global _supabase_client
+    if _supabase_client is None:
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        
+        # 🔍 DEBUG LOGGING
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔑 SUPABASE_URL loaded: {'✅' if supabase_url else '❌'}")
+        logger.info(f"🔑 SUPABASE_SERVICE_ROLE_KEY loaded: {'✅' if supabase_key else '❌'}")
+        if supabase_key:
+            logger.info(f"🔑 Key preview: {supabase_key[:30]}...")  # Show first 30 chars
+        
+        if not supabase_key:
+            raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY not set in environment. Check backend/.env")
+        
+        _supabase_client = create_client(supabase_url, supabase_key)
+    return _supabase_client
+
+
+
+
+def _haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371000 
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2.0) ** 2 + \
+        math.cos(phi1) * math.cos(phi2) * \
+        math.sin(delta_lambda / 2.0) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+def _fetch_nearby_pois(lat: float, lon: float, radius_m: int = 1000) -> list:
+    """
+    Fetches nearby POIs from OpenStreetMap using Overpass API.
+    HEAVILY LOGGED for debugging.
+    """
+    logger.info(f"🗺️ STARTING POI FETCH: Lat={lat}, Lon={lon}, Radius={radius_m}m")
+    
+    if not lat or not lon:
+        logger.warning("❌ No coordinates provided for POI fetch.")
+        return []
+
+    # Overpass QL Query
+    query = f"""
+    [out:json][timeout:15];
+    (
+      node["amenity"~"school|university|college|hospital|clinic|pharmacy|restaurant|cafe|bank|post_office|police"](around:{radius_m},{lat},{lon});
+      way["amenity"~"school|university|college|hospital|clinic|pharmacy|restaurant|cafe|bank|post_office|police"](around:{radius_m},{lat},{lon});
+      node["shop"~"supermarket|mall|convenience|bakery"](around:{radius_m},{lat},{lon});
+      way["shop"~"supermarket|mall|convenience|bakery"](around:{radius_m},{lat},{lon});
+      node["public_transport"="station"](around:{radius_m},{lat},{lon});
+    );
+    out center;
+    """
+
+    try:
+        logger.info("📡 Sending request to Overpass API...")
+        response = requests.post(
+            "https://overpass-api.de/api/interpreter",
+            data=query.encode('utf-8'),
+            headers={'User-Agent': 'EstateMind/1.0'},
+            timeout=15
+        )
+        
+        logger.info(f"📡 Overpass Response Status: {response.status_code}")
+        
+        if response.status_code != 200:
+            logger.error(f"❌ Overpass API Error: {response.status_code} - {response.text[:200]}")
+            return []
+
+        data = response.json()
+        elements = data.get('elements', [])
+        logger.info(f"📦 Raw Elements Received: {len(elements)}")
+        
+        pois = []
+        seen_names = set()
+
+        for i, element in enumerate(elements):
+            tags = element.get('tags', {})
+            name = tags.get('name')
+            
+            # Debug first few elements
+            if i < 3:
+                logger.debug(f"   Element {i}: Tags={tags}, Name={name}")
+
+            if not name:
+                continue
+
+            clean_name = name.strip()
+            
+            # Avoid duplicates
+            if clean_name.lower() in seen_names:
+                continue
+            
+            # Verify distance (Overpass 'around' can be loose for Ways)
+            el_lat = element.get('lat') or element.get('center', {}).get('lat')
+            el_lon = element.get('lon') or element.get('center', {}).get('lon')
+            
+            if el_lat and el_lon:
+                dist = _haversine_distance(lat, lon, el_lat, el_lon)
+                if dist <= radius_m:
+                    seen_names.add(clean_name.lower())
+                    pois.append(clean_name)
+                    logger.info(f"   ✅ Added POI: '{clean_name}' (Dist: {int(dist)}m)")
+                    
+                    if len(pois) >= 10:
+                        break
+
+        logger.info(f"🏁 POI FETCH COMPLETE: Found {len(pois)} unique POIs.")
+        return pois
+
+    except requests.Timeout:
+        logger.error("❌ Overpass API Timed Out")
+        return []
+    except Exception as e:
+        logger.error(f"❌ Exception in POI fetch: {type(e).__name__}: {e}", exc_info=True)
+        return []
+
+@require_http_methods(["POST"])
+def create_listing(request):
+    logger.info(f"🔥 CREATE_LISTING CALLED")
+    
+    try:
+        raw_body = request.body.decode('utf-8')
+        logger.debug(f"📥 Raw Body: {raw_body[:200]}...")
+        
+        data = json.loads(raw_body)
+        
+        # --- Validation ---
+        title = data.get("title", "").strip()
+        city = data.get("city", "").strip()
+        
+        # --- Extract Coordinates ---
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+        
+        logger.info(f"📍 Received Coords: Lat={latitude}, Lng={longitude} (Type: {type(latitude)})")
+        
+        # --- Automatic POI Extraction ---
+        extracted_pois = []
+        
+        # Check if coords exist and are valid numbers
+        if latitude is not None and longitude is not None:
+            try:
+                lat_float = float(latitude)
+                lon_float = float(longitude)
+                
+                if lat_float == 0.0 or lon_float == 0.0:
+                    logger.warning("⚠️ Coordinates are 0,0. Skipping POI fetch.")
+                else:
+                    logger.info("🚀 Triggering POI Fetch...")
+                    extracted_pois = _fetch_nearby_pois(lat_float, lon_float, radius_m=1000)
+                    logger.info(f"📋 Final POI List: {extracted_pois}")
+                    
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Failed to convert coords to float: {e}")
+                extracted_pois = []
+        else:
+            logger.warning("⚠️ NO COORDINATES in payload. Skipping POI extraction.")
+
+        # --- Prepare Data for Supabase ---
+        listing_id = str(uuid.uuid4())
+        embedding = [0.0] * 384 
+        
+        price = float(data.get("price", 0))
+        surface = float(data.get("surface", 0))
+        price_per_m2 = round(price / surface, 2) if price and surface and surface > 0 else None
+
+        listing_data = {
+            "id": listing_id,
+            "source_name": "user_submission",
+            "title": title,
+            "description": data.get("description", "").strip(),
+            "price": price,
+            "currency": "TND",
+            "transaction_type": data.get("transaction", "sale"),
+            "property_type": data.get("type", "apartment"),
+            "rooms": int(data.get("rooms", 0)),
+            "city": city,
+            "surface": surface,
+            "price_per_m2": price_per_m2,
+            
+            # Location
+            "latitude": float(latitude) if latitude else None,
+            "longitude": float(longitude) if longitude else None,
+            
+            # POIs (List of Strings)
+            "poi": extracted_pois, 
+            
+            # Other fields
+            "features": data.get("features", []),
+            "images": data.get("images", []),
+            "images_count": len(data.get("images", [])),
+            "reliability_score": NULL,  # To be calculated later
+            "reliability_level": "GOOD",
+            "is_outlier": False,
+            "normalized": True,
+            "nlp_enriched": False,
+            "should_drop": False,
+            "text_embedding": embedding,
+            "scraped_at": timezone.now().isoformat(),
+            "last_updated": timezone.now().isoformat(),
+            "created_at": timezone.now().isoformat(),
+        }
+        
+        # --- Insert into Supabase ---
+        logger.info("💾 Saving to Supabase...")
+        supabase = _get_supabase_client()
+        result = supabase.table("listings").insert(listing_data).execute()
+        
+        if not result:
+            raise Exception("Supabase insert failed")
+            
+        logger.info(f"✅ SUCCESS! Listing ID: {listing_id}, POIs Count: {len(extracted_pois)}")
+        
+        return JsonResponse({
+            "success": True,
+            "listing_id": listing_id,
+            "pois_found": len(extracted_pois),
+            "pois_sample": extracted_pois[:3], # Send back first 3 for frontend debug
+            "message": "Listing published successfully!"
+        }, status=201)
+        
+    except Exception as e:
+        logger.error(f"❌ CRITICAL ERROR: {e}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=500)
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────

@@ -489,6 +489,10 @@ class PreprocessingPipeline:
         if export:
             self._step_export(records, report, run_id)
 
+        # ── Auto-retrain if enough fresh data ────────────────────────────────
+        self._maybe_retrain(records, report) 
+
+        # ── Final report ──────────────────────────────────────────────────────
         elapsed = round(time.time() - start_time, 1)
         report["elapsed_s"]     = elapsed
         report["finished_at"]   = datetime.utcnow().isoformat()
@@ -498,8 +502,34 @@ class PreprocessingPipeline:
         self._log_summary(report)
         return report
 
-    def _step_fetch(self, report):
-        logger.info("[Pipeline] Step 1: Fetching records from PostgreSQL")
+    # At the very end of run(), before returning:
+    def _maybe_retrain(self, records: List, report: Dict) -> None:
+        """Retrain scorer if enough new/updated records exist."""
+        try:
+            from preprocessing.steps.scorer import train_scorer
+            
+            # Count records that are new or recently updated
+            fresh_count = sum(
+                1 for r in records 
+                if r.get("change_type") in ["new", "price_changed"] 
+                or not r.get("has_price_history")
+            )
+            
+            # Retrain if 500+ fresh records (adjust threshold as needed)
+            if fresh_count >= 500:
+                logger.info(f"[Pipeline] {fresh_count} fresh records — triggering retrain")
+                train_scorer(records, force=False)  # Won't retrain if model exists
+                report["retrained"] = True
+            else:
+                report["retrained"] = False
+        except Exception as e:
+            logger.warning(f"[Pipeline] Retraining skipped: {e}")
+            report["retrained"] = False
+
+    # ── Step implementations ──────────────────────────────────────────────────
+
+    def _step_fetch(self, report: Dict) -> List[Dict]:
+        logger.info("[Pipeline] Step 1: Fetching records from Pinecone")
         try:
             if self.vector_db is None:
                 return []
@@ -569,13 +599,23 @@ class PreprocessingPipeline:
             from preprocessing.steps.scorer import compute_model_weight
             scored = []
             for rec in records:
-                res = batch_score([rec])
-                score_result = res[0] if res else {}
-                rec["reliability_score"] = score_result.get("reliability_score", 0)
-                rec["reliability_level"] = score_result.get("reliability_level", "UNKNOWN")
-                rec["should_drop"]       = score_result.get("should_drop", False)
-                rec["model_weight"]      = compute_model_weight(score_result.get("score", 0))
-                scored.append(rec)
+                flags = {
+                    "price_outlier":       rec.get("is_outlier", False),
+                    "suspected_duplicate": rec.get("suspected_duplicate", False),
+                    "nlp_enriched":        rec.get("nlp_enriched", False),
+                    "has_price_history":   rec.get("has_price_history", False),
+                    "price_changed":       rec.get("price_changed", False),
+                }
+                from preprocessing.steps.scorer import compute_score, compute_model_weight
+                score_result = compute_score(rec, flags)
+                rec["reliability_score"] = score_result["score"]
+                rec["reliability_level"] = score_result["level"]
+                rec["should_drop"]       = score_result["should_drop"]
+                rec["model_weight"]      = compute_model_weight(score_result["score"])
+                rec["score_explanation"] = score_result["explanation"]  # Plain-language XAI explanation
+                rec["scored_via_ml"]     = score_result["used_model"]   # True if ML model was used
+                scored_records.append(rec)
+
             levels = {}
             for r in scored:
                 lvl = r.get("reliability_level", "UNKNOWN")
@@ -605,8 +645,27 @@ class PreprocessingPipeline:
             report["steps"]["upsert"] = {"status": "skipped"}
             return
         try:
-            upserted = errors = 0
-            conn = self.vector_db.conn
+            upserted = 0
+            errors   = 0
+            # Standardized schema: id, property_id, source_name, url, type, title, description, 
+            # price, surface, rooms, region, zone, city, municipalite, latitude, longitude, 
+            # images, image_count, features, scraped_at, last_update, transaction_type, currency, poi
+            clean_fields = [
+                "property_id", "source_name", "url", "type", "title", "description",
+                "price", "surface", "rooms", "region", "zone", "city", "municipalite",
+                "latitude", "longitude", "images", "image_count", "features",
+                "scraped_at", "last_update", "transaction_type", "currency", "poi",
+                # Plus the pipeline flags
+                "normalized", "nlp_enriched", "nlp_filled_fields",
+                "reliability_score", "reliability_level", "should_drop",
+                "model_weight", "is_outlier", "outlier_flags",
+                "suspected_duplicate", "canonical_id",
+                "change_type", "price_delta", "price_delta_pct",
+                "has_price_history", "price_per_m2",
+                "score_explanation", "scored_via_ml", #added for XAI and transparency
+            ]
+            # Batch upsert metadata updates
+            batch = []
             for rec in records:
                 try:
                     with conn.cursor() as cur:

@@ -57,3 +57,44 @@ dist-ssr
 *.sln
 *.sw?*.rar
 estateMindPi.rar
+
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+*.pkl
+*.pickle
+
+# Environment Variables (SECURITY!)
+.env
+.env.local
+*.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Large Data / Models (Let HF download them on the new PC)
+models/
+data/generator/.cache/
+data/exports/
+*.pt
+*.bin
+*.safetensors
+*.gguf

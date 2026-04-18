@@ -18,10 +18,15 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "dashboard",
+    "django_extensions",
 ]
+
+import re
+from django.utils.deprecation import MiddlewareMixin
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    "estate_admin.settings.DisableCSRFOnAPI",  # ← Add this line
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -122,3 +127,13 @@ USE_TZ             = True
 STATIC_URL         = "/static/"
 STATIC_ROOT        = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+class DisableCSRFOnAPI:
+    """Middleware to skip CSRF checks for /api/ endpoints"""
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        if request.path.startswith('/api/'):
+            setattr(request, '_dont_enforce_csrf_checks', True)
+        return self.get_response(request)
