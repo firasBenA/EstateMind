@@ -21,6 +21,9 @@ from fastapi.responses import JSONResponse
 from PIL import Image
 
 from ModelRegistry import ModelRegistry
+from pipeline import DescriptionPipeline # Updated pipeline
+
+from ModelRegistry import ModelRegistry
 from pipeline import DescriptionPipeline
 
 logging.basicConfig(
@@ -36,13 +39,16 @@ pipeline: DescriptionPipeline | None = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Load all models at startup, release on shutdown."""
     global pipeline
     logger.info("🚀 Loading AI models…")
     t0 = time.time()
     try:
+        registry = ModelRegistry()
         registry.load_all()
+        
+        # ✅ Pass registry to pipeline
         pipeline = DescriptionPipeline(registry)
+        
         logger.info(f"✅ All models ready in {time.time() - t0:.1f}s")
     except Exception as exc:
         logger.error(f"❌ Model loading failed: {exc}", exc_info=True)
