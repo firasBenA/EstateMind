@@ -24,8 +24,8 @@ class LLMGenerator:
         self.device = device
 
     def generate(self, yolo_features: dict, clip_features: dict, meta: dict) -> dict:
-        tone = metadata.get("tone", "professional")
-        prompt = self._build_prompt(yolo_features, clip_features, metadata, tone)
+        tone = meta.get("tone", "professional")
+        prompt = self._build_prompt(yolo_features, clip_features, meta, tone)
 
         inputs = self.tokenizer(prompt, return_tensors="pt")
         
