@@ -20,7 +20,7 @@ from django.views.decorators.csrf import csrf_exempt
 logger = logging.getLogger(__name__)
 
 AI_SERVICE_URL = os.environ.get("AI_SERVICE_URL", "http://localhost:8001")
-
+# predictor = PricePredictorV3(model_dir=OUTPUT_DIR) 
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -81,3 +81,22 @@ def generate_description(request):
     except Exception as exc:
         logger.exception("Unexpected error forwarding to AI service: %s", exc)
         return JsonResponse({"error": "Internal server error"}, status=500)
+
+
+
+# @csrf_exempt
+# @require_POST
+# def predict_price(request):
+#     data = json.loads(request.body)
+#     result = predictor.predict(
+#         transaction_type=data['transaction'],
+#         property_type=data['type'],
+#         city=data['city'],
+#         surface=float(data['surface']),
+#         rooms=int(data.get('rooms', 0)),
+#         images_count=int(data.get('images_count', 0)),
+#         has_description=int(data.get('has_description', 0)),
+#         desc_length=int(data.get('desc_length', 0)),
+#         has_coords=int(data.get('has_coords', 0)),
+#     )
+#     return JsonResponse(result)

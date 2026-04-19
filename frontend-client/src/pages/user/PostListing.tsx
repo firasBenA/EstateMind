@@ -109,18 +109,6 @@ export default function PostListing() {
   // --- PRICING LOGIC ---
   const suggestedMin = form.surface ? parseInt(form.surface) * 2200 : 0;
   const suggestedMax = form.surface ? parseInt(form.surface) * 3800 : 0;
-  const priceNum = parseInt(form.price) || 0;
-
-  const priceStatus =
-    priceNum === 0
-      ? "none"
-      : priceNum > suggestedMax * 1.2
-        ? "bad"
-        : priceNum > suggestedMax
-          ? "warning"
-          : priceNum >= suggestedMin
-            ? "good"
-            : "low";
 
   // --- HANDLERS ---
   const [tempFiles, setTempFiles] = useState<File[]>([]);
@@ -201,32 +189,6 @@ export default function PostListing() {
     }
   };
 
-  const generateDescription = async () => {
-    if (!form.city || !form.type) {
-      toast.error("Please fill in City and Property Type first");
-      return;
-    }
-    setGenerating(true);
-    try {
-      const result = await listingsApi.generateDescription({
-        metadata: {
-          property_type: form.type,
-          transaction: form.transaction,
-          city: form.city,
-          surface_m2: form.surface,
-          rooms: form.rooms,
-          price: form.price,
-        },
-      });
-      setForm((prev) => ({ ...prev, description: result.description }));
-      toast.success("Description generated!");
-    } catch {
-      toast.error("Failed to generate description");
-    } finally {
-      setGenerating(false);
-    }
-  };
-
   // frontend-client/src/pages/PostListing.tsx
 
   const publishListing = async () => {
@@ -268,6 +230,70 @@ export default function PostListing() {
       setPublishing(false);
     }
   };
+
+  const [prediction, setPrediction] = useState<{
+    predicted_price: number;
+    price_low: number;
+    price_high: number;
+    price_per_m2: number;
+    margin_pct: number;
+    model_used: string;
+  } | null>(null);
+  const [loadingPrediction, setLoadingPrediction] = useState(false);
+
+  // ── Add this function ────────────────────────────────────────────────────────
+  const fetchPricePrediction = async () => {
+    if (!form.city || !form.type || !form.surface || !form.transaction) return;
+
+    setLoadingPrediction(true);
+    setPrediction(null);
+    try {
+      const res = await fetch("/api/predict-price/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transaction: form.transaction,
+          type: form.type,
+          city: form.city,
+          surface: form.surface,
+          rooms: form.rooms === "Studio" ? 0 : parseInt(form.rooms) || 0,
+          images_count: form.images.length,
+          has_description: form.description ? 1 : 0,
+          desc_length: form.description?.length ?? 0,
+          has_coords: form.latitude ? 1 : 0,
+        }),
+      });
+      const data = await res.json();
+      setPrediction(data);
+    } catch {
+      toast.error("Could not fetch price prediction");
+    } finally {
+      setLoadingPrediction(false);
+    }
+  };
+
+  // ── Trigger prediction when user reaches step 2 (pricing) ───────────────────
+  useEffect(() => {
+    if (step === 2) fetchPricePrediction();
+  }, [step]);
+
+  // ── Update price validation to use model ceiling ─────────────────────────────
+  const priceNum = parseInt(form.price) || 0;
+  const hardCeiling = prediction?.price_high ?? null;
+  const isBeyondCeiling = hardCeiling !== null && priceNum > hardCeiling;
+
+  const priceStatus =
+    priceNum === 0
+      ? "none"
+      : isBeyondCeiling
+        ? "blocked"
+        : prediction && priceNum > prediction.predicted_price * 1.1
+          ? "warning"
+          : prediction && priceNum >= prediction.price_low
+            ? "good"
+            : priceNum > 0
+              ? "low"
+              : "none";
 
   return (
     <UserDashboardLayout>
@@ -557,23 +583,84 @@ export default function PostListing() {
             <CardHeader>
               <CardTitle>Smart Pricing</CardTitle>
               <CardDescription>
-                Based on your property details, we suggest a fair market price
+                Our AI model estimates a fair market price based on your
+                property
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {suggestedMin > 0 && (
-                <div className="bg-accent rounded-lg p-4 space-y-2">
-                  <p className="text-sm font-medium">Suggested Price Range</p>
-                  <p className="text-2xl font-bold text-primary">
-                    {suggestedMin.toLocaleString()} -{" "}
-                    {suggestedMax.toLocaleString()} TND
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Based on {form.surface} m² {form.type} in{" "}
-                    {form.city || "your area"} ({form.transaction})
+              {/* AI Prediction Panel */}
+              {loadingPrediction ? (
+                <div className="flex items-center gap-3 p-4 rounded-lg bg-accent">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">
+                    Running price model...
                   </p>
                 </div>
-              )}
+              ) : prediction ? (
+                <div className="rounded-lg border bg-accent/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold">AI Price Estimate</p>
+                    <Badge variant="outline" className="text-xs">
+                      Model: {prediction.model_used} · ±{prediction.margin_pct}%
+                    </Badge>
+                  </div>
+
+                  {/* Price band visual */}
+                  <div className="flex items-end gap-3">
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-1">Min</p>
+                      <p className="text-sm font-medium text-green-700">
+                        {prediction.price_low.toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="flex-1 text-center">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Predicted
+                      </p>
+                      <p className="text-2xl font-bold text-primary">
+                        {prediction.predicted_price.toLocaleString()} TND
+                      </p>
+                    </div>
+                    <div className="text-center">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        Max{" "}
+                        <span className="text-red-500 font-bold">
+                          (ceiling)
+                        </span>
+                      </p>
+                      <p className="text-sm font-medium text-red-600">
+                        {prediction.price_high.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Visual bar */}
+                  <div className="relative h-2 rounded-full bg-gradient-to-r from-green-300 via-blue-400 to-red-400">
+                    {priceNum > 0 && hardCeiling && (
+                      <div
+                        className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-white shadow transition-all ${
+                          isBeyondCeiling ? "bg-red-600" : "bg-primary"
+                        }`}
+                        style={{
+                          left: `${Math.min(
+                            ((priceNum - prediction.price_low) /
+                              (hardCeiling - prediction.price_low)) *
+                              100,
+                            100,
+                          )}%`,
+                        }}
+                      />
+                    )}
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    {prediction.price_per_m2?.toLocaleString()} TND/m² ·{" "}
+                    {form.surface} m² {form.type} in {form.city}
+                  </p>
+                </div>
+              ) : null}
+
+              {/* Price Input */}
               <div className="space-y-2">
                 <Label>Your Price (TND)</Label>
                 <Input
@@ -583,10 +670,34 @@ export default function PostListing() {
                     setForm((f) => ({ ...f, price: e.target.value }))
                   }
                   placeholder="Enter your price"
-                  className="text-lg"
+                  className={`text-lg ${isBeyondCeiling ? "border-red-500 focus-visible:ring-red-500" : ""}`}
                 />
+                {hardCeiling && (
+                  <p className="text-xs text-muted-foreground">
+                    Maximum allowed:{" "}
+                    <span className="font-semibold text-red-600">
+                      {hardCeiling.toLocaleString()} TND
+                    </span>
+                  </p>
+                )}
               </div>
-              {/* Price Status Alerts (Same as before) */}
+
+              {/* Status alerts */}
+              {priceStatus === "blocked" && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-300">
+                  <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-semibold text-red-800">
+                      Price exceeds market ceiling
+                    </p>
+                    <p className="text-xs text-red-700">
+                      Our model caps this listing at{" "}
+                      <strong>{hardCeiling?.toLocaleString()} TND</strong>.
+                      Please lower your price to proceed.
+                    </p>
+                  </div>
+                </div>
+              )}
               {priceStatus === "good" && (
                 <div className="flex items-start gap-3 p-4 rounded-lg bg-green-50 border border-green-200">
                   <CheckCircle2 className="h-5 w-5 text-green-600 shrink-0 mt-0.5" />
@@ -595,26 +706,25 @@ export default function PostListing() {
                       Great price!
                     </p>
                     <p className="text-xs text-green-700">
-                      Your listing is competitively priced.
+                      Competitively priced within the market range.
                     </p>
                   </div>
                 </div>
               )}
-              {priceStatus === "bad" && (
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-red-50 border border-red-200">
-                  <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              {priceStatus === "warning" && (
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-red-800">
-                      Price too high
+                    <p className="text-sm font-medium text-yellow-800">
+                      Slightly above estimate
                     </p>
-                    <p className="text-xs text-red-700">
-                      Listings priced over 20% above market average receive
-                      significantly fewer views.
+                    <p className="text-xs text-yellow-700">
+                      Your price is above the predicted value. This may reduce
+                      visibility.
                     </p>
                   </div>
                 </div>
               )}
-              {/* Add other status checks here if needed */}
             </CardContent>
           </Card>
         )}
@@ -699,7 +809,10 @@ export default function PostListing() {
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
           {step < steps.length - 1 ? (
-            <Button onClick={() => setStep((s) => s + 1)}>
+            <Button
+              onClick={() => setStep((s) => s + 1)}
+              disabled={step === 2 && (isBeyondCeiling || !form.price)}
+            >
               Next <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
