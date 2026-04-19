@@ -12,10 +12,11 @@ from collections import defaultdict
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
+from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.db import transaction, OperationalError, ProgrammingError
 from django.core.paginator import Paginator
-from django.db.models import Count, Avg, Min, Max, Q
+from django.db.models import Count, Avg, Min, Max, Q, F
 from django.db.models.functions import TruncDate
 from django.http import JsonResponse
 from django.shortcuts import render
@@ -95,7 +96,7 @@ def _listing_to_dict(l: "Listing") -> dict:
         "images_count":        l.images_count or len(images),
         "poi":                 l.poi or [],
         # fraud_flag / fraud_score / fraud_reason don't exist in the table
-        "fraud_flag":          False,
+        #"fraud_flag":          False,
         "fraud_score":         None,
         "fraud_reason":        None,
         "reliability_score":   f(l.reliability_score),
@@ -266,6 +267,14 @@ def listings_meta(request):
             "regions": regions,
             "property_types": property_types,
             "transaction_types": transaction_types,
+            "total_listings": qs.count(),
+            "cities_covered": len(cities),
+            "avg_price_per_m2": round(float(
+                qs.exclude(price_per_m2__isnull=True)
+                  .filter(price_per_m2__gt=0)
+                  .aggregate(avg_m2=Avg("price_per_m2"))["avg_m2"] or 0
+            ), 2),
+            "listings_this_week": qs.filter(scraped_at__gte=timezone.now() - timedelta(days=7)).count(),
             "price_range": {
                 "min": float(price_stats["min_price"] or 0),
                 "max": float(price_stats["max_price"] or 0),
@@ -517,7 +526,7 @@ def metrics_api(request):
         ]
 
         latest_run   = recent_runs[0] if recent_runs else _empty_run()
-        flagged_count = Listing.objects.filter(fraud_flag=True).count()
+        flagged_count = Listing.objects.filter(is_outlier=True).count()
 
         return JsonResponse({
             "total_listings": total,
@@ -557,16 +566,38 @@ def data_quality_api(request):
             })
         null_stats.sort(key=lambda x: -x["null_pct"])
 
-        source_quality = [
-            {"source": row["source_name"], "total": row["count"]}
-            for row in qs.values("source_name").annotate(count=Count("id")).order_by("-count")
-        ]
-        dup_count = (
-            qs.values("price", "city", "surface")
-            .annotate(cnt=Count("id"))
-            .filter(cnt__gt=1)
-            .count()
-        )
+        # Reliability Score Calculation
+        avg_score = round(float(qs.aggregate(Avg("reliability_score"))["reliability_score__avg"] or 0), 1)
+        
+        # Score distribution grouping
+        dist_qs = qs.values("reliability_level").annotate(count=Count("id"))
+        score_distribution = []
+        for row in dist_qs:
+            level = row["reliability_level"] or "UNKNOWN"
+            count = row["count"]
+            score_distribution.append({
+                "level": level,
+                "count": count,
+                "pct": round(count / total * 100, 1)
+            })
+
+        # Source quality breakdown
+        source_quality = []
+        sources = qs.values("source_name").annotate(total=Count("id")).order_by("-total")
+        for src in sources:
+            name = src["source_name"]
+            stotal = src["total"]
+            # Get grades for this source
+            grades = qs.filter(source_name=name).values("reliability_level").annotate(count=Count("id"))
+            grade_map = {row["reliability_level"]: row["count"] for row in grades}
+            source_quality.append({
+                "source": name,
+                "total":  stotal,
+                "high":   grade_map.get("HIGH", 0),
+                "good":   grade_map.get("GOOD", 0),
+                "low":    grade_map.get("LOW", 0),
+                "drop":   grade_map.get("DROP", 0),
+            })
 
         return JsonResponse({
             "total":               total,
@@ -574,14 +605,13 @@ def data_quality_api(request):
             "duplicate_count":     dup_count,
             "duplicate_pct":       round(dup_count / total * 100, 1),
             "source_quality":      source_quality,
-            # Fields not yet in PG schema — kept for frontend compatibility
-            "avg_reliability_score": 0,
-            "score_distribution":  [],
-            "nlp_enriched_count":  0,
-            "nlp_fields_filled":   [],
+            "avg_reliability_score": avg_score,
+            "score_distribution":  score_distribution,
+            "nlp_enriched_count":  qs.filter(nlp_enriched=True).count(),
+            "nlp_fields_filled":   [], # Placeholder for field-level NLP stats
             "outlier_count":       qs.filter(is_outlier=True).count(),
             "outlier_pct":         round(qs.filter(is_outlier=True).count() / total * 100, 1),
-            "outlier_flag_breakdown": [],
+            "outlier_flag_breakdown": [], # Placeholder
             "change_distribution": [],
         })
     except Exception as e:
@@ -611,8 +641,11 @@ def eda_metrics(request):
             .values("transaction_type").annotate(count=Count("id")).order_by("-count")
         )
         property_type_stats = list(
-            qs.exclude(type__isnull=True)
-            .values("type").annotate(count=Count("id")).order_by("-count")
+            qs.exclude(property_type__isnull=True)
+            .values("property_type")
+            .annotate(type=F("property_type"), count=Count("id"))
+            .values("type", "count")
+            .order_by("-count")
         )
         top_areas = list(
             qs.exclude(city__isnull=True)
@@ -627,7 +660,7 @@ def eda_metrics(request):
             )
         ]
         price_m2_stats = [
-            {"region": row["region"], "avg_m2": round(row["avg_m2"] or 0, 2)}
+            {"region": row["region"], "avg_m2": round(float(row["avg_m2"] or 0), 2)}
             for row in (
                 qs.exclude(region__isnull=True)
                 .exclude(price__isnull=True).exclude(surface__isnull=True)
@@ -638,6 +671,18 @@ def eda_metrics(request):
             )
         ]
 
+        # Extract features (JSON field)
+        feature_counts = defaultdict(int)
+        for features_list in qs.exclude(features__isnull=True).values_list("features", flat=True)[:1000]:
+            if isinstance(features_list, list):
+                for f in features_list:
+                    feature_counts[str(f).lower()] += 1
+        
+        top_features = [
+            {"feature": k, "count": v} 
+            for k, v in sorted(feature_counts.items(), key=lambda x: -x[1])[:15]
+        ]
+
         return JsonResponse({
             "region_stats":        region_stats,
             "price_stats":         price_stats,
@@ -646,7 +691,7 @@ def eda_metrics(request):
             "top_areas":           top_areas,
             "trend_stats":         trend_stats,
             "price_m2_stats":      price_m2_stats,
-            "top_features":        [],
+            "top_features":        top_features,
         })
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)

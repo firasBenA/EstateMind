@@ -1,0 +1,51 @@
+{
+  "training_date": "2026-04-18T11:46:34.499085",
+  "best_model": "XGBoost",
+  "best_model_scores": {
+    "composite_score": 0.8871562865915684,
+    "auc": 0.9102531723988001,
+    "f1": 0.8637851997380485,
+    "precision": 0.8401273885350319,
+    "recall": 0.8888140161725068
+  },
+  "all_models_performance": {
+    "Math-based CF": {
+      "precision": 0.05500000000000001,
+      "recall": 0.010504012346759241,
+      "f1": 0.017639242854842505
+    },
+    "Random Forest": {
+      "precision": 0.8582114926895614,
+      "recall": 0.8504043126684636,
+      "f1": 0.8542900660010154,
+      "auc": 0.9071490902014799
+    },
+    "XGBoost": {
+      "precision": 0.8401273885350319,
+      "recall": 0.8888140161725068,
+      "f1": 0.8637851997380485,
+      "auc": 0.9102531723988001
+    },
+    "Neural Network": {
+      "precision": 0.8229695431472082,
+      "recall": 0.873989218328841,
+      "f1": 0.8477124183006536,
+      "auc": 0.8733518500782173
+    }
+  },
+  "num_samples": 23705,
+  "num_features": 11,
+  "feature_columns": [
+    "price_log",
+    "surface_log",
+    "rooms",
+    "price_per_m2",
+    "reliability_score",
+    "user_avg_price",
+    "user_preferred_type",
+    "city_encoded",
+    "property_type_encoded",
+    "agency_encoded",
+    "role_encoded"
+  ]
+}

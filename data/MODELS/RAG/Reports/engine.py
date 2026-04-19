@@ -49,17 +49,24 @@ def _embed_query(query: str) -> list[float]:
     return embedder.embed_query(query)
 
 
-def retrieve_context(query: str, top_k: int = TOP_K,
-                     tags: list[str] | None = None) -> list[dict]:
-    """Retrieve the most relevant document chunks for a given query."""
+# data/rag/engine.py - Update retrieve_context
+
+def retrieve_context(query: str, top_k: int = TOP_K, contract_type: str = None) -> list[dict]:
+    """Retrieve relevant document chunks with contract type filtering."""
     vec = _embed_query(query)
     
-    # Build the query without using tags for now (simpler)
-    # The tags column exists but we'll skip filtering to avoid the error
-    sql = """
+    # Add contract type filter for better results
+    type_filter = ""
+    if contract_type == "contrat_de_location":
+        type_filter = "AND (label ILIKE '%location%' OR label ILIKE '%meublé%')"
+    elif contract_type in ["promesse_de_vente", "compromis_de_vente", "acte_de_vente"]:
+        type_filter = "AND (label ILIKE '%promesse%' OR label ILIKE '%vente%' OR label ILIKE '%SARI%')"
+    
+    sql = f"""
         SELECT label, content, source,
                1 - (embedding <=> %s::vector) AS similarity
         FROM report_documents
+        WHERE 1=1 {type_filter}
         ORDER BY embedding <=> %s::vector
         LIMIT %s
     """
@@ -253,7 +260,138 @@ def _investment_prompt(params: dict, context: str, stats: dict) -> str:
         Do not hedge every statement — make a clear recommendation.
     """).strip()
 
+# data/rag/engine.py - Updated _contract_prompt
 
+def _contract_prompt(params: dict, context: str, stats: dict) -> str:
+    contract_type = params.get("contract_type", "")
+    seller_name = params.get("seller_name", "")
+    seller_cin = params.get("seller_cin", "")
+    seller_address = params.get("seller_address", "")
+    buyer_name = params.get("buyer_name", "")
+    buyer_cin = params.get("buyer_cin", "")
+    buyer_address = params.get("buyer_address", "")
+    listing_title = params.get("listing_title", "")
+    listing_address = params.get("listing_address", "")
+    surface = stats.get("surface", 0)
+    price = stats.get("price", 0)
+    transaction_date = params.get("transaction_date", "")
+    transaction_type = params.get("transaction_type", "sale")
+    retrieved_clauses = context
+
+    # Map contract types to official Tunisian templates
+    template_instructions = {
+        "contrat_de_location": """
+Utilise le modèle OFFICIEL français "Contrat de location meublé (loi du 6 juillet 1989)" comme référence.
+Structure exacte à suivre:
+- I. Désignation des parties (bailleur, locataire, garant)
+- II. Consistance du logement (adresse, surface, équipements)
+- III. Date de prise d'effet et durée (3 ou 6 ans)
+- IV. Conditions financières (loyer, charges, dépôt de garantie)
+- V. Travaux et améliorations
+- VI. Garanties
+- VII. Clause de solidarité (pour colocation)
+- VIII. Clause résolutoire
+- IX. Honoraires de location
+- X. Annexes (diagnostics, état des lieux)
+""",
+        "promesse_de_vente": """
+Utilise le modèle tunisien "PROMESSE DE VENTE" des documents fournis.
+Structure obligatoire:
+- Exposé préliminaire (titre foncier, permis de construire, hypothèques)
+- ARTICLE 1: Promesse de vente (désignation du bien)
+- ARTICLE 2: Documents et prestations offertes
+- ARTICLE 3: Prix et modalités de paiement
+- ARTICLE 4: Transcription de la vente
+- ARTICLE 5: Distraction de titre
+- ARTICLE 6: Date de remise des clefs
+- ARTICLE 7: Pénalité de retard
+- ARTICLE 8: Prise de possession
+- ARTICLE 9: Modifications
+- ARTICLE 10: Règlement de copropriété
+- ARTICLE 11: Charges à la charge de l'acquéreur
+- ARTICLE 12: Résiliation
+- ARTICLE 13: Crédit bancaire
+- ARTICLE 14: Attribution de compétence
+- ARTICLE 15: Frais
+- ARTICLE 16: Rédaction de l'acte (si applicable)
+""",
+        "compromis_de_vente": """
+Utilise la structure des promesses de vente tunisiennes mais adaptée pour un compromis.
+Inclure obligatoirement:
+- Conditions suspensives (obtention de prêt, permis de construire)
+- Délai de rétractation (10 jours selon loi tunisienne)
+- Clause pénale (10% du prix en cas de rétractation)
+- Date de signature de l'acte authentique
+- Répartition des frais (notaire, enregistrement, publicité foncière)
+""",
+        "acte_de_vente": """
+Structure d'un acte de vente authentique tunisien:
+- Préambule avec références au titre foncier
+- Identification complète des parties (nom, prénom, CIN, profession, domicile)
+- Origine de propriété (comment le vendeur est devenu propriétaire)
+- Désignation du bien (cadastre, superficie, limites)
+- Prix et conditions (montant en lettres et chiffres, modalités de paiement)
+- Quittance du prix (déclaration du vendeur)
+- Attribution de jouissance (date d'entrée en jouissance)
+- Charges et conditions (servitudes, mitoyennetés)
+- Frais et honoraires (qui paie quoi)
+- Élection de domicile
+- Formalités de publication (conservation foncière)
+"""
+    }
+    
+    instructions = template_instructions.get(contract_type, template_instructions["compromis_de_vente"])
+
+    return textwrap.dedent(f"""Tu es un notaire tunisien expert en droit immobilier.
+Tu rédiges des contrats immobiliers professionnels basés sur les modèles officiels tunisiens et français.
+
+## CONTRAT À RÉDIGER: {contract_type.upper()}
+
+{instructions}
+
+## INFORMATIONS DES PARTIES
+
+**Vendeur/Bailleur:**
+- Nom complet : {seller_name}
+- CIN : {seller_cin}
+- Adresse : {seller_address}
+
+**Acheteur/Locataire:**
+- Nom complet : {buyer_name}
+- CIN : {buyer_cin}
+- Adresse : {buyer_address}
+
+## INFORMATIONS SUR LE BIEN
+
+- Désignation : {listing_title}
+- Situation : {listing_address}
+- Superficie : {surface} m²
+- Prix convenu : {price:,} TND
+
+## DÉTAILS DE LA TRANSACTION
+
+- Date : {transaction_date}
+- Type : {transaction_type}
+
+## DOCUMENTS DE RÉFÉRENCE (extraits officiels)
+
+{retrieved_clauses}
+
+## INSTRUCTIONS STRICTES
+
+1. **Structure exacte** selon le modèle officiel correspondant
+2. **Langage juridique tunisien** (ou français pour le contrat de location)
+3. **Articles numérotés** de façon cohérente
+4. **Clauses obligatoires** selon la loi tunisienne:
+   - Pour vente: loi n°17 du 26 février 1990 (promotion immobilière)
+   - Décret n°1330 du 28 août 1991 (cahier des charges)
+   - Code des droits réels pour les transcriptions
+5. **Montants en toutes lettres** (ex: deux millions de dinars tunisiens)
+6. **Aucun [À COMPLÉTER]** - utiliser formules standards comme "selon modalités convenues"
+7. **Signatures** en bas du document avec date et lieu
+
+Rédige un contrat professionnel, complet et conforme aux standards tunisiens.
+""").strip()
 # ── Ollama streaming ───────────────────────────────────────────────────────────
 
 def _stream_ollama(prompt: str) -> Generator[str, None, None]:
@@ -356,3 +494,67 @@ def generate_report_stream(
         return
 
     yield from _stream_ollama(prompt)
+
+
+
+# data/rag/engine.py - Update generate_contract_stream
+
+def generate_contract_stream(contract_type: str, params: dict) -> Generator[str, None, None]:
+    """Generate a real estate contract stream using official templates."""
+    
+    # Validate contract type
+    valid_contracts = ["promesse_de_vente", "compromis_de_vente", "contrat_de_location", "acte_de_vente"]
+    if contract_type not in valid_contracts:
+        yield f"Error: Unknown contract type '{contract_type}'"
+        return
+    
+    # Build specific query based on contract type
+    if contract_type == "contrat_de_location":
+        query = (
+            f"contrat de location meublé Tunisie loi 6 juillet 1989 "
+            f"bail logement obligations bailleur locataire charges dépôt de garantie"
+        )
+    elif contract_type == "promesse_de_vente":
+        query = (
+            f"promesse de vente Tunisie SARI loi n°17 1990 décret n°1330 "
+            f"promotion immobilière vente sur plan VEFA prix modalités paiement"
+        )
+    elif contract_type == "compromis_de_vente":
+        query = (
+            f"compromis de vente Tunisie conditions suspensives prêt bancaire "
+            f"clause pénale délai rétractation frais notaire"
+        )
+    else:  # acte_de_vente
+        query = (
+            f"acte de vente authentique Tunisie titre foncier conservation foncière "
+            f"publicité foncière droit d'enregistrement quittance prix"
+        )
+    
+    # Retrieve relevant legal clauses with contract type filtering
+    try:
+        chunks = retrieve_context(query, TOP_K + 4, contract_type)
+        context = _format_context(chunks)
+    except Exception as e:
+        context = f"Modèle officiel {contract_type} tunisien à utiliser comme référence."
+    
+    # Create stats dict from params
+    stats = {
+        "surface": params.get("surface", 0),
+        "price": params.get("price", 0),
+    }
+    
+    # Ensure contract_type is in params
+    params["contract_type"] = contract_type
+    
+    # Generate the contract prompt
+    try:
+        prompt = _contract_prompt(params, context, stats)
+    except Exception as e:
+        yield f"Error generating prompt: {e}"
+        return
+    
+    # Stream the response
+    try:
+        yield from _stream_ollama(prompt)
+    except Exception as e:
+        yield f"\n\nError generating contract: {e}"

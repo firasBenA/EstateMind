@@ -30,7 +30,7 @@ export default function ListingsManager() {
     if (search) r = r.filter(l => l.title.toLowerCase().includes(search.toLowerCase()) || l.city.toLowerCase().includes(search.toLowerCase()));
     if (sourceFilter !== "all") r = r.filter(l => l.source_name === sourceFilter);
     if (typeFilter !== "all") r = r.filter(l => l.type === typeFilter);
-    if (fraudFilter !== "all") r = r.filter(l => fraudFilter === "flagged" ? l.fraud_flag : !l.fraud_flag);
+    //if (fraudFilter !== "all") r = r.filter(l => fraudFilter === "flagged" ? l.fraud_flag : !l.fraud_flag);
 
     r.sort((a, b) => {
       const av = (a as any)[sortCol]; const bv = (b as any)[sortCol];
@@ -148,7 +148,7 @@ export default function ListingsManager() {
                       <td className="py-2 pr-4">{l.rooms}</td>
                       <td className="py-2 pr-4">{l.surface}m²</td>
                       <td className="py-2 pr-4"><ReliabilityBadge level={l.reliability_level} /></td>
-                      <td className="py-2 pr-4">{l.fraud_flag ? <Badge variant="destructive" className="text-xs">Flagged</Badge> : <Badge variant="outline" className="text-xs">Clean</Badge>}</td>
+                      {/*td className="py-2 pr-4">{l.fraud_flag ? <Badge variant="destructive" className="text-xs">Flagged</Badge> : <Badge variant="outline" className="text-xs">Clean</Badge>}</td>*/}
                       <td className="py-2 pr-4 text-xs whitespace-nowrap">{formatDate(l.scraped_at)}</td>
                     </tr>
                   ))}

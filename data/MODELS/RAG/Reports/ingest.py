@@ -90,6 +90,21 @@ WEB_SOURCES = [
         "label": "INS Tunisia — Press Releases (GDP, real estate index)",
         "tags":  ["official", "gdp", "price-index"],
     },
+     {
+        "url":   "https://maitre-haifaguedhami.me/actualites/property-law-foreigners-tunisia-2026",
+        "label": "Property Law for Foreigners in Tunisia — Maitre Haifa Guedhami (April 2026)",
+        "tags":  ["legal", "foreign-ownership", "2026","tunisian-law"],
+    },
+     {
+        "url":   "https://www.jarniascyril.com/international-real-estate/invest-in-real-estate-tunisia-opportunities-rules-returns/lois-regulations-immobilieres-tunisie/",
+        "label": "Real Estate Laws and Regulations in Tunisia — JarniasCyril (2026 update)",
+        "tags":  ["legal", "regulations", "2026","tunisian-law"],
+    },
+     {
+        "url":   "https://spinellimechri.com/en-US/notizie/acheter-en-tunisie-le-guide-que-tout-investisseur-etranger-reverait-davoir-avant-de-signer",
+        "label": "Buying Property in Tunisia: Guide for Foreign Investors — Spinelli Mechri (2026)",
+        "tags":  ["investment", "foreign-investors", "2026","legal","tunisian-law"],
+    },
 ]
 
 # Manually curated key facts extracted from sources that block scraping

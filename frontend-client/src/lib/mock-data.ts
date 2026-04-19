@@ -21,7 +21,7 @@ export interface Listing {
   price_per_m2: number;
   room_image_ratio: number;
   fraud_score: number;
-  fraud_flag: boolean;
+  //fraud_flag: boolean;
   fraud_reason: string | null;
   fraud_model_used: string | null;
   flagged_at: string | null;
@@ -102,7 +102,7 @@ function generateListing(i: number): Listing {
     price_per_m2: pricePerM2,
     room_image_ratio: rooms > 0 ? imgCount / rooms : 0,
     fraud_score: Math.round(fraudScore * 100) / 100,
-    fraud_flag: fraudFlag,
+    //fraud_flag: fraudFlag,
     fraud_reason: fraudFlag ? pick(["Suspicious pricing", "Duplicate images detected", "Inconsistent room count", "Price too low for area"]) : null,
     fraud_model_used: fraudFlag ? "ensemble_v2" : null,
     flagged_at: fraudFlag ? scrapedAt : null,
@@ -165,12 +165,12 @@ export function formatDate(dateStr: string): string {
 }
 
 export function getStats() {
-  const nonFlagged = mockListings.filter(l => !l.fraud_flag);
+  //const nonFlagged = mockListings.filter(l => !l.fraud_flag);
   const weekAgo = Date.now() - 7 * 86400000;
   return {
     totalListings: mockListings.length,
     citiesCovered: CITIES.length,
-    avgPricePerM2: Math.round(nonFlagged.reduce((s, l) => s + l.price_per_m2, 0) / nonFlagged.length),
+    avgPricePerM2: Math.round(mockListings.reduce((s, l) => s + l.price_per_m2, 0) / mockListings.length),
     listingsThisWeek: mockListings.filter(l => new Date(l.scraped_at).getTime() > weekAgo).length,
   };
 }

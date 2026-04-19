@@ -23,6 +23,7 @@ import { useListingsMeta } from "@/hooks/useListings";
 import {
   FileText, Download, Loader2, TrendingUp, MapPin,
   BarChart3, Copy, Save, ChevronRight, Sparkles, AlertCircle,
+  Eye, Edit3
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -159,6 +160,7 @@ export default function UserReports() {
   const [streamError, setStreamError] = useState("");
   const [saving, setSaving]         = useState(false);
   const [savedId, setSavedId]       = useState<number | null>(null);
+  const [isEditing, setIsEditing]   = useState(false);
 
   // Past reports
   const [pastReports, setPastReports] = useState<SavedReport[]>([]);
@@ -270,14 +272,12 @@ export default function UserReports() {
     toast.success("Copied to clipboard");
   };
 
-  const handleExportTxt = () => {
-    const blob = new Blob([reportText], { type: "text/plain" });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement("a");
-    a.href     = url;
-    a.download = `${buildTitle(selectedType, marketParams,investmentParams)}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleExportPDF = async () => {
+    if (!savedId) {
+      toast.error("Please save the report before exporting as PDF");
+      return;
+    }
+    window.open(`/api/reports/${savedId}/pdf/`, "_blank");
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -440,19 +440,28 @@ export default function UserReports() {
               </p>
               {reportText && !generating && (
                 <div className="flex gap-2">
+                  <Button
+                    variant={isEditing ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setIsEditing(!isEditing)}
+                    className="gap-1.5"
+                  >
+                    {isEditing ? <Eye className="h-3.5 w-3.5" /> : <Edit3 className="h-3.5 w-3.5" />}
+                    {isEditing ? "Preview" : "Modify"}
+                  </Button>
                   <Button variant="outline" size="sm" onClick={handleCopy} className="gap-1.5">
                     <Copy className="h-3.5 w-3.5" /> Copy
                   </Button>
-                  <Button variant="outline" size="sm" onClick={handleExportTxt} className="gap-1.5">
-                    <Download className="h-3.5 w-3.5" /> Export
+                  <Button variant="outline" size="sm" onClick={handleExportPDF} className="gap-1.5">
+                    <Download className="h-3.5 w-3.5" /> Export PDF
                   </Button>
                   <Button
                     size="sm" onClick={handleSave}
-                    disabled={saving || !!savedId}
+                    disabled={saving || (!!savedId && !isEditing)}
                     className="gap-1.5"
                   >
                     <Save className="h-3.5 w-3.5" />
-                    {savedId ? "Saved ✓" : saving ? "Saving…" : "Save"}
+                    {savedId && !isEditing ? "Saved ✓" : saving ? "Saving…" : "Save Changes"}
                   </Button>
                 </div>
               )}
@@ -490,8 +499,20 @@ export default function UserReports() {
 
                     {reportText && (
                       <>
-                        <MarkdownBlock text={reportText} />
-                        {generating && (
+                        {isEditing ? (
+                          <textarea
+                            value={reportText}
+                            onChange={(e) => {
+                              setReportText(e.target.value);
+                              if (savedId) setSavedId(null); // Mark as unsaved if edited
+                            }}
+                            className="w-full min-h-[500px] p-4 font-mono text-sm border rounded-lg bg-muted/20 focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
+                            placeholder="Edit your report here..."
+                          />
+                        ) : (
+                          <MarkdownBlock text={reportText} />
+                        )}
+                        {generating && !isEditing && (
                           <span className="inline-block w-1.5 h-4 bg-primary animate-pulse ml-0.5 align-middle" />
                         )}
                       </>
