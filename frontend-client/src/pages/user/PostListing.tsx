@@ -242,30 +242,29 @@ export default function PostListing() {
   const [loadingPrediction, setLoadingPrediction] = useState(false);
 
   // ── Add this function ────────────────────────────────────────────────────────
+
   const fetchPricePrediction = async () => {
     if (!form.city || !form.type || !form.surface || !form.transaction) return;
 
     setLoadingPrediction(true);
     setPrediction(null);
     try {
-      const res = await fetch("/api/predict-price/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          transaction: form.transaction,
-          type: form.type,
-          city: form.city,
-          surface: form.surface,
-          rooms: form.rooms === "Studio" ? 0 : parseInt(form.rooms) || 0,
-          images_count: form.images.length,
-          has_description: form.description ? 1 : 0,
-          desc_length: form.description?.length ?? 0,
-          has_coords: form.latitude ? 1 : 0,
-        }),
+      // ✅ USE THE API CLIENT INSTEAD OF RAW FETCH
+      const data = await listingsApi.predictPrice({
+        transaction: form.transaction,
+        type: form.type,
+        city: form.city,
+        surface: parseFloat(form.surface), // Ensure it's a number
+        rooms: form.rooms === "Studio" ? 0 : parseInt(form.rooms) || 0,
+        images_count: form.images.length,
+        has_description: form.description ? 1 : 0,
+        desc_length: form.description?.length ?? 0,
+        has_coords: form.latitude ? 1 : 0,
       });
-      const data = await res.json();
+
       setPrediction(data);
-    } catch {
+    } catch (error) {
+      console.error(error);
       toast.error("Could not fetch price prediction");
     } finally {
       setLoadingPrediction(false);

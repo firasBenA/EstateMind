@@ -1,9 +1,16 @@
 import os
 from pathlib import Path
+import sys
 from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+    
+# ✅ ADD THIS: Add the Project Root (EstateMind) to sys.path
+# This allows imports like "from data.preprocessing..."
+PROJECT_ROOT = BASE_DIR.parent 
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 SECRET_KEY    = os.environ.get("DJANGO_SECRET_KEY", "change-me-in-production")
 DEBUG         = os.environ.get("DEBUG", "true").lower() == "true"

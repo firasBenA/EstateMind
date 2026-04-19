@@ -29,6 +29,7 @@ from sentence_transformers import SentenceTransformer
 
 from data.preprocessing.steps.scorer import compute_score
 from .models import Listing # Make sure Listing is imported
+from models.prediction_models.predictor import get_predictor
 
 
 
@@ -885,13 +886,15 @@ def _generate_image_embedding(image_url: str):
         logger.error(f"Failed to generate embedding for {image_url}: {e}")
         return None
 
-# ... [Keep your existing _haversine_distance and _fetch_nearby_pois functions here] ...
-
 @require_http_methods(["POST"])
 def create_listing(request):
     """
     POST /api/listings/create/
-    Creates a user-submitted listing with automatic POI extraction and Image Embeddings.
+    Creates a user-submitted listing with:
+    1. Automatic POI extraction
+    2. Reliability Scoring
+    3. Image Embeddings
+    4. AI Price Prediction
     """
     logger.info(f"🔥 CREATE_LISTING CALLED")
     
@@ -927,9 +930,18 @@ def create_listing(request):
             except (ValueError, TypeError) as e:
                 logger.error(f"❌ Coord conversion error: {e}")
 
-
+        # --- Prepare Listing Data for Scoring & Saving ---
+        listing_id = str(uuid.uuid4())
+        text_embedding = [0.0] * 384 # Placeholder
+        
+        price = float(data.get("price", 0))
+        surface = float(data.get("surface", 0))
+        price_per_m2 = round(price / surface, 2) if price and surface and surface > 0 else None
+        image_urls = data.get("images", [])
+        
+        # Prepare flags for Reliability Scorer
         flags = {
-            "price_outlier": False, # You can add outlier detection logic here if you want
+            "price_outlier": False, 
             "suspected_duplicate": False,
             "nlp_enriched": False,
             "has_price_history": False,
@@ -937,26 +949,26 @@ def create_listing(request):
             "cross_verified": False
         }
         
-        # Calculate Score
-        # Note: compute_score expects 'metadata' as the first arg
-        score_result = compute_score(listing_data, flags)
+        # Create a temporary dict for scoring (needs to match scorer expectations)
+        temp_meta = {
+            "price": price,
+            "surface": surface,
+            "rooms": int(data.get("rooms", 0)),
+            "city": city,
+            "governorate": data.get("region"), # Map region to governorate if needed
+            "latitude": latitude,
+            "longitude": longitude,
+            "description": data.get("description", ""),
+            "image_count": len(image_urls),
+            "features": data.get("features", []),
+            "municipality": data.get("municipality"),
+            "is_outlier": False,
+        }
 
-        # Update listing_data with real scores
-        listing_data["reliability_score"] = score_result["score"]
-        listing_data["reliability_level"] = score_result["level"]
-        listing_data["should_drop"] = score_result["should_drop"]
-
-        logger.info(f"📊 Reliability Score Calculated: {score_result['score']} ({score_result['level']})")
-        # --- Prepare Listing Data ---
-        listing_id = str(uuid.uuid4())
-        text_embedding = [0.0] * 384 # Placeholder for text embedding
+        # Calculate Reliability Score
+        score_result = compute_score(temp_meta, flags)
         
-        price = float(data.get("price", 0))
-        surface = float(data.get("surface", 0))
-        price_per_m2 = round(price / surface, 2) if price and surface and surface > 0 else None
-
-        image_urls = data.get("images", [])
-
+        # Final Listing Data Dict
         listing_data = {
             "id": listing_id,
             "source_name": "user_submission",
@@ -982,12 +994,15 @@ def create_listing(request):
             
             # Flags & Metadata
             "features": data.get("features", []),
-            "reliability_score": 50, # Default for new submissions
-            "reliability_level": "GOOD",
+            
+            # ✅ Use Calculated Scores
+            "reliability_score": score_result["score"],
+            "reliability_level": score_result["level"],
+            "should_drop": score_result["should_drop"],
+            
             "is_outlier": False,
             "normalized": True,
             "nlp_enriched": False,
-            "should_drop": False,
             "text_embedding": text_embedding,
             
             # Timestamps
@@ -996,6 +1011,8 @@ def create_listing(request):
             "created_at": timezone.now().isoformat(),
         }
         
+        logger.info(f"📊 Reliability Score: {score_result['score']} ({score_result['level']})")
+
         # --- 1. Insert Listing into Supabase ---
         logger.info("💾 Saving Listing to Supabase...")
         supabase = _get_supabase_client()
@@ -1009,36 +1026,74 @@ def create_listing(request):
         # --- 2. Generate & Save Image Embeddings ---
         if image_urls:
             logger.info(f"️ Generating embeddings for {len(image_urls)} images...")
-            
             embeddings_to_insert = []
             for index, img_url in enumerate(image_urls):
                 embedding_vec = _generate_image_embedding(img_url)
-                
                 if embedding_vec:
                     embeddings_to_insert.append({
-                        "id": f"{listing_id}_img_{index}", # Unique ID for embedding row
-                        "listing_id": listing_id,           # Foreign Key
+                        "id": f"{listing_id}_img_{index}",
+                        "listing_id": listing_id,
                         "image_url": img_url,
                         "image_index": index,
-                        "embedding": embedding_vec          # 512-dim vector
+                        "embedding": embedding_vec
                     })
             
             if embeddings_to_insert:
-                # Batch insert into image_embeddings table
                 emb_result = supabase.table("image_embeddings").insert(embeddings_to_insert).execute()
                 if getattr(emb_result, "error", None):
-                    logger.warning("⚠️ Failed to save some image embeddings: %s", emb_result.error)
+                    logger.warning("⚠️ Failed to save some image embeddings")
                 else:
                     logger.info(f"✅ Saved {len(embeddings_to_insert)} image embeddings")
-            else:
-                logger.warning("⚠️ No valid embeddings generated")
-        else:
-            logger.info("No images provided, skipping embeddings.")
+
+        # --- 3. 🆕 AI Price Prediction ---
+        predicted_price_data = None
+        try:
+            predictor = get_predictor()
+            
+            prediction = predictor.predict(
+                transaction_type=data.get("transaction", "sale"),
+                property_type=data.get("type", "apartment"),
+                city=city,
+                surface=surface,
+                rooms=int(data.get("rooms", 0)),
+                region=data.get("region", "unknown"),
+                reliability_score=score_result["score"],
+                reliability_level=score_result["level"],
+                model_weight=1.0,
+                is_outlier=False,
+                suspected_duplicate=False,
+                images_count=len(image_urls),
+                has_description=1 if data.get("description") else 0,
+                desc_length=len(data.get("description", "")),
+                has_coords=1 if latitude and longitude else 0
+            )
+            
+            predicted_price_data = prediction
+            logger.info(f"💰 Predicted Price: {prediction['predicted_price']} TND")
+            
+            # Optional: Update the listing in Supabase with the predicted price
+            # Uncomment if you added these columns to your DB
+            # supabase.table("listings").update({
+            #     "predicted_price": prediction['predicted_price'],
+            #     "price_range_low": prediction['price_low'],
+            #     "price_range_high": prediction['price_high']
+            # }).eq("id", listing_id).execute()
+            
+        except Exception as e:
+            logger.error(f"❌ Price Prediction Failed: {e}")
+            # Don't fail the whole request if prediction fails
 
         return JsonResponse({
             "success": True,
             "listing_id": listing_id,
             "pois_found": len(extracted_pois),
+            "reliability_score": score_result["score"],
+            "reliability_level": score_result["level"],
+            "predicted_price": predicted_price_data['predicted_price'] if predicted_price_data else None,
+            "price_range": {
+                "low": predicted_price_data['price_low'] if predicted_price_data else None,
+                "high": predicted_price_data['price_high'] if predicted_price_data else None,
+            },
             "message": "Listing published successfully!"
         }, status=201)
         

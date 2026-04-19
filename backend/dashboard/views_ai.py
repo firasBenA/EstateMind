@@ -1,40 +1,33 @@
-"""
-dashboard/views_ai.py
-
-Django proxy endpoint: POST /api/generate-description/
-
-Accepts multipart/form-data from the frontend, forwards to the
-FastAPI AI microservice, and returns the result to the client.
-
-This keeps the frontend talking to a single origin (Django :8000)
-and avoids CORS complexity with the AI service (:8001).
-"""
 
 import os
 import logging
 import requests
+import json
 from django.http import JsonResponse
-from django.views.decorators.http import require_http_methods
+from django.views.decorators.http import require_http_methods, require_POST
 from django.views.decorators.csrf import csrf_exempt
+
+# ✅ CORRECT IMPORT: From models.prediction_models import predictor
+try:
+    from models.prediction_models.predictor import get_predictor
+except ImportError as e:
+    # Helpful debug message if it still fails
+    raise ImportError(f"Failed to import predictor: {e}. Ensure __init__.py files exist in models/ and models/prediction_models/")
 
 logger = logging.getLogger(__name__)
 
 AI_SERVICE_URL = os.environ.get("AI_SERVICE_URL", "http://localhost:8001")
-# predictor = PricePredictorV3(model_dir=OUTPUT_DIR) 
+
+# ✅ Initialize Predictor ONCE at startup
+predictor = get_predictor()
 
 @csrf_exempt
 @require_http_methods(["POST"])
 def generate_description(request):
     """
     POST /api/generate-description/
-
-    Accepts:
-      - images (multipart, 1-3 files)
-      - metadata (form field, JSON string)
-
-    Returns the AI microservice response directly.
+    Forwards request to FastAPI AI Service.
     """
-    # ── Validate input ────────────────────────────────────────────────────
     image_files = request.FILES.getlist("images")
     metadata = request.POST.get("metadata", "{}")
 
@@ -43,7 +36,6 @@ def generate_description(request):
     if len(image_files) > 3:
         return JsonResponse({"error": "Maximum 3 images allowed"}, status=400)
 
-    # ── Forward to AI microservice ────────────────────────────────────────
     try:
         files = [
             ("images", (f.name, f.read(), f.content_type))
@@ -55,48 +47,46 @@ def generate_description(request):
             f"{AI_SERVICE_URL}/generate-description",
             files=files,
             data=data,
-            timeout=120,  # Phi-3 can take up to 60s on CPU
+            timeout=120,
         )
         response.raise_for_status()
         return JsonResponse(response.json(), status=response.status_code)
 
     except requests.exceptions.ConnectionError:
         logger.error("AI service unreachable at %s", AI_SERVICE_URL)
-        return JsonResponse(
-            {"error": "AI service unavailable. Please try again later."},
-            status=503,
-        )
-    except requests.exceptions.Timeout:
-        logger.error("AI service timed out")
-        return JsonResponse(
-            {"error": "Request timed out. The AI model is processing — please retry."},
-            status=504,
-        )
-    except requests.exceptions.HTTPError as exc:
-        logger.error("AI service returned %s: %s", exc.response.status_code, exc.response.text)
-        return JsonResponse(
-            {"error": exc.response.json().get("detail", "AI service error")},
-            status=exc.response.status_code,
-        )
+        return JsonResponse({"error": "AI service unavailable."}, status=503)
     except Exception as exc:
-        logger.exception("Unexpected error forwarding to AI service: %s", exc)
+        logger.exception("Unexpected error: %s", exc)
         return JsonResponse({"error": "Internal server error"}, status=500)
 
 
-
-# @csrf_exempt
-# @require_POST
-# def predict_price(request):
-#     data = json.loads(request.body)
-#     result = predictor.predict(
-#         transaction_type=data['transaction'],
-#         property_type=data['type'],
-#         city=data['city'],
-#         surface=float(data['surface']),
-#         rooms=int(data.get('rooms', 0)),
-#         images_count=int(data.get('images_count', 0)),
-#         has_description=int(data.get('has_description', 0)),
-#         desc_length=int(data.get('desc_length', 0)),
-#         has_coords=int(data.get('has_coords', 0)),
-#     )
-#     return JsonResponse(result)
+@csrf_exempt
+@require_POST
+def predict_price(request):
+    """
+    POST /api/predict-price/
+    Uses the local ML model to predict price.
+    """
+    try:
+        data = json.loads(request.body)
+        
+        result = predictor.predict(
+            transaction_type=data.get('transaction', 'sale'),
+            property_type=data.get('type', 'apartment'),
+            city=data.get('city', 'Tunis'),
+            surface=float(data.get('surface', 0)),
+            rooms=int(data.get('rooms', 0)),
+            region=data.get('region', 'unknown'),
+            reliability_score=float(data.get('reliability_score', 80)),
+            reliability_level=data.get('reliability_level', 'GOOD'),
+            images_count=int(data.get('images_count', 0)),
+            has_description=int(data.get('has_description', 0)),
+            desc_length=int(data.get('desc_length', 0)),
+            has_coords=int(data.get('has_coords', 0)),
+        )
+        
+        return JsonResponse(result)
+        
+    except Exception as e:
+        logger.error(f"Price Prediction Error: {e}")
+        return JsonResponse({"error": str(e)}, status=500)

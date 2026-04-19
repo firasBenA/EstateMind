@@ -13,8 +13,7 @@ export const supabase = createClient(
 );
 
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8081";
-
+const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 // ── CSRF helper ───────────────────────────────────────────────────────────────
 function getCsrfToken(): string {
   const name  = "csrftoken";
@@ -302,6 +301,23 @@ export const listingsApi = {
       highlights: ["modern finishes", "great location"],
       tone: "professional",
     };
+  },
+
+    async predictPrice(payload: {
+    transaction: string;
+    type: string;
+    city: string;
+    surface: number;
+    rooms: number;
+    images_count: number;
+    has_description: number;
+    desc_length: number;
+    has_coords: number;
+  }): Promise<any> {
+    return apiFetch<any>("/api/predict-price/", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
   },
 
 };
