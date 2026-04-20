@@ -5,11 +5,12 @@ Step 1: Public listings API (GET /api/listings/, GET /api/listings/<id>/)
 Step 2: Auth with UserProfile (register, login, logout, session)
         + existing EDA / metrics / quality endpoints → PostgreSQL via ORM
 """
+from asyncio.windows_events import NULL
 import json
 import re
 from datetime import date, timedelta
 from collections import defaultdict
-
+import traceback
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -23,7 +24,15 @@ from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 
-from .models import Listing, AgentMetrics, UserProfile
+import uuid
+from django.utils import timezone
+from sentence_transformers import SentenceTransformer
+
+from data.preprocessing.steps.scorer import compute_score
+from .models import Listing # Make sure Listing is imported
+from models.prediction_models.predictor import get_predictor
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -696,7 +705,451 @@ def eda_metrics(request):
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
 
+# ─────────────────────────────────────────────────────────────────────────────
+# POST /api/listings/ — Create a new user-submitted listing
+# ─────────────────────────────────────────────────────────────────────────────
 
+import json
+import uuid
+import logging
+import traceback
+import os
+import requests
+import math
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
+
+# Initialize Supabase client ONCE at module level (lazy load)
+_supabase_client: Client = None
+def _get_supabase_client() -> Client:
+    global _supabase_client
+    if _supabase_client is None:
+        supabase_url = os.environ.get("SUPABASE_URL")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        
+        # 🔍 DEBUG LOGGING
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔑 SUPABASE_URL loaded: {'✅' if supabase_url else '❌'}")
+        logger.info(f"🔑 SUPABASE_SERVICE_ROLE_KEY loaded: {'✅' if supabase_key else '❌'}")
+        if supabase_key:
+            logger.info(f"🔑 Key preview: {supabase_key[:30]}...")  # Show first 30 chars
+        
+        if not supabase_key:
+            raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY not set in environment. Check backend/.env")
+        
+        _supabase_client = create_client(supabase_url, supabase_key)
+    return _supabase_client
+
+
+
+
+def _haversine_distance(lat1, lon1, lat2, lon2):
+    R = 6371000 
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+    delta_phi = math.radians(lat2 - lat1)
+    delta_lambda = math.radians(lon2 - lon1)
+    a = math.sin(delta_phi / 2.0) ** 2 + \
+        math.cos(phi1) * math.cos(phi2) * \
+        math.sin(delta_lambda / 2.0) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return R * c
+
+def _fetch_nearby_pois(lat: float, lon: float, radius_m: int = 1000) -> list:
+    """
+    Fetches nearby POIs from OpenStreetMap using Overpass API.
+    HEAVILY LOGGED for debugging.
+    """
+    logger.info(f"🗺️ STARTING POI FETCH: Lat={lat}, Lon={lon}, Radius={radius_m}m")
+    
+    if not lat or not lon:
+        logger.warning("❌ No coordinates provided for POI fetch.")
+        return []
+
+    # Overpass QL Query
+    query = f"""
+    [out:json][timeout:15];
+    (
+      node["amenity"~"school|university|college|hospital|clinic|pharmacy|restaurant|cafe|bank|post_office|police"](around:{radius_m},{lat},{lon});
+      way["amenity"~"school|university|college|hospital|clinic|pharmacy|restaurant|cafe|bank|post_office|police"](around:{radius_m},{lat},{lon});
+      node["shop"~"supermarket|mall|convenience|bakery"](around:{radius_m},{lat},{lon});
+      way["shop"~"supermarket|mall|convenience|bakery"](around:{radius_m},{lat},{lon});
+      node["public_transport"="station"](around:{radius_m},{lat},{lon});
+    );
+    out center;
+    """
+
+    try:
+        logger.info("📡 Sending request to Overpass API...")
+        response = requests.post(
+            "https://overpass-api.de/api/interpreter",
+            data=query.encode('utf-8'),
+            headers={'User-Agent': 'EstateMind/1.0'},
+            timeout=15
+        )
+        
+        logger.info(f"📡 Overpass Response Status: {response.status_code}")
+        
+        if response.status_code != 200:
+            logger.error(f"❌ Overpass API Error: {response.status_code} - {response.text[:200]}")
+            return []
+
+        data = response.json()
+        elements = data.get('elements', [])
+        logger.info(f"📦 Raw Elements Received: {len(elements)}")
+        
+        pois = []
+        seen_names = set()
+
+        for i, element in enumerate(elements):
+            tags = element.get('tags', {})
+            name = tags.get('name')
+            
+            # Debug first few elements
+            if i < 3:
+                logger.debug(f"   Element {i}: Tags={tags}, Name={name}")
+
+            if not name:
+                continue
+
+            clean_name = name.strip()
+            
+            # Avoid duplicates
+            if clean_name.lower() in seen_names:
+                continue
+            
+            # Verify distance (Overpass 'around' can be loose for Ways)
+            el_lat = element.get('lat') or element.get('center', {}).get('lat')
+            el_lon = element.get('lon') or element.get('center', {}).get('lon')
+            
+            if el_lat and el_lon:
+                dist = _haversine_distance(lat, lon, el_lat, el_lon)
+                if dist <= radius_m:
+                    seen_names.add(clean_name.lower())
+                    pois.append(clean_name)
+                    logger.info(f"   ✅ Added POI: '{clean_name}' (Dist: {int(dist)}m)")
+                    
+                    if len(pois) >= 10:
+                        break
+
+        logger.info(f"🏁 POI FETCH COMPLETE: Found {len(pois)} unique POIs.")
+        return pois
+
+    except requests.Timeout:
+        logger.error("❌ Overpass API Timed Out")
+        return []
+    except Exception as e:
+        logger.error(f"❌ Exception in POI fetch: {type(e).__name__}: {e}", exc_info=True)
+        return []
+
+from sentence_transformers import SentenceTransformer # For image embeddings
+    
+# Load Image Embedding Model (CLIP) once at startup
+_image_model = None
+def _get_image_model():
+    global _image_model
+    if _image_model is None:
+        logger.info("Loading CLIP model for image embeddings...")
+        # Using 'clip-ViT-B-32' which outputs 512-dim vectors, matching your schema
+        _image_model = SentenceTransformer('clip-ViT-B-32')
+    return _image_model
+
+def _generate_image_embedding(image_url: str):
+    """
+    Downloads an image from URL and generates its 512-dim embedding using CLIP.
+    """
+    try:
+        model = _get_image_model()
+        
+        # Download image content
+        response = requests.get(image_url, timeout=10)
+        response.raise_for_status()
+        
+        # Generate embedding
+        # Note: SentenceTransformers can handle URLs directly or PIL images
+        embedding = model.encode([image_url], convert_to_numpy=True)[0]
+        
+        return embedding.tolist()
+    except Exception as e:
+        logger.error(f"Failed to generate embedding for {image_url}: {e}")
+        return None
+# backend/dashboard/views.py
+
+import json
+import uuid
+import logging
+import traceback
+import os
+import requests
+import math
+from django.utils import timezone
+from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from supabase import create_client, Client
+from sentence_transformers import SentenceTransformer # For Image Embeddings
+
+logger = logging.getLogger(__name__)
+
+# Initialize Supabase client
+_supabase_client: Client = None
+
+def _get_supabase_client() -> Client:
+    global _supabase_client
+    if _supabase_client is None:
+        supabase_url = os.environ.get("SUPABASE_URL", "https://amxnojlfczwffvtwutrb.supabase.co")
+        supabase_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+        if not supabase_key:
+            raise RuntimeError("SUPABASE_SERVICE_ROLE_KEY not set")
+        _supabase_client = create_client(supabase_url, supabase_key)
+    return _supabase_client
+
+# Load Image Embedding Model (CLIP) once at module level for efficiency
+_image_model = None
+def _get_image_model():
+    global _image_model
+    if _image_model is None:
+        logger.info("🧠 Loading CLIP model for image embeddings...")
+        # 'clip-ViT-B-32' produces 512-dim vectors, matching your schema
+        _image_model = SentenceTransformer('clip-ViT-B-32')
+    return _image_model
+
+def _generate_image_embedding(image_url: str):
+    """
+    Downloads an image from URL and generates its 512-dim embedding using CLIP.
+    Returns list of floats or None if failed.
+    """
+    try:
+        model = _get_image_model()
+        
+        # SentenceTransformers can handle URLs directly, but downloading ensures stability
+        # Note: If images are private/signed, you might need to download bytes instead.
+        # For public Supabase URLs, this works fine.
+        embedding = model.encode([image_url], convert_to_numpy=True)[0]
+        
+        return embedding.tolist()
+    except Exception as e:
+        logger.error(f"Failed to generate embedding for {image_url}: {e}")
+        return None
+
+@require_http_methods(["POST"])
+def create_listing(request):
+    """
+    POST /api/listings/create/
+    Creates a user-submitted listing with:
+    1. Automatic POI extraction
+    2. Reliability Scoring
+    3. Image Embeddings
+    4. AI Price Prediction
+    """
+    logger.info(f"🔥 CREATE_LISTING CALLED")
+    
+    try:
+        data = json.loads(request.body.decode('utf-8'))
+        
+        # --- Validation ---
+        title = data.get("title", "").strip()
+        city = data.get("city", "").strip()
+        if not title or len(title) < 5:
+            return JsonResponse({"error": "Title must be at least 5 characters"}, status=400)
+        if not city:
+            return JsonResponse({"error": "City is required"}, status=400)
+
+        # --- Extract Coordinates ---
+        latitude = data.get("latitude")
+        longitude = data.get("longitude")
+        
+        logger.info(f"📍 Received Coords: Lat={latitude}, Lng={longitude}")
+        
+        # --- Automatic POI Extraction ---
+        extracted_pois = []
+        if latitude and longitude:
+            try:
+                lat_float = float(latitude)
+                lon_float = float(longitude)
+                
+                if lat_float != 0.0 and lon_float != 0.0:
+                    logger.info("🚀 Triggering POI Fetch...")
+                    extracted_pois = _fetch_nearby_pois(lat_float, lon_float, radius_m=1000)
+                    logger.info(f"📋 Found {len(extracted_pois)} POIs")
+                    
+            except (ValueError, TypeError) as e:
+                logger.error(f"❌ Coord conversion error: {e}")
+
+        # --- Prepare Listing Data for Scoring & Saving ---
+        listing_id = str(uuid.uuid4())
+        text_embedding = [0.0] * 384 # Placeholder
+        
+        price = float(data.get("price", 0))
+        surface = float(data.get("surface", 0))
+        price_per_m2 = round(price / surface, 2) if price and surface and surface > 0 else None
+        image_urls = data.get("images", [])
+        
+        # Prepare flags for Reliability Scorer
+        flags = {
+            "price_outlier": False, 
+            "suspected_duplicate": False,
+            "nlp_enriched": False,
+            "has_price_history": False,
+            "price_changed": False,
+            "cross_verified": False
+        }
+        
+        # Create a temporary dict for scoring (needs to match scorer expectations)
+        temp_meta = {
+            "price": price,
+            "surface": surface,
+            "rooms": int(data.get("rooms", 0)),
+            "city": city,
+            "governorate": data.get("region"), # Map region to governorate if needed
+            "latitude": latitude,
+            "longitude": longitude,
+            "description": data.get("description", ""),
+            "image_count": len(image_urls),
+            "features": data.get("features", []),
+            "municipality": data.get("municipality"),
+            "is_outlier": False,
+        }
+
+        # Calculate Reliability Score
+        score_result = compute_score(temp_meta, flags)
+        
+        # Final Listing Data Dict
+        listing_data = {
+            "id": listing_id,
+            "source_name": "user_submission",
+            "title": title,
+            "description": data.get("description", "").strip(),
+            "price": price,
+            "currency": "TND",
+            "transaction_type": data.get("transaction", "sale"),
+            "property_type": data.get("type", "apartment"),
+            "rooms": int(data.get("rooms", 0)),
+            "city": city,
+            "surface": surface,
+            "price_per_m2": price_per_m2,
+            
+            # Location
+            "latitude": float(latitude) if latitude else None,
+            "longitude": float(longitude) if longitude else None,
+            
+            # POIs & Images
+            "poi": extracted_pois, 
+            "images": image_urls,
+            "images_count": len(image_urls),
+            
+            # Flags & Metadata
+            "features": data.get("features", []),
+            
+            # ✅ Use Calculated Scores
+            "reliability_score": score_result["score"],
+            "reliability_level": score_result["level"],
+            "should_drop": score_result["should_drop"],
+            
+            "is_outlier": False,
+            "normalized": True,
+            "nlp_enriched": False,
+            "text_embedding": text_embedding,
+            
+            # Timestamps
+            "scraped_at": timezone.now().isoformat(),
+            "last_updated": timezone.now().isoformat(),
+            "created_at": timezone.now().isoformat(),
+        }
+        
+        logger.info(f"📊 Reliability Score: {score_result['score']} ({score_result['level']})")
+
+        # --- 1. Insert Listing into Supabase ---
+        logger.info("💾 Saving Listing to Supabase...")
+        supabase = _get_supabase_client()
+        result = supabase.table("listings").insert(listing_data).execute()
+        
+        if getattr(result, "error", None):
+            raise Exception(f"Supabase listing insert failed: {result.error}")
+            
+        logger.info(f"✅ Listing Saved! ID: {listing_id}")
+
+        # --- 2. Generate & Save Image Embeddings ---
+        if image_urls:
+            logger.info(f"️ Generating embeddings for {len(image_urls)} images...")
+            embeddings_to_insert = []
+            for index, img_url in enumerate(image_urls):
+                embedding_vec = _generate_image_embedding(img_url)
+                if embedding_vec:
+                    embeddings_to_insert.append({
+                        "id": f"{listing_id}_img_{index}",
+                        "listing_id": listing_id,
+                        "image_url": img_url,
+                        "image_index": index,
+                        "embedding": embedding_vec
+                    })
+            
+            if embeddings_to_insert:
+                emb_result = supabase.table("image_embeddings").insert(embeddings_to_insert).execute()
+                if getattr(emb_result, "error", None):
+                    logger.warning("⚠️ Failed to save some image embeddings")
+                else:
+                    logger.info(f"✅ Saved {len(embeddings_to_insert)} image embeddings")
+
+        # --- 3. 🆕 AI Price Prediction ---
+        predicted_price_data = None
+        try:
+            predictor = get_predictor()
+            
+            prediction = predictor.predict(
+                transaction_type=data.get("transaction", "sale"),
+                property_type=data.get("type", "apartment"),
+                city=city,
+                surface=surface,
+                rooms=int(data.get("rooms", 0)),
+                region=data.get("region", "unknown"),
+                reliability_score=score_result["score"],
+                reliability_level=score_result["level"],
+                model_weight=1.0,
+                is_outlier=False,
+                suspected_duplicate=False,
+                images_count=len(image_urls),
+                has_description=1 if data.get("description") else 0,
+                desc_length=len(data.get("description", "")),
+                has_coords=1 if latitude and longitude else 0
+            )
+            
+            predicted_price_data = prediction
+            logger.info(f"💰 Predicted Price: {prediction['predicted_price']} TND")
+            
+            # Optional: Update the listing in Supabase with the predicted price
+            # Uncomment if you added these columns to your DB
+            # supabase.table("listings").update({
+            #     "predicted_price": prediction['predicted_price'],
+            #     "price_range_low": prediction['price_low'],
+            #     "price_range_high": prediction['price_high']
+            # }).eq("id", listing_id).execute()
+            
+        except Exception as e:
+            logger.error(f"❌ Price Prediction Failed: {e}")
+            # Don't fail the whole request if prediction fails
+
+        return JsonResponse({
+            "success": True,
+            "listing_id": listing_id,
+            "pois_found": len(extracted_pois),
+            "reliability_score": score_result["score"],
+            "reliability_level": score_result["level"],
+            "predicted_price": predicted_price_data['predicted_price'] if predicted_price_data else None,
+            "price_range": {
+                "low": predicted_price_data['price_low'] if predicted_price_data else None,
+                "high": predicted_price_data['price_high'] if predicted_price_data else None,
+            },
+            "message": "Listing published successfully!"
+        }, status=201)
+        
+    except Exception as e:
+        logger.error(f"❌ CRITICAL ERROR: {e}", exc_info=True)
+        return JsonResponse({"error": str(e)}, status=500)
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────

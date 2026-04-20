@@ -1,9 +1,16 @@
 import os
 from pathlib import Path
+import sys
 from dotenv import load_dotenv
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+    
+# ✅ ADD THIS: Add the Project Root (EstateMind) to sys.path
+# This allows imports like "from data.preprocessing..."
+PROJECT_ROOT = BASE_DIR.parent 
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 SECRET_KEY    = os.environ.get("DJANGO_SECRET_KEY", "change-me-in-production")
 DEBUG         = os.environ.get("DEBUG", "true").lower() == "true"
@@ -18,10 +25,15 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "dashboard",
+    "django_extensions",
 ]
+
+import re
+from django.utils.deprecation import MiddlewareMixin
 
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
+    "estate_admin.settings.DisableCSRFOnAPI",  # ← Add this line
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -138,3 +150,13 @@ USE_TZ             = True
 STATIC_URL         = "/static/"
 STATIC_ROOT        = BASE_DIR / "staticfiles"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+class DisableCSRFOnAPI:
+    """Middleware to skip CSRF checks for /api/ endpoints"""
+    def __init__(self, get_response):
+        self.get_response = get_response
+    
+    def __call__(self, request):
+        if request.path.startswith('/api/'):
+            setattr(request, '_dont_enforce_csrf_checks', True)
+        return self.get_response(request)

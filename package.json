@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@supabase/supabase-js": "^2.49.8",
+    "leaflet": "^1.9.4",
+    "react-leaflet": "^5.0.0",
+    "supabase": "^2.92.1",
+    "supabase-js": "^0.0.1-security"
+  }
+}

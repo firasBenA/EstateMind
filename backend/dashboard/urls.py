@@ -1,3 +1,5 @@
+# backend/dashboard/urls.py
+
 from django.urls import path
 from . import views
 from . import report_views
@@ -19,7 +21,8 @@ urlpatterns = [
     path("api/listings/",          views.listings_list,   name="listings_list"),
     path("api/listings/meta/",     views.listings_meta,   name="listings_meta"),
     path("api/listings/<str:pk>/", views.listing_detail,  name="listing_detail"),
-     path("api/listings/<pk>/similar/",similarity_views.similar_listings,    name="similar_listings"),
+    path("api/listings/create/", views.create_listing, name="create_listing"),
+    path("api/listings/<pk>/similar/",similarity_views.similar_listings,    name="similar_listings"),
     # ── Auth ─────────────────────────────────────────────────────────────────
     path("api/register/",  views.api_register, name="api_register"),
     path("api/login/",     views.api_login,    name="api_login"),
