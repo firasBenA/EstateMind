@@ -1,9 +1,6 @@
-/**
- * frontend-client/src/pages/LandingPage.tsx
- *
- * Stats and featured listings now come from the real Django API.
- * Falls back gracefully while loading.
- */
+// frontend-client/src/pages/LandingPage.tsx
+// Add the toggle section right after the "How it works" section
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { PublicLayout }   from "@/components/PublicLayout";
@@ -11,6 +8,8 @@ import { HeroScene }      from "@/components/HeroScene";
 import { ListingCard }    from "@/components/ListingCard";
 import { Button }         from "@/components/ui/button";
 import { Skeleton }       from "@/components/ui/skeleton";
+import Recommendations from "@/components/recommendation";
+import { useAuth } from "@/lib/auth-context";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -18,29 +17,22 @@ import { useListings, useListingsMeta } from "@/hooks/useListings";
 import {
   Search, Building2, MapPin, TrendingUp, CalendarDays,
   Shield, BarChart3, FileText, ArrowRight,
-  Users, Zap, Sparkles, Target, Clock,
+  Users, Zap, Sparkles, Target, Clock, Flame,
 } from "lucide-react";
 
-// ── Stat card skeleton ────────────────────────────────────────────────────────
-function StatSkeleton() {
-  return (
-    <div className="flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm">
-      <Skeleton className="h-12 w-12 rounded-xl shrink-0" />
-      <div className="space-y-1.5 flex-1">
-        <Skeleton className="h-5 w-20" />
-        <Skeleton className="h-3 w-28" />
-      </div>
-    </div>
-  );
-}
+// ... StatSkeleton function stays the same ...
 
 export default function LandingPage() {
   const navigate = useNavigate();
-
+  const { isAuthenticated } = useAuth();
+  
   // ── Search bar state ──────────────────────────────────────────────────────
   const [city,      setCity]      = useState("");
   const [transType, setTransType] = useState("");
   const [propType,  setPropType]  = useState("");
+  
+  // ── Toggle state for featured/recommended ─────────────────────────────────
+  const [activeSection, setActiveSection] = useState<"featured" | "recommended">("featured");
 
   const handleSearch = () => {
     const params = new URLSearchParams();
@@ -87,17 +79,11 @@ export default function LandingPage() {
 
   return (
     <PublicLayout>
-
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-10 w-96 h-96 bg-primary/3 rounded-full blur-3xl" />
-        </div>
-
+        {/* Hero content - same as before */}
         <div className="container mx-auto px-4 pt-8 md:pt-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-
             {/* Left: headline */}
             <div className="space-y-6 text-center lg:text-left relative z-10">
               <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground">
@@ -165,7 +151,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {metaLoading
-              ? Array.from({ length: 4 }).map((_, i) => <StatSkeleton key={i} />)
+              ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
               : stats.map(s => (
                   <div key={s.label}
                     className="flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -217,38 +203,96 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Featured listings ──────────────────────────────────────────────── */}
-      <section className="bg-muted/20 py-20">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <span className="inline-block text-xs font-semibold tracking-widest uppercase text-primary mb-1">Fraîchement publiées</span>
-              <h2 className="text-2xl md:text-3xl font-bold">Annonces en vedette</h2>
-            </div>
-            <Button variant="ghost" onClick={() => navigate("/search")} className="gap-1">
-              Voir tout <ArrowRight className="h-4 w-4" />
-            </Button>
+      {/* ── TOGGLE SECTION: Featured / AI Recommendations ─────────────────── */}
+      <section className="container mx-auto px-4 py-10">
+        {/* Toggle Buttons */}
+        <div className="flex justify-center mb-10">
+          <div className="inline-flex rounded-lg border bg-card p-1 shadow-sm">
+            <button
+              onClick={() => setActiveSection("featured")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-all ${
+                activeSection === "featured"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Flame className="h-4 w-4" />
+              Annonces en vedette
+            </button>
+            <button
+              onClick={() => setActiveSection("recommended")}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-all ${
+                activeSection === "recommended"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted"
+              }`}
+            >
+              <Sparkles className="h-4 w-4" />
+              Recommandations IA
+            </button>
           </div>
-
-          {featuredLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="rounded-xl border bg-card overflow-hidden">
-                  <Skeleton className="aspect-[4/3] w-full" />
-                  <div className="p-4 space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                    <Skeleton className="h-5 w-1/3" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredListings.map(l => <ListingCard key={l.id} listing={l} />)}
-            </div>
-          )}
         </div>
+
+        {/* Featured Listings Section */}
+        {activeSection === "featured" && (
+          <div>
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h2 className="text-2xl font-bold">Annonces en vedette</h2>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Les dernières annonces publiées sur EstateMind
+                </p>
+              </div>
+              <Button variant="ghost" onClick={() => navigate("/search")} className="gap-1">
+                Voir tout <ArrowRight className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {featuredLoading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-xl border bg-card overflow-hidden">
+                    <Skeleton className="aspect-[4/3] w-full" />
+                    <div className="p-4 space-y-2">
+                      <Skeleton className="h-4 w-3/4" />
+                      <Skeleton className="h-3 w-1/2" />
+                      <Skeleton className="h-5 w-1/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredListings.map(l => <ListingCard key={l.id} listing={l} />)}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* AI Recommendations Section (only for logged-in users) */}
+        {activeSection === "recommended" && (
+          <div>
+            {isAuthenticated ? (
+              <Recommendations  />
+            ) : (
+              <div className="text-center py-16 bg-muted/30 rounded-2xl">
+                <Sparkles className="h-12 w-12 mx-auto text-primary/50 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Connectez-vous pour voir vos recommandations</h3>
+                <p className="text-muted-foreground mb-6">
+                  Créez un compte ou connectez-vous pour recevoir des recommandations personnalisées basées sur vos recherches.
+                </p>
+                <div className="flex gap-3 justify-center">
+                  <Button asChild variant="outline">
+                    <Link to="/login">Se connecter</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link to="/register">Créer un compte</Link>
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </section>
 
       {/* ── Why EstateMind ────────────────────────────────────────────────── */}

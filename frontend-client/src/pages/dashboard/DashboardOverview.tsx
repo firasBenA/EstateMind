@@ -10,7 +10,7 @@ import { Link } from "react-router-dom";
 const COLORS = ["hsl(160,80%,24%)", "hsl(37,70%,41%)", "hsl(200,70%,50%)", "hsl(280,60%,50%)", "hsl(340,65%,47%)"];
 
 export default function DashboardOverview() {
-  const flagged = mockListings.filter(l => l.fraud_flag);
+  //const flagged = mockListings.filter(l => l.fraud_flag);
   const outliers = mockListings.filter(l => l.is_outlier);
   const duplicates = mockListings.filter(l => l.suspected_duplicate);
   const today = new Date().toISOString().split("T")[0];
@@ -18,7 +18,7 @@ export default function DashboardOverview() {
 
   const kpis = [
     { icon: Building2, label: "Total Listings", value: mockListings.length },
-    { icon: ShieldAlert, label: "Flagged", value: flagged.length },
+    //{ icon: ShieldAlert, label: "Flagged", value: flagged.length },
     { icon: TrendingUp, label: "Avg Fraud Score", value: (mockListings.reduce((s, l) => s + l.fraud_score, 0) / mockListings.length).toFixed(2) },
     { icon: AlertTriangle, label: "Outliers", value: outliers.length },
     { icon: Copy, label: "Duplicates", value: duplicates.length },
@@ -52,7 +52,7 @@ export default function DashboardOverview() {
   mockListings.forEach(l => { transCount[l.transaction_type] = (transCount[l.transaction_type] || 0) + 1; });
   const transChart = Object.entries(transCount).map(([name, value]) => ({ name, value }));
 
-  const recentFlags = flagged.sort((a, b) => new Date(b.flagged_at!).getTime() - new Date(a.flagged_at!).getTime()).slice(0, 10);
+  //const recentFlags = flagged.sort((a, b) => new Date(b.flagged_at!).getTime() - new Date(a.flagged_at!).getTime()).slice(0, 10);
 
   return (
     <DashboardLayout>
@@ -152,7 +152,7 @@ export default function DashboardOverview() {
                   </tr>
                 </thead>
                 <tbody>
-                  {recentFlags.map(l => (
+                  {/* {recentFlags.map(l => (
                     <tr key={l.id} className="border-b last:border-0">
                       <td className="py-2 pr-4 max-w-48 truncate">{l.title}</td>
                       <td className="py-2 pr-4">{l.city}</td>
@@ -160,7 +160,7 @@ export default function DashboardOverview() {
                       <td className="py-2 pr-4"><Badge variant="outline" className={l.fraud_score > 0.6 ? "text-destructive" : "text-warning"}>{(l.fraud_score * 100).toFixed(0)}%</Badge></td>
                       <td className="py-2"><Button asChild size="sm" variant="outline"><Link to={`/listing/${l.id}`}>Review</Link></Button></td>
                     </tr>
-                  ))}
+                  ))} */}
                 </tbody>
               </table>
             </div>

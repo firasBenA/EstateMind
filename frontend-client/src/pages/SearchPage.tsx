@@ -1,11 +1,9 @@
 /**
  * frontend-client/src/pages/SearchPage.tsx
- *
- * Listings search page — all filtering, sorting and pagination
- * is delegated to the Django backend via useListings().
- * The component only manages UI state and derives API params from it.
+ * 
+ * Listings search page — with behavior tracking for recommendations
  */
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { PublicLayout }   from "@/components/PublicLayout";
 import { ListingCard }    from "@/components/ListingCard";
@@ -21,6 +19,8 @@ import { Switch }   from "@/components/ui/switch";
 import { Slider }   from "@/components/ui/slider";
 import { Label }    from "@/components/ui/label";
 import { useListings, useListingsMeta } from "@/hooks/useListings";
+import { useBehaviorTracker } from "@/hooks/useBehaviorTracker.ts";
+import { useAuth } from "@/lib/auth-context";
 import type { ListingFilters } from "@/lib/api";
 import {
   X, LayoutGrid, List, SlidersHorizontal,
@@ -65,6 +65,8 @@ function CardSkeleton() {
 
 // ── Main component ─────────────────────────────────────────────────────────────
 export default function SearchPage() {
+  const { isAuthenticated } = useAuth();
+  const { track, trackSearch } = useBehaviorTracker();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // ── UI state ─────────────────────────────────────────────────────────────
@@ -82,6 +84,9 @@ export default function SearchPage() {
   const [viewMode,     setViewMode]     = useState<"grid" | "list">("grid");
   const [page,         setPage]         = useState(1);
   const [filtersOpen,  setFiltersOpen]  = useState(false);
+  
+  // Track if search has been tracked
+  const lastSearchTrackedRef = useRef<string>("");
 
   // ── Meta (cities from API) ───────────────────────────────────────────────
   const { meta } = useListingsMeta();
@@ -114,6 +119,61 @@ export default function SearchPage() {
     searchText, city, transType, propTypes, priceRange,
     surfaceRange, rooms, showFlagged, sortBy, resetPage,
   ]);
+
+  // ── Track search when results load (for recommendations) ─────────────────
+  useEffect(() => {
+    if (!loading && !error && total > 0 && isAuthenticated) {
+      // Build current search fingerprint
+      const searchFingerprint = JSON.stringify({
+        q: searchText,
+        city,
+        transaction: transType,
+        types: propTypes,
+        price_min: priceRange[0],
+        price_max: priceRange[1],
+        surface_min: surfaceRange[0],
+        surface_max: surfaceRange[1],
+        rooms,
+        sort: sortBy
+      });
+      
+      // Only track if search changed
+      if (searchFingerprint !== lastSearchTrackedRef.current) {
+        trackSearch(
+          searchText || "all listings",
+          {
+            city: city || undefined,
+            transaction_type: transType !== "all" ? transType : undefined,
+            property_type: propTypes[0],
+            min_price: priceRange[0] > 0 ? priceRange[0] : undefined,
+            max_price: priceRange[1] < 5000000 ? priceRange[1] : undefined,
+            min_surface: surfaceRange[0] > 0 ? surfaceRange[0] : undefined,
+            max_surface: surfaceRange[1] < 1000 ? surfaceRange[1] : undefined,
+            rooms: rooms.length === 1 ? rooms[0] : undefined
+          },
+          total,
+          undefined
+        );
+        lastSearchTrackedRef.current = searchFingerprint;
+      }
+    }
+  }, [loading, error, total, searchText, city, transType, propTypes, 
+      priceRange, surfaceRange, rooms, sortBy, isAuthenticated, trackSearch]);
+
+  // ── Track click on listing from search results ───────────────────────────
+  const handleListingClick = useCallback(async (listingId: string) => {
+    if (isAuthenticated) {
+      await track('search_click', listingId, {
+        referrer: 'search_results',
+        searchQuery: searchText || undefined,
+        filters: {
+          city: city || undefined,
+          transaction_type: transType !== "all" ? transType : undefined,
+          property_type: propTypes[0]
+        }
+      });
+    }
+  }, [track, searchText, city, transType, propTypes, isAuthenticated]);
 
   // ── Active filter pills ──────────────────────────────────────────────────
   const activeFilters: { label: string; clear: () => void }[] = [];
@@ -355,36 +415,45 @@ export default function SearchPage() {
               </div>
             )}
 
-            {/* Results grid */}
+            {/* Results grid with tracking */}
             {!loading && !error && listings.length > 0 && (
               <>
                 {viewMode === "grid" ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {listings.map(l => <ListingCard key={l.id} listing={l} />)}
+                    {listings.map(l => (
+                      <div 
+                        key={l.id} 
+                        onClick={() => handleListingClick(l.id)}
+                        className="cursor-pointer"
+                      >
+                        <ListingCard listing={l} />
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {listings.map(l => (
-                      <Link key={l.id} to={`/listing/${l.id}`}
-                        className="flex gap-4 border rounded-xl p-3 hover:bg-muted/50 transition-colors bg-card">
-                        <img
-                          src={(l.images?.[0] as { url: string })?.url ?? "/placeholder.svg"}
-                          alt=""
-                          className="w-32 h-24 object-cover rounded-lg shrink-0 bg-muted"
-                        />
-                        <div className="flex-1 min-w-0">
-                          <h3 className="font-semibold text-sm truncate">{l.title}</h3>
-                          <p className="text-xs text-muted-foreground mt-0.5">
-                            {l.city}{l.zone ? ` • ${l.zone}` : ""} · {PROP_LABELS[l.type ?? ""] ?? l.type}
-                          </p>
-                          <p className="text-base font-bold text-primary mt-1">
-                            {(l.price ?? 0).toLocaleString("fr-TN")} TND
-                          </p>
-                          {l.surface && (
-                            <p className="text-xs text-muted-foreground">{l.surface} m²</p>
-                          )}
-                        </div>
-                      </Link>
+                      <div key={l.id} onClick={() => handleListingClick(l.id)}>
+                        <Link to={`/listing/${l.id}`} className="flex gap-4 border rounded-xl p-3 hover:bg-muted/50 transition-colors bg-card">
+                          <img
+                            src={(l.images?.[0] as { url: string })?.url ?? "/no-image.svg"}
+                            alt=""
+                            className="w-32 h-24 object-cover rounded-lg shrink-0 bg-muted"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-sm truncate">{l.title}</h3>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              {l.city}{l.zone ? ` • ${l.zone}` : ""} · {PROP_LABELS[l.type ?? ""] ?? l.type}
+                            </p>
+                            <p className="text-base font-bold text-primary mt-1">
+                              {(l.price ?? 0).toLocaleString("fr-TN")} TND
+                            </p>
+                            {l.surface && (
+                              <p className="text-xs text-muted-foreground">{l.surface} m²</p>
+                            )}
+                          </div>
+                        </Link>
+                      </div>
                     ))}
                   </div>
                 )}

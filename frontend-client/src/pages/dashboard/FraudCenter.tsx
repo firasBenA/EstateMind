@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 
 export default function FraudCenter() {
-  const flagged = mockListings.filter(l => l.fraud_flag);
+  //const flagged = mockListings.filter(l => l.fraud_flag);
   const outliers = mockListings.filter(l => l.is_outlier);
   const duplicates = mockListings.filter(l => l.suspected_duplicate);
 
@@ -22,7 +22,7 @@ export default function FraudCenter() {
     <DashboardLayout>
       <Tabs defaultValue="flagged" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="flagged">Flagged ({flagged.length})</TabsTrigger>
+          {/* <TabsTrigger value="flagged">Flagged ({flagged.length})</TabsTrigger> */}
           <TabsTrigger value="outliers">Outliers ({outliers.length})</TabsTrigger>
           <TabsTrigger value="duplicates">Duplicates ({duplicates.length})</TabsTrigger>
         </TabsList>
@@ -39,7 +39,7 @@ export default function FraudCenter() {
                     </tr>
                   </thead>
                   <tbody>
-                    {flagged.map(l => (
+                    {/* {flagged.map(l => (
                       <tr key={l.id} className="border-b last:border-0">
                         <td className="p-3 max-w-[180px] truncate">{l.title}</td>
                         <td className="p-3">{l.city}</td>
@@ -53,7 +53,7 @@ export default function FraudCenter() {
                           <Button size="sm" variant="destructive" onClick={() => toast.success("Confirmed fraud")}>Confirm</Button>
                         </td>
                       </tr>
-                    ))}
+                    ))} */}
                   </tbody>
                 </table>
               </div>

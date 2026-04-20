@@ -116,3 +116,118 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.email} ({self.role})"
+
+
+class SavedReport(models.Model):
+    REPORT_TYPES = [
+        ("market",     "Market Overview"),
+        ("investment", "Investment Analysis"),
+        ("portfolio",  "Portfolio Performance"),
+    ]
+    user        = models.ForeignKey(User, on_delete=models.CASCADE, related_name="reports")
+    report_type = models.CharField(max_length=20, choices=REPORT_TYPES)
+    title       = models.CharField(max_length=200)
+    params      = models.JSONField(default=dict)
+    content     = models.TextField()               # full markdown text
+    created_at  = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "saved_reports"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.title} ({self.user.email})"
+
+class Contract(models.Model):
+    CONTRACT_TYPES = [
+        ("compromis_de_vente", "Compromis de Vente"),
+        ("promesse_de_vente", "Promesse de Vente"),
+        ("contrat_de_location", "Contrat de Location"),
+        ("acte_de_vente", "Acte de Vente"),
+    ]
+    
+    STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("sent", "Sent"),
+        ("signed", "Signed"),
+    ]
+    
+    user = models.ForeignKey(UserProfile, on_delete=models.CASCADE, related_name="contracts")
+    contract_type = models.CharField(max_length=50, choices=CONTRACT_TYPES)
+    title = models.CharField(max_length=255)
+    params = models.JSONField(default=dict)
+    content = models.TextField()
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} - {self.created_at.date()}"
+    
+    class Meta:
+        ordering = ["-created_at"]
+
+
+
+class UserBehaviorLog(models.Model):
+    """Track user behaviors"""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True)
+    listing_id = models.CharField(max_length=100)  # TEXT type in DB
+    behavior_type = models.CharField(max_length=30)
+    duration_seconds = models.IntegerField(default=0)
+    referrer = models.CharField(max_length=200, null=True, blank=True)
+    search_query = models.TextField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'user_behavior_log'
+        managed = False  # Don't let Django manage this table (already exists)
+
+
+class UserSearchHistory(models.Model):
+    """Track user searches"""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE, null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    search_query = models.TextField()
+    filters = models.JSONField(default=dict)
+    results_count = models.IntegerField(default=0)
+    clicked_listing_id = models.CharField(max_length=100, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'user_search_history'
+        managed = False
+
+
+class UserNotification(models.Model):
+    """User notifications"""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    notification_type = models.CharField(max_length=50)
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    listing_id = models.CharField(max_length=100, null=True, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    data = models.JSONField(default=dict)
+    
+    class Meta:
+        db_table = 'user_notifications'
+        managed = False
+        ordering = ['-created_at']
+
+
+class UserRecommendationsCache(models.Model):
+    """Cached recommendations"""
+    user = models.ForeignKey('auth.User', on_delete=models.CASCADE)
+    listing_id = models.CharField(max_length=100)
+    recommendation_score = models.FloatField(default=0.5)
+    recommendation_type = models.CharField(max_length=50, null=True, blank=True)
+    reason = models.TextField(null=True, blank=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        db_table = 'user_recommendations_cache'
+        managed = False

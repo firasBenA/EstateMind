@@ -4,6 +4,7 @@
 # Virtual environment
 data/venv/
 venv/
+data/MODELS/RAG/documents/*.pdf
 # Python
 *.pyc
 __pycache__/
