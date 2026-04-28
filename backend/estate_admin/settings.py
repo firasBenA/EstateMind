@@ -83,6 +83,12 @@ DATABASES = {
     },
 }
 
+
+PUSHER_APP_ID = os.getenv('PUSHER_APP_ID')
+PUSHER_KEY = os.getenv('PUSHER_KEY')
+PUSHER_SECRET = os.getenv('PUSHER_SECRET')
+PUSHER_CLUSTER = os.getenv('PUSHER_CLUSTER', 'eu')
+
 # ── CORS ───────────────────────────────────────────────────────────────────────
 CORS_ALLOWED_ORIGINS = os.environ.get(
     "CORS_ALLOWED_ORIGINS",
@@ -91,11 +97,21 @@ CORS_ALLOWED_ORIGINS = os.environ.get(
 CORS_ALLOW_CREDENTIALS = True
 
 # ── Session & CSRF ────────────────────────────────────────────────────────────
-SESSION_ENGINE          = "django.contrib.sessions.backends.db"
-SESSION_COOKIE_HTTPONLY = True
-SESSION_COOKIE_SAMESITE = "Lax"
-SESSION_COOKIE_SECURE   = not DEBUG
-SESSION_COOKIE_AGE      = 60 * 60 * 24 * 14   # 14 days
+# Session settings - increase timeout
+SESSION_COOKIE_AGE = 7 * 24 * 60 * 60  # 7 days (in seconds)
+SESSION_SAVE_EVERY_REQUEST = True  # Refresh session on each request
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Don't expire when browser closes
+
+# CSRF settings for better compatibility
+CSRF_COOKIE_AGE = 7 * 24 * 60 * 60  # 7 days
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Also add these for better session handling
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
+USE_X_FORWARDED_PORT = True
 
 CSRF_COOKIE_HTTPONLY  = False
 CSRF_COOKIE_SAMESITE  = "Lax"

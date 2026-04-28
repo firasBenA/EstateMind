@@ -1,0 +1,38 @@
+# Tunisian Real Estate Contract — Mandatory Elements
+# Sources: Investment Law 2016, maitre-haifaguedhami.me, spinellimechri.com
+
+## Sale contracts (Vente immobilière)
+MANDATORY: Clause suspensive — the preliminary agreement must contain a suspensive
+condition making the sale contingent on obtaining the Governor's authorisation
+(required for foreign buyers). Ref: Governorate permit requirement.
+
+MANDATORY: Désignation précise du bien — full description of property including
+address, surface area, land registry reference (titre foncier number).
+
+MANDATORY: Prix et modalités de paiement — exact price in TND, payment schedule,
+deposit amount (typically 10-20% refundable if Governor refuses).
+
+MANDATORY: Droits d'enregistrement — registration fees at 3% of purchase price,
+legally at charge of buyer unless otherwise agreed.
+
+MANDATORY: Garantie d'éviction — seller guarantees buyer against third-party claims.
+
+MANDATORY: Garantie des vices cachés — seller responsible for hidden defects.
+
+MANDATORY: Date de transfert de propriété — exact date ownership transfers,
+must coincide with registration at Conservation de la Propriété Foncière.
+
+FORBIDDEN: Agricultural land cannot be sold to foreign buyers under any condition.
+Ref: Tunisian law protecting national farmland.
+
+REQUIRED FOR FOREIGN BUYERS: Certificate d'investissement (Fiche d'investissement)
+from BCT proving funds transferred from abroad. Without this, resale proceeds
+cannot be repatriated.
+
+## Rental contracts (Bail)
+MANDATORY: Durée du bail — duration must be specified. Minimum 1 year for residential.
+MANDATORY: Montant du loyer — exact monthly amount in TND.
+MANDATORY: Dépôt de garantie — deposit amount (typically 1-2 months rent).
+MANDATORY: Indexation — whether rent can be revised and on what basis.
+MANDATORY: Conditions de résiliation — notice period for termination (typically 3 months).
+MANDATORY: État des lieux — inventory at entry, signed by both parties.

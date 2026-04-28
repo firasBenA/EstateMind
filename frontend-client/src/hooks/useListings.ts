@@ -9,23 +9,23 @@ import { listingsApi, type Listing, type ListingFilters, type ListingsMetaRespon
 
 // ── Listings list ─────────────────────────────────────────────────────────────
 export interface UseListingsState {
-  listings:    Listing[];
-  total:       number;
-  pages:       number;
-  page:        number;
-  loading:     boolean;
-  error:       string | null;
-  refetch:     () => void;
+  listings: Listing[];
+  total: number;
+  pages: number;
+  page: number;
+  loading: boolean;
+  error: string | null;
+  refetch: () => void;
 }
 
 export function useListings(filters: ListingFilters = {}): UseListingsState {
   const [listings, setListings] = useState<Listing[]>([]);
-  const [total,    setTotal]    = useState(0);
-  const [pages,    setPages]    = useState(1);
-  const [page,     setPage]     = useState(1);
-  const [loading,  setLoading]  = useState(true);
-  const [error,    setError]    = useState<string | null>(null);
-  const [tick,     setTick]     = useState(0);
+  const [total, setTotal] = useState(0);
+  const [pages, setPages] = useState(1);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
 
   // Stable serialized key so the effect re-runs when filters change
   const filterKey = JSON.stringify(filters);
@@ -63,10 +63,10 @@ export function useListings(filters: ListingFilters = {}): UseListingsState {
 }
 
 // ── Single listing ─────────────────────────────────────────────────────────────
-export function useListing(id: number | null) {
+export function useListing(id: string | number | null) {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id === null) return;
@@ -74,10 +74,11 @@ export function useListing(id: number | null) {
     setLoading(true);
     setError(null);
 
-    listingsApi.get(id)
+    fetch(`/api/listings/${id}/`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(data => { if (!cancelled) setListing(data); })
-      .catch(err  => { if (!cancelled) setError(err instanceof Error ? err.message : "Erreur."); })
-      .finally(()  => { if (!cancelled) setLoading(false); });
+      .catch(err => { if (!cancelled) setError(err instanceof Error ? err.message : "Erreur."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
 
     return () => { cancelled = true; };
   }, [id]);
@@ -87,9 +88,9 @@ export function useListing(id: number | null) {
 
 // ── Meta (cities, stats) ──────────────────────────────────────────────────────
 export function useListingsMeta() {
-  const [meta,    setMeta]    = useState<ListingsMetaResponse | null>(null);
+  const [meta, setMeta] = useState<ListingsMetaResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     listingsApi.meta()
@@ -99,4 +100,34 @@ export function useListingsMeta() {
   }, []);
 
   return { meta, loading, error };
+}
+
+// ── Similar listings ──────────────────────────────────────────────────────────
+export interface SimilarListingsResponse {
+  strategy_used: "vector" | "feature" | "feature_region";
+  count: number;
+  results: (Listing & { similarity_score: number | null; similarity_reason: string })[];
+}
+
+export function useSimilarListings(id: string | number | null, limit = 6) {
+  const [data, setData] = useState<SimilarListingsResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (id === null || id === undefined) return;
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    fetch(`/api/listings/${id}/similar/?limit=${limit}`)
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(d => { if (!cancelled) setData(d); })
+      .catch(e => { if (!cancelled) setError(e.message); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+
+    return () => { cancelled = true; };
+  }, [id, limit]);
+
+  return { data, loading, error };
 }

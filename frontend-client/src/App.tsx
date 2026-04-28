@@ -28,6 +28,7 @@ import UserContracts from "./pages/user/UserContracts";
 import UserMessages from "./pages/user/UserMessages";
 import UserSettings from "./pages/user/UserSettings";
 import NotFound from "./pages/NotFound";
+import RecommendationsPage from "@/pages/user/recommendation";
 
 const queryClient = new QueryClient();
 
@@ -63,6 +64,7 @@ const App = () => (
               <Route path="/user/profitability" element={<UserRoute><ProfitabilityPlanner /></UserRoute>} />
               <Route path="/user/reports" element={<UserRoute><UserReports /></UserRoute>} />
               <Route path="/user/contracts" element={<UserRoute><UserContracts /></UserRoute>} />
+              <Route path="/user/recommendations" element={<RecommendationsPage />} />
               <Route path="/user/messages" element={<UserRoute><UserMessages /></UserRoute>} />
               <Route path="/user/settings" element={<UserRoute><UserSettings /></UserRoute>} />
 
