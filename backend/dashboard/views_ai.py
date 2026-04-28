@@ -18,8 +18,12 @@ logger = logging.getLogger(__name__)
 
 AI_SERVICE_URL = os.environ.get("AI_SERVICE_URL", "http://localhost:8001")
 
-# ✅ Initialize Predictor ONCE at startup
-predictor = get_predictor()
+# ✅ Initialize Predictor ONCE at startup (graceful fallback)
+try:
+    predictor = get_predictor()
+except Exception as e:
+    logger.warning(f"Could not load predictor at startup: {e}")
+    predictor = None
 
 @csrf_exempt
 @require_http_methods(["POST"])

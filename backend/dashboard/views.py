@@ -27,7 +27,11 @@ import uuid
 from django.utils import timezone
 from sentence_transformers import SentenceTransformer
 
-from data.preprocessing.steps.scorer import compute_score
+try:
+    from data.preprocessing.steps.scorer import compute_score
+except ImportError:
+    compute_score = None
+
 from .models import Listing # Make sure Listing is imported
 from models.prediction_models.predictor import get_predictor
 
