@@ -9,7 +9,7 @@ import re
 import json
 import logging
 from typing import Generator, Dict, Any, List, Optional
-
+import os
 from agent.tools.llm_extractor import extract_predict_price_params_with_llm
 
 logger = logging.getLogger(__name__)
@@ -486,6 +486,14 @@ class AgentOrchestrator:
 
         return params
 
+    def _detect_llm_provider(self) -> str:
+        """Detect which LLM provider was used for extraction."""
+        if os.getenv("OPENAI_API_KEY") and os.getenv("OPENAI_API_KEY").startswith("sk-proj-"):
+            return "openai"
+        elif os.getenv("GROQ_API_KEY"):
+            return "groq"
+        return "unknown"
+
     def _extract_predict_params(self, message: str) -> Dict[str, Any]:
         msg_low = message.lower()
         params  = {
@@ -499,7 +507,12 @@ class AgentOrchestrator:
         llm_params = extract_predict_price_params_with_llm(message)
         if llm_params:
             params.update({k: v for k, v in llm_params.items() if v is not None})
-
+            params["_extraction_method"] = "llm"
+            params["_llm_provider"] = self._detect_llm_provider()
+            logger.info(f"🎯 [AGENT] LLM extraction successful via {params['_llm_provider']}")  # ← NEW LOG
+        else:
+            logger.info("🎯 [AGENT] LLM extraction failed, falling back to regex")  # ← NEW LOG
+            
         if params.get("surface") in (None, 100.0):
             surface_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm|square\s*meters?)', msg_low)
             if surface_match:
@@ -772,25 +785,50 @@ class AgentOrchestrator:
             "❤️ I can also **predict prices**, show **market stats**, or **create a listing**!"
         )}
 
+    # In agent.py, update _format_predict_response:
+
     def _format_predict_response(self, result: Dict) -> Generator[Dict, None, None]:
         if "error" in result:
             yield {"type": "token", "content": f"❌ {result['error']}\n"}
             return
 
-        price      = result.get("predicted_price", 0)
+        price = result.get("predicted_price", 0)
         confidence = result.get("confidence", 0)
-        min_est    = result.get("min_estimate", 0)
-        max_est    = result.get("max_estimate", 0)
-        reasoning  = result.get("reasoning", "")
+        min_est = result.get("min_estimate", 0)
+        max_est = result.get("max_estimate", 0)
+        reasoning = result.get("reasoning", "")
+        
+        # 🔹 Show extracted params in debug mode
+        debug_mode = os.getenv("DEBUG_EXTRACTED_PARAMS", "false").lower() == "true"
+        extraction_method = result.get("_extraction_method", "regex")
+        llm_provider = result.get("_llm_provider", "unknown")
+        
+        if debug_mode and extraction_method == "llm" and result.get("_extracted_params"):
+            extracted = result["_extracted_params"]
+            yield {"type": "token", "content": (
+                f"🔍 **Extracted via {llm_provider.upper()}:**\n"
+                f"• 🏠 Type: {extracted.get('property_type', 'N/A')}\n"
+                f"• 📍 City: {extracted.get('city', 'N/A')}\n"
+                f"• 📐 Surface: {extracted.get('surface', 'N/A')} m²\n"
+                f"• 🛏️ Rooms: {extracted.get('rooms', 'N/A')}\n"
+                f"• 💱 Transaction: {extracted.get('transaction_type', 'N/A')}\n\n"
+            )}
+        elif debug_mode:
+            # Show that regex was used
+            yield {"type": "token", "content": (
+                f"🔍 **Extracted via REGEX** (LLM unavailable)\n\n"
+            )}
 
+        # Original prediction output
         yield {"type": "token", "content": (
             f"💰 **Predicted Price: {price:,.0f} TND**\n\n"
             f"📊 Range: {min_est:,.0f} – {max_est:,.0f} TND\n"
             f"🎯 Confidence: {confidence * 100:.0f}%\n"
         )}
+        
         if reasoning:
             yield {"type": "token", "content": f"\n💡 {reasoning}\n"}
-
+            
     def _format_analytics_response(self, result: Dict) -> Generator[Dict, None, None]:
         if "error" in result:
             yield {"type": "token", "content": f"❌ {result['error']}\n"}

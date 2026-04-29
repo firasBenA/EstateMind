@@ -161,3 +161,31 @@ class DisableCSRFOnAPI:
         if request.path.startswith('/api/'):
             setattr(request, '_dont_enforce_csrf_checks', True)
         return self.get_response(request)
+
+
+# At the bottom of settings.py
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',  # Change to 'DEBUG' for more verbose logs
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'agent': {  # Your agent module
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}

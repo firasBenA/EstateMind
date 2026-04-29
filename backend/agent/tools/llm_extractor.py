@@ -44,7 +44,43 @@ TRANSACTION_MAP = {
 DEFAULT_GROQ_MODEL = os.getenv("LLM_PRICE_EXTRACTION_MODEL", "llama-3.1-8b-instant")
 DEFAULT_OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
 
+# In _call_groq(), add logging:
+def _call_groq(prompt: str) -> Optional[str]:
+    logger.info("🔄 [LLM_EXTRACT] Attempting Groq extraction...")  # ← NEW
+    
+    try:
+        from groq import Groq
+    except ImportError:
+        logger.debug("❌ [LLM_EXTRACT] Groq client unavailable")
+        return None
 
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        logger.debug("❌ [LLM_EXTRACT] GROQ_API_KEY not set")
+        return None
+
+    try:
+        client = Groq(api_key=api_key)
+        logger.info(f"📡 [LLM_EXTRACT] Calling Groq API with model: {DEFAULT_GROQ_MODEL}")  # ← NEW
+        
+        response = client.chat.completions.create(
+            model=DEFAULT_GROQ_MODEL,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.0,
+            max_tokens=250,
+        )
+
+        if response.choices and response.choices[0].message.content:
+            logger.info("✅ [LLM_EXTRACT] Groq extraction successful")  # ← NEW
+            return response.choices[0].message.content
+
+        logger.warning("⚠️ [LLM_EXTRACT] Groq returned empty response")
+        return None
+
+    except Exception as e:
+        logger.warning(f"❌ [LLM_EXTRACT] Groq extraction failed: {e}")  # ← Already there
+        return None
+        
 def extract_predict_price_params_with_llm(message: str) -> Dict[str, Any]:
     """Extract price prediction fields from a user query using an LLM."""
     if not message or len(message.strip()) < 5:
