@@ -92,7 +92,7 @@ logs/
 *.log
 
 # Large Data / Models (Let HF download them on the new PC)
-models/
+#models/
 data/generator/.cache/
 data/exports/
 *.pt

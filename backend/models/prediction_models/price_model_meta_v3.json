@@ -1,0 +1,272 @@
+{
+  "version": "v3",
+  "features": [
+    "log_surface",
+    "rooms_filled",
+    "rooms_per_m2",
+    "images_count",
+    "has_coords",
+    "n_features",
+    "has_description",
+    "desc_length",
+    "ppm2_vs_market",
+    "is_luxury",
+    "city_seg_median_price",
+    "city_tx_median_price",
+    "type_tx_median_price",
+    "seg_tx_median_price",
+    "reliability_score",
+    "reliability_bucket",
+    "model_weight",
+    "suspected_dup_int",
+    "is_outlier_int",
+    "city_te",
+    "type_te",
+    "segment_enc",
+    "region_clean_enc",
+    "transaction_type_enc"
+  ],
+  "features_xai": [
+    "reliability_score",
+    "reliability_bucket",
+    "model_weight",
+    "suspected_dup_int",
+    "is_outlier_int"
+  ],
+  "features_market": [
+    "city_seg_median_price",
+    "city_tx_median_price",
+    "type_tx_median_price",
+    "seg_tx_median_price"
+  ],
+  "segment_map": {
+    "apartment": "residential",
+    "villa": "residential",
+    "vacation": "residential",
+    "land": "land_commercial",
+    "commercial": "land_commercial",
+    "other": "land_commercial"
+  },
+  "keys": [
+    "sale",
+    "rent",
+    "sale_residential",
+    "sale_land_commercial",
+    "rent_residential",
+    "rent_land_commercial"
+  ],
+  "best_modes": {
+    "sale": "stack",
+    "rent": "ensemble",
+    "sale_residential": "stack",
+    "sale_land_commercial": "stack",
+    "rent_residential": "stack",
+    "rent_land_commercial": "stack"
+  },
+  "metrics": {
+    "sale": {
+      "xgb": {
+        "mae": 36225.0043,
+        "rmse": 65611.0444,
+        "r2": 0.9887,
+        "mape": 10.6023,
+        "wmape": 9.2043,
+        "mape_p95": 10.567
+      },
+      "lgb": {
+        "mae": 45342.7552,
+        "rmse": 90311.979,
+        "r2": 0.9835,
+        "mape": 12.6399,
+        "wmape": 11.521,
+        "mape_p95": 12.325
+      },
+      "stack": {
+        "mae": 34499.7724,
+        "rmse": 62802.8595,
+        "r2": 0.9898,
+        "mape": 9.9819,
+        "wmape": 8.7659,
+        "mape_p95": 9.9706
+      },
+      "ens": {
+        "mae": 35424.1886,
+        "rmse": 68210.06,
+        "r2": 0.9902,
+        "mape": 9.806,
+        "wmape": 9.0008,
+        "mape_p95": 9.6058
+      }
+    },
+    "rent": {
+      "xgb": {
+        "mae": 251.4939,
+        "rmse": 806.7573,
+        "r2": 0.9769,
+        "mape": 8.0289,
+        "wmape": 9.4382,
+        "mape_p95": 7.5344
+      },
+      "lgb": {
+        "mae": 259.0181,
+        "rmse": 658.3107,
+        "r2": 0.9512,
+        "mape": 11.4549,
+        "wmape": 9.7206,
+        "mape_p95": 11.223
+      },
+      "stack": {
+        "mae": 254.586,
+        "rmse": 830.0634,
+        "r2": 0.9774,
+        "mape": 8.0223,
+        "wmape": 9.5542,
+        "mape_p95": 7.5669
+      },
+      "ens": {
+        "mae": 227.226,
+        "rmse": 658.2059,
+        "r2": 0.9702,
+        "mape": 8.6113,
+        "wmape": 8.5275,
+        "mape_p95": 8.2541
+      }
+    },
+    "sale_residential": {
+      "xgb": {
+        "mae": 43620.9024,
+        "rmse": 72581.7539,
+        "r2": 0.9718,
+        "mape": 10.3138,
+        "wmape": 9.45,
+        "mape_p95": 10.1928
+      },
+      "lgb": {
+        "mae": 56348.5394,
+        "rmse": 100656.2282,
+        "r2": 0.9548,
+        "mape": 12.7513,
+        "wmape": 12.2073,
+        "mape_p95": 12.5213
+      },
+      "stack": {
+        "mae": 40523.9388,
+        "rmse": 71335.4285,
+        "r2": 0.9718,
+        "mape": 9.6663,
+        "wmape": 8.7791,
+        "mape_p95": 9.6669
+      },
+      "ens": {
+        "mae": 46349.1387,
+        "rmse": 81049.2222,
+        "r2": 0.969,
+        "mape": 10.5677,
+        "wmape": 10.041,
+        "mape_p95": 10.3427
+      }
+    },
+    "sale_land_commercial": {
+      "xgb": {
+        "mae": 42378.0805,
+        "rmse": 88809.4101,
+        "r2": 0.9868,
+        "mape": 10.8596,
+        "wmape": 10.7955,
+        "mape_p95": 10.6759
+      },
+      "lgb": {
+        "mae": 51566.5883,
+        "rmse": 127440.8323,
+        "r2": 0.9766,
+        "mape": 13.3106,
+        "wmape": 13.1362,
+        "mape_p95": 13.1109
+      },
+      "stack": {
+        "mae": 40200.4309,
+        "rmse": 85270.4834,
+        "r2": 0.9871,
+        "mape": 10.455,
+        "wmape": 10.2408,
+        "mape_p95": 10.3008
+      },
+      "ens": {
+        "mae": 42416.8263,
+        "rmse": 97711.1338,
+        "r2": 0.9852,
+        "mape": 10.6745,
+        "wmape": 10.8054,
+        "mape_p95": 10.5196
+      }
+    },
+    "rent_residential": {
+      "xgb": {
+        "mae": 183.7308,
+        "rmse": 612.7679,
+        "r2": 0.9759,
+        "mape": 7.5202,
+        "wmape": 8.6237,
+        "mape_p95": 7.3003
+      },
+      "lgb": {
+        "mae": 227.3801,
+        "rmse": 634.1883,
+        "r2": 0.9516,
+        "mape": 12.0161,
+        "wmape": 10.6724,
+        "mape_p95": 11.9367
+      },
+      "stack": {
+        "mae": 186.9115,
+        "rmse": 602.9159,
+        "r2": 0.9754,
+        "mape": 7.5646,
+        "wmape": 8.7729,
+        "mape_p95": 7.3406
+      },
+      "ens": {
+        "mae": 191.2607,
+        "rmse": 613.3076,
+        "r2": 0.972,
+        "mape": 8.3857,
+        "wmape": 8.9771,
+        "mape_p95": 8.1727
+      }
+    },
+    "rent_land_commercial": {
+      "xgb": {
+        "mae": 516.6716,
+        "rmse": 1212.4383,
+        "r2": 0.954,
+        "mape": 14.3573,
+        "wmape": 15.9344,
+        "mape_p95": 13.9485
+      },
+      "lgb": {
+        "mae": 798.2406,
+        "rmse": 2006.6254,
+        "r2": 0.8265,
+        "mape": 26.6661,
+        "wmape": 24.6181,
+        "mape_p95": 26.3998
+      },
+      "stack": {
+        "mae": 541.6531,
+        "rmse": 1274.0289,
+        "r2": 0.9395,
+        "mape": 15.7008,
+        "wmape": 16.7048,
+        "mape_p95": 15.3539
+      },
+      "ens": {
+        "mae": 578.1384,
+        "rmse": 1482.6308,
+        "r2": 0.9229,
+        "mape": 17.0598,
+        "wmape": 17.83,
+        "mape_p95": 16.6199
+      }
+    }
+  }
+}
