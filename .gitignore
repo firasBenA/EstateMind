@@ -69,7 +69,7 @@ __pycache__/
 env/
 venv/
 ENV/
-*.pkl
+#*.pkl
 *.pickle
 
 # Environment Variables (SECURITY!)
