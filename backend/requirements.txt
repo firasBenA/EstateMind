@@ -45,3 +45,6 @@ mypy==1.7.1
 
 # Production
 sentry-sdk==1.39.1
+
+xgboost==2.1.1
+lightgbm==4.5.0

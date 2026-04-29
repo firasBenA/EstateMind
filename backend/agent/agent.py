@@ -10,6 +10,8 @@ import json
 import logging
 from typing import Generator, Dict, Any, List, Optional
 
+from agent.tools.llm_extractor import extract_predict_price_params_with_llm
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -494,30 +496,43 @@ class AgentOrchestrator:
             "reliability_level": "GOOD",
         }
 
-        surface_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm|square\s*meters?)', msg_low)
-        if surface_match:
-            params["surface"] = float(surface_match.group(1))
+        llm_params = extract_predict_price_params_with_llm(message)
+        if llm_params:
+            params.update({k: v for k, v in llm_params.items() if v is not None})
 
-        room_match = re.search(r'(\d+)\s*(?:rooms?|bedrooms?|beds?|chambres?)', msg_low)
-        if room_match:
-            params["rooms"] = int(room_match.group(1))
+        if params.get("surface") in (None, 100.0):
+            surface_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm|square\s*meters?)', msg_low)
+            if surface_match:
+                params["surface"] = float(surface_match.group(1))
 
-        for city in CITIES:
-            if city in msg_low:
-                params["city"] = city.capitalize()
-                break
+        if params.get("rooms") in (None, 2):
+            room_match = re.search(r's\+\s*(\d+)', msg_low)
+            if not room_match:
+                room_match = re.search(r'(\d+)\s*(?:rooms?|bedrooms?|beds?|chambres?)', msg_low)
+            if not room_match:
+                room_match = re.search(r'(\d+)\s*(?:pi[èe]ces?)', msg_low)
+            if room_match:
+                params["rooms"] = int(room_match.group(1))
 
-        if any(t in msg_low for t in ["house", "villa", "maison"]):
-            params["property_type"] = "house"
-        elif any(t in msg_low for t in ["land", "terrain", "plot"]):
-            params["property_type"] = "land"
-        elif any(t in msg_low for t in ["commercial", "shop", "store", "bureau", "office"]):
-            params["property_type"] = "commercial"
+        if params.get("city") == "Tunis":
+            for city in CITIES:
+                if city.lower() in msg_low:
+                    params["city"] = city.capitalize()
+                    break
 
-        if any(t in msg_low for t in ["rent", "rental", "louer", "location"]):
-            params["transaction_type"] = "rent"
-        elif any(t in msg_low for t in ["sale", "sell", "vente", "acheter", "buy"]):
-            params["transaction_type"] = "sale"
+        if params.get("property_type") == "apartment":
+            if any(t in msg_low for t in ["house", "villa", "maison"]):
+                params["property_type"] = "house"
+            elif any(t in msg_low for t in ["land", "terrain", "plot"]):
+                params["property_type"] = "land"
+            elif any(t in msg_low for t in ["commercial", "shop", "store", "bureau", "office"]):
+                params["property_type"] = "commercial"
+
+        if "transaction_type" not in params or params.get("transaction_type") not in {"rent", "sale"}:
+            if any(t in msg_low for t in ["rent", "rental", "louer", "location"]):
+                params["transaction_type"] = "rent"
+            elif any(t in msg_low for t in ["sale", "sell", "vente", "acheter", "buy"]):
+                params["transaction_type"] = "sale"
 
         return params
 

@@ -34,8 +34,8 @@ except ImportError:
     compute_score = None
 
 from .models import Listing # Make sure Listing is imported
-from models.prediction_models.predictor import get_predictor
 
+from models.prediction_models.predictor import get_predictor
 
 
 
