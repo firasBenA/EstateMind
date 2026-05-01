@@ -46,6 +46,7 @@ urlpatterns = [
     path('api/contracts/listing/<str:listing_id>/', contract.get_listing_for_contract, name='get_listing_for_contract'),
     path('api/contracts/', contract.list_contracts, name='list_contracts'),
     path('api/contracts/save/', contract.save_contract, name='save_contract'),
+    path('api/contracts/save/', report_views.save_contract, name='save_contract'),
     path('api/contracts/<int:pk>/', contract.get_contract, name='get_contract'),
     path('api/contracts/<int:pk>/pdf/', contract.export_contract_pdf, name='export_contract_pdf'),
     path('api/contracts/<int:pk>/send/', contract.send_contract_for_signature, name='send_contract'),

@@ -85,6 +85,9 @@ export default function UserContracts() {
   
   const contractRef = useRef<HTMLDivElement>(null);
 
+
+
+  
   // Fetch saved contracts
   useEffect(() => {
     fetch("/api/contracts/", { credentials: "include" })

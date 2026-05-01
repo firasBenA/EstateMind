@@ -131,6 +131,30 @@ class AgentOrchestrator:
                 "required": [],
             },
         },
+        {
+            "name": "generate_contract",
+            "description": "Generate a legal contract (sales agreement, rental agreement, etc.)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "contract_type": {"type": "string", "description": "compromis_de_vente, promesse_de_vente, contrat_de_location, or acte_de_vente"},
+                    "seller_name": {"type": "string"},
+                    "seller_cin": {"type": "string"},
+                    "seller_address": {"type": "string"},
+                    "buyer_name": {"type": "string"},
+                    "buyer_cin": {"type": "string"},
+                    "buyer_address": {"type": "string"},
+                    "listing_id": {"type": "string"},
+                    "listing_title": {"type": "string"},
+                    "listing_address": {"type": "string"},
+                    "surface": {"type": "number"},
+                    "price": {"type": "number"},
+                    "transaction_date": {"type": "string"},
+                    "transaction_type": {"type": "string"},
+                },
+                "required": ["contract_type", "buyer_name", "buyer_cin"],
+            },
+        },
     ]
 
     # ------------------------------------------------------------------
@@ -151,21 +175,97 @@ class AgentOrchestrator:
             self.initialized = False
             raise
 
-    # ------------------------------------------------------------------
-    # Tool registry
-    # ------------------------------------------------------------------
+
+    def _extract_contract_params(self, message: str) -> Dict[str, Any]:
+        """Extract contract parameters from natural language."""
+        import re
+        from datetime import datetime
+        
+        params = {}
+        msg_low = message.lower()
+        
+        # Contract type
+        if any(t in msg_low for t in ["sales agreement", "compromis"]):
+            params["contract_type"] = "compromis_de_vente"
+        elif "promesse" in msg_low:
+            params["contract_type"] = "promesse_de_vente"
+        elif any(t in msg_low for t in ["rental", "location"]):
+            params["contract_type"] = "contrat_de_location"
+        elif any(t in msg_low for t in ["acte de vente", "final deed"]):
+            params["contract_type"] = "acte_de_vente"
+        else:
+            params["contract_type"] = "compromis_de_vente"  # Default
+        
+# Extract buyer name from common phrasing like 'with X' or 'for X'
+        buyer_match = re.search(
+            r'(?:with|for|buyer|client)\s+([^,\d]+?)(?:,|\bcin\b|\bid\b|$)',
+            message,
+            flags=re.IGNORECASE,
+        )
+        if buyer_match:
+            buyer_name = buyer_match.group(1).strip(' .')
+            if buyer_name:
+                params["buyer_name"] = buyer_name
+
+        # Extract CIN/ID
+        cin_match = re.search(r'(?:cin|id)[:\s]+(\d{6,})', msg_low)
+        if cin_match:
+            params["buyer_cin"] = cin_match.group(1)
+
+        # Extract city or listing location
+        for city in CITIES:
+            if re.search(rf'\b{re.escape(city)}\b', msg_low):
+                params["listing_address"] = city.capitalize()
+                params.setdefault("listing_title", f"Property in {city.capitalize()}")
+                break
+        
+        # Extract property details if mentioned
+        surface_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm)', msg_low)
+        if surface_match:
+            params["surface"] = float(surface_match.group(1))
+        
+        price_match = re.search(r'(\d[\d,]*)\s*(?:tnd|dinars?|dt)?', msg_low)
+        if price_match:
+            try:
+                price = int(price_match.group(1).replace(',', ''))
+                params["price"] = price * 1000 if price < 10000 else price
+            except ValueError:
+                pass
+        
+        # Default values
+        params.setdefault("seller_name", "")
+        params.setdefault("seller_cin", "")
+        params.setdefault("seller_address", "")
+        params.setdefault("buyer_address", "")
+        params.setdefault("listing_id", "")
+        params.setdefault("listing_title", "")
+        params.setdefault("transaction_date", datetime.now().strftime("%Y-%m-%d"))
+        params.setdefault("transaction_type", "sale")
+        
+        return params
+        # ------------------------------------------------------------------
+        # Tool registry
+        # ------------------------------------------------------------------
     def _get_tool_handler(self, tool_name: str):
         from agent.tools.search        import search_listings
         from agent.tools.predict_price import predict_price
         from agent.tools.crud          import create_listing
         from agent.tools.analytics     import get_analytics
 
+        try:
+            from agent.tools.contract import generate_contract
+            contract_handler = generate_contract
+        except ImportError as e:
+            logger.warning(f"⚠️ Contract tool not available: {e}")
+            contract_handler = None  # Fallback to None
+
         return {
-            "search_listings": search_listings,
-            "predict_price":   predict_price,
-            "create_listing":  create_listing,
-            "get_analytics":   get_analytics,
-        }.get(tool_name)
+                "search_listings": search_listings,
+                "predict_price":   predict_price,
+                "create_listing":  create_listing,
+                "get_analytics":   get_analytics,
+                "generate_contract": contract_handler,
+            }.get(tool_name)
 
     # ------------------------------------------------------------------
     # Intent detection  (specific → general, CREATE before SEARCH)
@@ -173,7 +273,7 @@ class AgentOrchestrator:
     def _detect_intent(self, message: str) -> Optional[str]:
         msg = message.lower()
 
-        # 1. Create listing — must come before search to avoid 'list' collision
+        # 1. Create listing
         if any(w in msg for w in [
             "create listing", "post listing", "add listing",
             "new listing", "publish listing", "create a property",
@@ -194,7 +294,17 @@ class AgentOrchestrator:
         ]):
             return "get_analytics"
 
-        # 4. Search — broad, checked last
+        # 4. 🔹 NEW: Contract generation
+        if any(phrase in msg for phrase in [
+            "generate contract", "create contract", "make contract",
+            "sales agreement", "compromis de vente", "promesse de vente",
+            "rental agreement", "contrat de location", "acte de vente",
+            "final deed", "deed of sale", "generate a contract",
+            "i need a contract", "prepare a contract", "draft a contract",
+        ]):
+            return "generate_contract"
+
+        # 5. Search
         if any(w in msg for w in [
             "search", "find", "show", "list", "display",
             "apartments", "villas", "properties", "houses",
@@ -335,6 +445,7 @@ class AgentOrchestrator:
                     "• 💰 **Price prediction** — *'How much is a 120m² house in Sfax?'*\n"
                     "• 📊 **Market analytics** — *'Show me market stats for Sousse'*\n"
                     "• 📝 **Create a listing** — *'Create a new listing'*\n\n"
+                    "• 📄 **Generate contracts** — *'Generate sales agreement for my property'*\n\n"  
                     "Could you rephrase your request?"
                 )}
                 yield {"type": "end", "content": ""}
@@ -346,6 +457,8 @@ class AgentOrchestrator:
                 "predict_price":   self._extract_predict_params,
                 "create_listing":  self._extract_listing_params,
                 "get_analytics":   self._extract_analytics_params,
+                "generate_contract": self._extract_contract_params,  
+
             }
             tool_args = extractors[intent](user_message)
 
@@ -360,6 +473,7 @@ class AgentOrchestrator:
                 "predict_price":   "🤖 Running price prediction model...\n\n",
                 "create_listing":  "📝 Preparing listing...\n\n",
                 "get_analytics":   "📊 Fetching market analytics...\n\n",
+                "generate_contract": "📝 Generating contract...\n\n",  # ← NEW
             }
             yield {"type": "token", "content": loading_msgs.get(intent, "⏳ Processing...\n\n")}
 
@@ -381,7 +495,6 @@ class AgentOrchestrator:
 
             # Format and stream response
             if intent == "search_listings":
-                # 🔹 Reset refinement count for fresh searches
                 state["refinement_count"] = 0
                 yield from self._format_search_response(result, session_id, tool_args)
             elif intent == "predict_price":
@@ -390,6 +503,26 @@ class AgentOrchestrator:
                 yield from self._format_analytics_response(result)
             elif intent == "create_listing":
                 yield {"type": "token", "content": result.get("message", "✅ Listing created!")}
+            elif intent == "generate_contract":  # ← NEW
+                logger.info(f"📝 Agent: Detected contract intent, params: {tool_args}")
+                # Handle contract generation result
+                if "error" in result:
+                    logger.error(f"📝 Agent: Contract generation error: {result['error']}")
+                    yield {"type": "error", "content": result["error"]}
+                else:
+                    logger.info(f"📝 Agent: Contract generated successfully, text length: {len(result.get('contract_text', ''))}")
+                    # Stream the contract text
+                    yield {"type": "token", "content": result.get("contract_text", "")}
+                    # Mark as action_required for saving
+                    yield {
+                        "type": "action_required",
+                        "action": "save_contract",
+                        "preview": {
+                            "contract_type": result.get("contract_type"),
+                            "params": result.get("params"),
+                        },
+                        "message": "Contract generated successfully! Would you like to save it?",
+                    }
 
             yield {"type": "end", "content": ""}
 

@@ -79,7 +79,8 @@ DATABASES = {
             "sslmode":         os.environ.get("PG_SSLMODE", "require"),
             "connect_timeout": 10,
         },
-        "CONN_MAX_AGE": 60,
+        "CONN_MAX_AGE": 0,
+        "CONN_HEALTH_CHECKS": True,
     },
 }
 
