@@ -3,9 +3,9 @@ EstateMind — Macro Modeling
 Run: python serie_temporelle/modeling.py
 
 Models:
-  A — Prophet  IPC (inflation)       → forecast_ipc_12m.csv
-  B — Prophet  Taux Directeur (BCT)  → forecast_taux_directeur_12m.csv
-  C — Prophet  Taux de Chômage       → forecast_chomage.csv
+  A — Prophet  IPC (inflation)       → forecast_ipc_12m.csv  + prophet_ipc.pkl
+  B — Prophet  Taux Directeur (BCT)  → forecast_taux_directeur_12m.csv  + prophet_td.pkl
+  C — Prophet  Taux de Chômage       → forecast_chomage.csv  + prophet_chomage.pkl
 
 Chart (modeling_report.png):
   Row 1 — 3 individual Prophet forecasts (white bg, gold dots, CI bands)
@@ -13,9 +13,16 @@ Chart (modeling_report.png):
 
 Note on chômage: annual data (21 pts, 2005-2025) is interpolated to monthly
 for continuous display. Prophet is still trained on annual points.
+
+PKL files allow reloading fitted models without retraining:
+  import pickle
+  with open('timeseries_exports/prophet_ipc.pkl', 'rb') as f:
+      model = pickle.load(f)
+  forecast = model.predict(future_df)
 """
 import warnings; warnings.filterwarnings('ignore')
 from pathlib import Path
+import pickle
 import pandas as pd, numpy as np
 import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -53,11 +60,11 @@ def fit_prophet(col, freq, periods, cps=0.1):
                  interval_width=0.95)
     m.fit(tr)
     fc = m.predict(m.make_future_dataframe(periods=periods, freq=freq))
-    return fc[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+    return m, fc[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
 
-ipc_fc  = fit_prophet('ipc_general_ins', 'MS', 12, cps=0.15)
-td_fc   = fit_prophet('taux_directeur',  'MS', 12, cps=0.05)
-chom_fc = fit_prophet('chomage_rate',    'YS',  3, cps=0.10)
+ipc_model,  ipc_fc  = fit_prophet('ipc_general_ins', 'MS', 12, cps=0.15)
+td_model,   td_fc   = fit_prophet('taux_directeur',  'MS', 12, cps=0.05)
+chom_model, chom_fc = fit_prophet('chomage_rate',    'YS',  3, cps=0.10)
 
 # interpolate chômage forecast to monthly for smooth display
 chom_fc_m = (chom_fc.set_index('ds')
@@ -68,6 +75,18 @@ chom_fc_m.columns = ['ds', 'yhat', 'yhat_lower', 'yhat_upper']
 ipc_fc.to_csv( EXPORTS / 'forecast_ipc_12m.csv',            index=False)
 td_fc.to_csv(  EXPORTS / 'forecast_taux_directeur_12m.csv', index=False)
 chom_fc.to_csv(EXPORTS / 'forecast_chomage.csv',            index=False)
+
+# ── SAVE FITTED MODELS AS PKL ─────────────────────────────────────────────────
+# Allows reloading without retraining (Prophet training takes ~5s per model)
+# Usage: model = pickle.load(open('prophet_ipc.pkl', 'rb'))
+#        forecast = model.predict(future_df)
+for name, model in [('ipc',     ipc_model),
+                    ('td',      td_model),
+                    ('chomage', chom_model)]:
+    pkl_path = EXPORTS / f'prophet_{name}.pkl'
+    with open(pkl_path, 'wb') as f:
+        pickle.dump(model, f)
+    print(f"  Saved {pkl_path.name}")
 
 print("\n=== Forecasts (end of horizon) ===")
 for name, fc in [('IPC', ipc_fc), ('TD', td_fc), ('Chômage', chom_fc)]:
@@ -173,4 +192,5 @@ plt.savefig(EXPORTS / 'modeling_report.png', dpi=150,
 
 print(f"\nOutputs → {EXPORTS}")
 print("  forecast_ipc_12m.csv  |  forecast_taux_directeur_12m.csv  |  forecast_chomage.csv")
+print("  prophet_ipc.pkl       |  prophet_td.pkl                   |  prophet_chomage.pkl")
 print("  modeling_report.png")
