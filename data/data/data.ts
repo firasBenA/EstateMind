@@ -1,4 +1,4 @@
-export const data = [
+const data = [
   {
     Name: "ARIANA",
     NameAr: "أريانة",
@@ -38475,3 +38475,6 @@ export const data = [
     ],
   },
 ];
+
+
+export default data;

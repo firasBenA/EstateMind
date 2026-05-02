@@ -32,42 +32,7 @@ export default function RecommendationsPage() {
             Refresh
           </Button>
         </div>
-
-        {/* Recommendation Tabs */}
-        <Tabs defaultValue="for-you" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="for-you" className="gap-2">
-              <Star className="h-4 w-4" />
-              For You
-            </TabsTrigger>
-            <TabsTrigger value="similar" className="gap-2">
-              <TrendingUp className="h-4 w-4" />
-              Similar to Your Views
-            </TabsTrigger>
-            <TabsTrigger value="trending" className="gap-2">
-              <Flame className="h-4 w-4" />
-              Trending
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="for-you" className="mt-6">
-            <Recommendations key={`for-you-${refreshKey}`}  />
-          </TabsContent>
-
-          <TabsContent value="similar" className="mt-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <TrendingUp className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Similar recommendations will appear based on properties you've viewed</p>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="trending" className="mt-6">
-            <div className="text-center py-12 text-muted-foreground">
-              <Flame className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>Trending properties in your area coming soon</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+        <Recommendations key={`for-you-${refreshKey}`}  />
       </div>
     </UserDashboardLayout>
   );

@@ -1,3 +1,4 @@
+// App.tsx
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -29,13 +30,32 @@ import UserMessages from "./pages/user/UserMessages";
 import UserSettings from "./pages/user/UserSettings";
 import NotFound from "./pages/NotFound";
 import RecommendationsPage from "@/pages/user/recommendation";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+// ── Shared loading spinner ────────────────────────────────────────────────────
+function AuthLoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+// ── User route guard ──────────────────────────────────────────────────────────
 function UserRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+
+  // ✅ Wait for session check to complete before making any decision
+  if (loading) return <AuthLoadingSpinner />;
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role === "admin" || user?.role === "analyst") return <Navigate to="/dashboard" replace />;
+
+  if (user?.role === "admin" || user?.role === "analyst") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 }
 

@@ -1,12 +1,13 @@
 /**
  * frontend-client/src/pages/user/UserReports.tsx
  *
- * Report generation page.
+ * Report generation page with dynamic date selection.
  * - Param forms per report type
  * - SSE streaming from /api/reports/generate/
  * - Token-by-token display as LLM writes
  * - Save report to backend
  * - Copy to clipboard / basic PDF export
+ * - SELECT MONTH/YEAR for reports
  */
 import { useState, useRef, useEffect, useCallback } from "react";
 import { UserDashboardLayout } from "@/components/UserDashboardLayout";
@@ -17,22 +18,32 @@ import { Label }    from "@/components/ui/label";
 import { Badge }    from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { toast }    from "sonner";
 import { useAuth }  from "@/lib/auth-context";
 import { useListingsMeta } from "@/hooks/useListings";
 import {
   FileText, Download, Loader2, TrendingUp, MapPin,
   BarChart3, Copy, Save, ChevronRight, Sparkles, AlertCircle,
-  Eye, Edit3
+  Eye, Edit3, Calendar
 } from "lucide-react";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type ReportType = "market" | "investment";
+type PeriodType = "latest" | "monthly" | "quarterly" | "annual" | "ytd";
+
+interface PeriodConfig {
+  type: PeriodType;
+  year?: number;
+  month?: number;
+  quarter?: number;
+}
 
 interface MarketParams {
   city:             string;
   transaction_type: string;
+  period:           PeriodConfig;
 }
 
 interface InvestmentParams {
@@ -41,6 +52,7 @@ interface InvestmentParams {
   transaction_type: string;
   budget_min:       string;
   budget_max:       string;
+  period:           PeriodConfig;
 }
 
 interface SavedReport {
@@ -69,39 +81,198 @@ const REPORT_TYPES = [
     color: "text-primary",
     badge: "RAG · AI Analysis",
   },
-  {
-    id:    "portfolio" as ReportType,
-    title: "Portfolio Performance",
-    desc:  "Track your saved listings: estimated value, gains, diversity breakdown.",
-    icon:  BarChart3,
-    color: "text-emerald-600",
-    badge: "Coming soon",
-    disabled: true,
-  },
 ] as const;
 
-const PROP_TYPES = ["apartment", "house", "land", "commercial"];
+const PROP_TYPES = ["Apartment", "Villa", "Land", "Commercial"];
 const PROP_LABELS: Record<string, string> = {
-  apartment: "Apartment", house: "Villa / House",
-  land: "Land", commercial: "Commercial",
+  Apartment: "Appartement", Villa: "Villa / Maison",
+  Land: "Terrain", Commercial: "Commercial",
 };
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helper to build period payload ────────────────────────────────────────────
 
-function buildTitle(type: ReportType, marketParams: MarketParams, investmentParams:InvestmentParams): string {
-  const date = new Date().toLocaleDateString("en-GB", { month: "short", year: "numeric" });
-  if (type === "market") {
-    const city = marketParams.city ? ` — ${marketParams.city}` : "";
-    return `Market Overview${city} · ${date}`;
+function getPeriodPayload(period: PeriodConfig): { start_date: string; end_date: string; report_type: string } {
+  const now = new Date();
+  const year = period.year || 2026;
+  
+  if (period.type === "latest") {
+    // Dernier mois avec données (Mars 2026)
+    return { start_date: "2026-03-01", end_date: "2026-03-31", report_type: "monthly" };
   }
-  const city = marketParams.city ? ` — ${marketParams.city}` : "";
-  const pt   = investmentParams.property_type ? ` · ${PROP_LABELS[investmentParams.property_type] ?? investmentParams.property_type}` : "";
-  return `Investment Analysis${city}${pt} · ${date}`;
+  
+  if (period.type === "monthly" && period.month) {
+    const month = period.month;
+    const lastDay = new Date(year, month, 0).getDate();
+    return {
+      start_date: `${year}-${String(month).padStart(2, "0")}-01`,
+      end_date: `${year}-${String(month).padStart(2, "0")}-${lastDay}`,
+      report_type: "monthly"
+    };
+  }
+  
+  if (period.type === "quarterly" && period.quarter) {
+    const startMonth = (period.quarter - 1) * 3 + 1;
+    const endMonth = period.quarter * 3;
+    const lastDay = new Date(year, endMonth, 0).getDate();
+    return {
+      start_date: `${year}-${String(startMonth).padStart(2, "0")}-01`,
+      end_date: `${year}-${String(endMonth).padStart(2, "0")}-${lastDay}`,
+      report_type: "quarterly"
+    };
+  }
+  
+  if (period.type === "annual") {
+    return {
+      start_date: `${year}-01-01`,
+      end_date: `${year}-12-31`,
+      report_type: "annual"
+    };
+  }
+  
+  if (period.type === "ytd") {
+    return {
+      start_date: `${year}-01-01`,
+      end_date: `${year}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`,
+      report_type: "ytd"
+    };
+  }
+  
+  return { start_date: "2026-03-01", end_date: "2026-03-31", report_type: "monthly" };
 }
 
-// Simple markdown → readable text renderer (no extra deps)
+function formatPeriodLabel(period: PeriodConfig): string {
+  if (period.type === "latest") return "Dernier mois (Mars 2026)";
+  if (period.type === "monthly" && period.month) {
+    const months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
+                    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+    return `${months[period.month - 1]} ${period.year}`;
+  }
+  if (period.type === "quarterly" && period.quarter) {
+    return `T${period.quarter} ${period.year}`;
+  }
+  if (period.type === "annual") return `Année ${period.year}`;
+  if (period.type === "ytd") return `Début ${period.year} à aujourd'hui`;
+  return "Période personnalisée";
+}
+
+// ── Composant de sélection de période ─────────────────────────────────────────
+
+function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p: PeriodConfig) => void }) {
+  const currentYear = new Date().getFullYear();
+  
+  return (
+    <div className="space-y-3">
+      <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+        <Calendar className="h-3.5 w-3.5" />
+        Période d'analyse
+      </Label>
+      <Tabs value={value.type} onValueChange={(v) => onChange({ type: v as PeriodType, year: value.year })}>
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="latest" className="text-xs">Dernier mois</TabsTrigger>
+          <TabsTrigger value="monthly" className="text-xs">Mensuel</TabsTrigger>
+          <TabsTrigger value="quarterly" className="text-xs">Trimestriel</TabsTrigger>
+          <TabsTrigger value="annual" className="text-xs">Annuel</TabsTrigger>
+          <TabsTrigger value="ytd" className="text-xs">YTD</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="monthly" className="mt-3">
+          <div className="flex gap-3">
+            <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
+              <SelectTrigger className="w-28">
+                <SelectValue placeholder="Année" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={String(value.month || 3)} onValueChange={(v) => onChange({ ...value, month: parseInt(v) })}>
+              <SelectTrigger className="w-36">
+                <SelectValue placeholder="Mois" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">Janvier</SelectItem>
+                <SelectItem value="2">Février</SelectItem>
+                <SelectItem value="3">Mars</SelectItem>
+                <SelectItem value="4">Avril</SelectItem>
+                <SelectItem value="5">Mai</SelectItem>
+                <SelectItem value="6">Juin</SelectItem>
+                <SelectItem value="7">Juillet</SelectItem>
+                <SelectItem value="8">Août</SelectItem>
+                <SelectItem value="9">Septembre</SelectItem>
+                <SelectItem value="10">Octobre</SelectItem>
+                <SelectItem value="11">Novembre</SelectItem>
+                <SelectItem value="12">Décembre</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="quarterly" className="mt-3">
+          <div className="flex gap-3">
+            <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
+              <SelectTrigger className="w-28">
+                <SelectValue placeholder="Année" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="2025">2025</SelectItem>
+                <SelectItem value="2026">2026</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={String(value.quarter || 1)} onValueChange={(v) => onChange({ ...value, quarter: parseInt(v) })}>
+              <SelectTrigger className="w-32">
+                <SelectValue placeholder="Trimestre" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">T1 (Jan-Mar)</SelectItem>
+                <SelectItem value="2">T2 (Avr-Juin)</SelectItem>
+                <SelectItem value="3">T3 (Jul-Sep)</SelectItem>
+                <SelectItem value="4">T4 (Oct-Déc)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="annual" className="mt-3">
+          <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2025">Année 2025</SelectItem>
+              <SelectItem value="2026">Année 2026</SelectItem>
+            </SelectContent>
+          </Select>
+        </TabsContent>
+        
+        <TabsContent value="ytd" className="mt-3">
+          <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
+            <SelectTrigger className="w-32">
+              <SelectValue placeholder="Année" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="2025">2025 (YTD)</SelectItem>
+              <SelectItem value="2026">2026 (YTD)</SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-xs text-muted-foreground mt-2">
+            Du 1er janvier à la date actuelle
+          </p>
+        </TabsContent>
+        
+        <TabsContent value="latest" className="mt-3">
+          <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
+            Analyse basée sur les données les plus récentes disponibles (Mars 2026)
+          </p>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+// ── Simple markdown renderer ─────────────────────────────────────────────────
+
 function MarkdownBlock({ text }: { text: string }) {
-  // Convert **bold**, ## headings, bullet points to HTML-ish spans
   const lines = text.split("\n");
   return (
     <div className="space-y-1.5 font-mono text-[13px] leading-relaxed">
@@ -118,11 +289,7 @@ function MarkdownBlock({ text }: { text: string }) {
         if (line.startsWith("- ") || line.startsWith("* ")) {
           return <p key={i} className="text-muted-foreground pl-4 before:content-['•'] before:mr-2">{line.slice(2)}</p>;
         }
-        if (line.startsWith("**") && line.endsWith("**")) {
-          return <p key={i} className="font-semibold text-foreground">{line.slice(2, -2)}</p>;
-        }
         if (line.trim() === "") return <div key={i} className="h-2" />;
-        // Inline bold
         const parts = line.split(/(\*\*[^*]+\*\*)/g);
         return (
           <p key={i} className="text-muted-foreground">
@@ -145,13 +312,22 @@ export default function UserReports() {
   const { meta }                  = useListingsMeta();
   const CITIES                    = meta?.cities ?? [];
 
-  // Report selection
   const [selectedType, setSelectedType] = useState<ReportType | null>(null);
 
-  // Params
-  const [marketParams, setMarketParams]         = useState<MarketParams>({ city: "", transaction_type: "" });
+  // Params with period
+  const [marketParams, setMarketParams] = useState<MarketParams>({ 
+    city: "", 
+    transaction_type: "",
+    period: { type: "latest", year: 2026 }
+  });
+  
   const [investmentParams, setInvestmentParams] = useState<InvestmentParams>({
-    city: "", property_type: "", transaction_type: "sale", budget_min: "", budget_max: "",
+    city: "", 
+    property_type: "", 
+    transaction_type: "sale", 
+    budget_min: "", 
+    budget_max: "",
+    period: { type: "latest", year: 2026 }
   });
 
   // Generation state
@@ -175,6 +351,18 @@ export default function UserReports() {
       .catch(() => {});
   }, [savedId]);
 
+  // Build title with period
+  const buildTitle = useCallback(() => {
+    if (!selectedType) return "Report";
+    const periodLabel = selectedType === "market" 
+      ? formatPeriodLabel(marketParams.period)
+      : formatPeriodLabel(investmentParams.period);
+    const city = selectedType === "market" ? marketParams.city : investmentParams.city;
+    const cityPart = city ? ` — ${city}` : "";
+    const typeLabel = selectedType === "market" ? "Market Overview" : "Investment Analysis";
+    return `${typeLabel}${cityPart} · ${periodLabel}`;
+  }, [selectedType, marketParams, investmentParams]);
+
   // ── Generate ───────────────────────────────────────────────────────────────
   const handleGenerate = useCallback(async () => {
     if (!selectedType) return;
@@ -184,10 +372,26 @@ export default function UserReports() {
     setStreamError("");
     setSavedId(null);
 
-    const params =
-      selectedType === "market"
-        ? { ...marketParams }
-        : { ...investmentParams, budget_min: Number(investmentParams.budget_min) || 0, budget_max: Number(investmentParams.budget_max) || 5_000_000 };
+    let params;
+    
+    if (selectedType === "market") {
+      const periodPayload = getPeriodPayload(marketParams.period);
+      params = {
+        city: marketParams.city,
+        transaction_type: marketParams.transaction_type,
+        period: periodPayload
+      };
+    } else {
+      const periodPayload = getPeriodPayload(investmentParams.period);
+      params = {
+        city: investmentParams.city,
+        property_type: investmentParams.property_type,
+        transaction_type: investmentParams.transaction_type,
+        budget_min: Number(investmentParams.budget_min) || 0,
+        budget_max: Number(investmentParams.budget_max) || 5_000_000,
+        period: periodPayload
+      };
+    }
 
     try {
       const resp = await fetch("/api/reports/generate/", {
@@ -239,12 +443,14 @@ export default function UserReports() {
   const handleSave = async () => {
     if (!reportText || !selectedType) return;
     setSaving(true);
-    // Use raw string params for title, keep numeric conversion only for the API body
-   
-    const title = buildTitle(selectedType, marketParams,investmentParams);
+    
+    const title = buildTitle();
     const params = selectedType === "market"
-      ? marketParams
-      : { ...investmentParams, budget_min: Number(investmentParams.budget_min) || 0, budget_max: Number(investmentParams.budget_max) || 5_000_000 };
+      ? { ...marketParams, period: getPeriodPayload(marketParams.period) }
+      : { ...investmentParams, budget_min: Number(investmentParams.budget_min) || 0, 
+          budget_max: Number(investmentParams.budget_max) || 5_000_000,
+          period: getPeriodPayload(investmentParams.period) };
+    
     try {
       const resp = await fetch("/api/reports/save/", {
         method:      "POST",
@@ -289,7 +495,8 @@ export default function UserReports() {
         <div>
           <h1 className="text-2xl font-bold">AI Reports</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            Generate data-grounded real estate reports using live market data and a local AI model.
+            Generate data-grounded real estate reports using live market data.
+            Select a time period to analyse specific months or years.
           </p>
         </div>
 
@@ -298,16 +505,13 @@ export default function UserReports() {
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
             Step 1 — Choose report type
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {REPORT_TYPES.map(t => (
               <button
                 key={t.id}
-                disabled={"disabled" in t && t.disabled}
                 onClick={() => { setSelectedType(t.id); setReportText(""); setStreamError(""); }}
                 className={`text-left rounded-xl border p-4 transition-all
-                  ${"disabled" in t && t.disabled
-                    ? "opacity-40 cursor-not-allowed bg-muted/30"
-                    : selectedType === t.id
+                  ${selectedType === t.id
                     ? "border-primary bg-primary/5 shadow-sm"
                     : "hover:border-border/80 hover:bg-muted/30 bg-card"
                   }`}
@@ -324,87 +528,99 @@ export default function UserReports() {
         </div>
 
         {/* Step 2 — Params */}
-        {selectedType && (selectedType === "market" || selectedType === "investment") && (
+        {selectedType && (
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-3">
               Step 2 — Configure parameters
             </p>
             <Card>
-              <CardContent className="pt-5 space-y-4">
+              <CardContent className="pt-5 space-y-5">
                 {selectedType === "market" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label>City <span className="text-muted-foreground text-xs">(optional)</span></Label>
-                      <Select value={marketParams.city || "all"} onValueChange={v => setMarketParams(p => ({ ...p, city: v === "all" ? "" : v }))}>
-                        <SelectTrigger><SelectValue placeholder="All Tunisia" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Tunisia</SelectItem>
-                          {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>City <span className="text-muted-foreground text-xs">(optional)</span></Label>
+                        <Select value={marketParams.city || "all"} onValueChange={v => setMarketParams(p => ({ ...p, city: v === "all" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="All Tunisia" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Tunisia</SelectItem>
+                            {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Transaction type</Label>
+                        <Select value={marketParams.transaction_type || "all"} onValueChange={v => setMarketParams(p => ({ ...p, transaction_type: v === "all" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="Sale & Rent" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Sale & Rent</SelectItem>
+                            <SelectItem value="sale">Sale only</SelectItem>
+                            <SelectItem value="rent">Rent only</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label>Transaction type</Label>
-                      <Select value={marketParams.transaction_type || "all"} onValueChange={v => setMarketParams(p => ({ ...p, transaction_type: v === "all" ? "" : v }))}>
-                        <SelectTrigger><SelectValue placeholder="Sale & Rent" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Sale & Rent</SelectItem>
-                          <SelectItem value="sale">Sale only</SelectItem>
-                          <SelectItem value="rent">Rent only</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <PeriodSelector 
+                      value={marketParams.period} 
+                      onChange={(period) => setMarketParams(p => ({ ...p, period }))} 
+                    />
                   </div>
                 )}
 
                 {selectedType === "investment" && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                      <Label>City</Label>
-                      <Select value={investmentParams.city || "all"} onValueChange={v => setInvestmentParams(p => ({ ...p, city: v === "all" ? "" : v }))}>
-                        <SelectTrigger><SelectValue placeholder="All Tunisia" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Tunisia</SelectItem>
-                          {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Property type</Label>
-                      <Select value={investmentParams.property_type || "all"} onValueChange={v => setInvestmentParams(p => ({ ...p, property_type: v === "all" ? "" : v }))}>
-                        <SelectTrigger><SelectValue placeholder="All types" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All types</SelectItem>
-                          {PROP_TYPES.map(t => <SelectItem key={t} value={t}>{PROP_LABELS[t]}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Transaction</Label>
-                      <Select value={investmentParams.transaction_type} onValueChange={v => setInvestmentParams(p => ({ ...p, transaction_type: v }))}>
-                        <SelectTrigger><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="sale">Sale</SelectItem>
-                          <SelectItem value="rent">Rent</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Budget range (TND)</Label>
-                      <div className="flex gap-2 items-center">
-                        <Input
-                          type="number" placeholder="Min"
-                          value={investmentParams.budget_min}
-                          onChange={e => setInvestmentParams(p => ({ ...p, budget_min: e.target.value }))}
-                        />
-                        <span className="text-muted-foreground text-sm shrink-0">–</span>
-                        <Input
-                          type="number" placeholder="Max"
-                          value={investmentParams.budget_max}
-                          onChange={e => setInvestmentParams(p => ({ ...p, budget_max: e.target.value }))}
-                        />
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1.5">
+                        <Label>City</Label>
+                        <Select value={investmentParams.city || "all"} onValueChange={v => setInvestmentParams(p => ({ ...p, city: v === "all" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="All Tunisia" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Tunisia</SelectItem>
+                            {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Property type</Label>
+                        <Select value={investmentParams.property_type || "all"} onValueChange={v => setInvestmentParams(p => ({ ...p, property_type: v === "all" ? "" : v }))}>
+                          <SelectTrigger><SelectValue placeholder="All types" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All types</SelectItem>
+                            {PROP_TYPES.map(t => <SelectItem key={t} value={t}>{PROP_LABELS[t]}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Transaction</Label>
+                        <Select value={investmentParams.transaction_type} onValueChange={v => setInvestmentParams(p => ({ ...p, transaction_type: v }))}>
+                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="sale">Sale</SelectItem>
+                            <SelectItem value="rent">Rent</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label>Budget range (TND)</Label>
+                        <div className="flex gap-2 items-center">
+                          <Input
+                            type="number" placeholder="Min"
+                            value={investmentParams.budget_min}
+                            onChange={e => setInvestmentParams(p => ({ ...p, budget_min: e.target.value }))}
+                          />
+                          <span className="text-muted-foreground text-sm shrink-0">–</span>
+                          <Input
+                            type="number" placeholder="Max"
+                            value={investmentParams.budget_max}
+                            onChange={e => setInvestmentParams(p => ({ ...p, budget_max: e.target.value }))}
+                          />
+                        </div>
                       </div>
                     </div>
+                    <PeriodSelector 
+                      value={investmentParams.period} 
+                      onChange={(period) => setInvestmentParams(p => ({ ...p, period }))} 
+                    />
                   </div>
                 )}
 
@@ -423,7 +639,7 @@ export default function UserReports() {
 
                 {generating && (
                   <p className="text-xs text-center text-muted-foreground">
-                    The local AI is writing your report — this takes 30–90 seconds with gemma3:4b.
+                    The local AI is writing your report — this takes 30–90 seconds.
                   </p>
                 )}
               </CardContent>
@@ -504,7 +720,7 @@ export default function UserReports() {
                             value={reportText}
                             onChange={(e) => {
                               setReportText(e.target.value);
-                              if (savedId) setSavedId(null); // Mark as unsaved if edited
+                              if (savedId) setSavedId(null);
                             }}
                             className="w-full min-h-[500px] p-4 font-mono text-sm border rounded-lg bg-muted/20 focus:outline-none focus:ring-1 focus:ring-primary leading-relaxed"
                             placeholder="Edit your report here..."
@@ -566,65 +782,57 @@ export default function UserReports() {
             </div>
           </div>
         )}
+
         {pastReports.length === 0 && (
-            <div className="flex flex-col items-center justify-center text-center py-12 px-4">
-              <div className="relative">
-                {/* Animated background circle */}
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 rounded-full blur-3xl animate-pulse" />
-                
-                {/* Icon container */}
-                <div className="relative mb-6">
-                  <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center border border-primary/10 shadow-lg">
-                    <FileText className="h-10 w-10 text-primary/60" strokeWidth={1.5} />
-                  </div>
-                  {/* Decorative dots */}
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/40 rounded-full animate-ping" />
-                  <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-primary/30 rounded-full" />
+          <div className="flex flex-col items-center justify-center text-center py-12 px-4">
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-primary/10 to-primary/5 rounded-full blur-3xl animate-pulse" />
+              <div className="relative mb-6">
+                <div className="w-20 h-20 mx-auto bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center border border-primary/10 shadow-lg">
+                  <FileText className="h-10 w-10 text-primary/60" strokeWidth={1.5} />
                 </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-primary/40 rounded-full animate-ping" />
+                <div className="absolute -bottom-1 -left-1 w-2 h-2 bg-primary/30 rounded-full" />
               </div>
-
-              {/* Main message */}
-              <h3 className="text-lg font-semibold text-foreground mb-2">
-                No Reports Yet
-              </h3>
-              
-              <p className="text-sm text-muted-foreground max-w-md mb-6">
-                Generate your first AI-powered real estate report to get started. Choose a report type above and configure your parameters.
-              </p>
-
-              {/* Feature highlights */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl mb-8">
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
-                  <Sparkles className="h-3.5 w-3.5 text-primary" />
-                  <span>AI-powered analysis</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
-                  <BarChart3 className="h-3.5 w-3.5 text-primary" />
-                  <span>Live market data</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
-                  <TrendingUp className="h-3.5 w-3.5 text-primary" />
-                  <span>Investment insights</span>
-                </div>
-              </div>
-
-              {/* CTA button (optional) */}
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="gap-2 hover:bg-primary/5"
-                onClick={() => {
-                  // Scroll to report type selection
-                  document.querySelector('.grid-cols-1.md\\:grid-cols-3')?.scrollIntoView({ 
-                    behavior: 'smooth' 
-                  });
-                }}
-              >
-                <Sparkles className="h-3.5 w-3.5" />
-                Generate Your First Report
-              </Button>
             </div>
-          )}
+
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              No Reports Yet
+            </h3>
+            
+            <p className="text-sm text-muted-foreground max-w-md mb-6">
+              Generate your first AI-powered real estate report to get started.
+              Select a report type above and configure your parameters including the time period.
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 max-w-2xl mb-8">
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
+                <Sparkles className="h-3.5 w-3.5 text-primary" />
+                <span>AI-powered analysis</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
+                <BarChart3 className="h-3.5 w-3.5 text-primary" />
+                <span>Live market data</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/30 px-3 py-2 rounded-lg">
+                <Calendar className="h-3.5 w-3.5 text-primary" />
+                <span>Select any month/year</span>
+              </div>
+            </div>
+
+            <Button 
+              variant="outline" 
+              size="sm"
+              className="gap-2 hover:bg-primary/5"
+              onClick={() => {
+                document.querySelector('.grid-cols-1.md\\:grid-cols-2')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              Generate Your First Report
+            </Button>
+          </div>
+        )}
       </div>
     </UserDashboardLayout>
   );
