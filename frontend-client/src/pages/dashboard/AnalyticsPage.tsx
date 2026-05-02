@@ -1,210 +1,195 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/DashboardLayout";
-import { mockListings, CITIES, formatPricePerM2 } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
-import { Badge } from "@/components/ui/badge";
-
-const COLORS = ["hsl(160,80%,24%)", "hsl(37,70%,41%)", "hsl(200,70%,50%)"];
+import { Loader2 } from "lucide-react";
+import {
+  LineChart, Line, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+} from "recharts";
+import { useEda, useQuality } from "@/hooks/useAdminData";
 
 export default function AnalyticsPage() {
-  const [cityFilter, setCityFilter] = useState("all");
+  const { data: eda,     isLoading: eLoading } = useEda();
+  const { data: quality, isLoading: qLoading } = useQuality();
 
-  const data = useMemo(() => {
-    let listings = [...mockListings];
-    if (cityFilter !== "all") listings = listings.filter(l => l.city === cityFilter);
-
-    // Avg price/m2 by month
-    const monthly: Record<string, { total: number; count: number }> = {};
-    listings.forEach(l => {
-      const m = l.scraped_at.slice(0, 7);
-      if (!monthly[m]) monthly[m] = { total: 0, count: 0 };
-      monthly[m].total += l.price_per_m2;
-      monthly[m].count++;
-    });
-    const priceOverTime = Object.entries(monthly).sort().map(([month, d]) => ({ month: month.slice(5), avg: Math.round(d.total / d.count) }));
-
-    // Price distribution
-    const ranges = [0, 50000, 100000, 200000, 500000, 1000000, 2000000, 5000000];
-    const priceDistribution = ranges.slice(0, -1).map((min, i) => {
-      const max = ranges[i + 1];
-      return {
-        range: `${(min / 1000).toFixed(0)}k-${(max / 1000).toFixed(0)}k`,
-        count: listings.filter(l => l.price >= min && l.price < max).length,
-      };
-    });
-
-    // By source over time
-    const sourceMonthly: Record<string, Record<string, number>> = {};
-    listings.forEach(l => {
-      const m = l.scraped_at.slice(0, 7);
-      if (!sourceMonthly[m]) sourceMonthly[m] = {};
-      sourceMonthly[m][l.source_name] = (sourceMonthly[m][l.source_name] || 0) + 1;
-    });
-    const sourceOverTime = Object.entries(sourceMonthly).sort().map(([month, sources]) => ({ month: month.slice(5), ...sources }));
-
-    // Reliability distribution
-    const relRanges = [0, 20, 40, 60, 80, 100];
-    const reliabilityDist = relRanges.slice(0, -1).map((min, i) => ({
-      range: `${min}-${relRanges[i + 1]}`,
-      count: listings.filter(l => l.reliability_score >= min && l.reliability_score < relRanges[i + 1]).length,
-    }));
-
-    // Fraud rate by week
-    const weekly: Record<string, { total: number; flagged: number }> = {};
-    listings.forEach(l => {
-      const w = l.scraped_at.slice(0, 10);
-      if (!weekly[w]) weekly[w] = { total: 0, flagged: 0 };
-      weekly[w].total++;
-      if (l.fraud_flag) weekly[w].flagged++;
-    });
-    const fraudRate = Object.entries(weekly).sort().slice(-20).map(([date, d]) => ({ date: date.slice(5), rate: d.total > 0 ? Math.round((d.flagged / d.total) * 100) : 0 }));
-
-    // Top zones
-    const zoneCount: Record<string, number> = {};
-    listings.forEach(l => { zoneCount[l.zone] = (zoneCount[l.zone] || 0) + 1; });
-    const topZones = Object.entries(zoneCount).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([zone, count]) => ({ zone, count }));
-
-    // City overview
-    const cityData: Record<string, { count: number; totalPrice: number; flagged: number }> = {};
-    mockListings.forEach(l => {
-      if (!cityData[l.city]) cityData[l.city] = { count: 0, totalPrice: 0, flagged: 0 };
-      cityData[l.city].count++;
-      cityData[l.city].totalPrice += l.price_per_m2;
-      if (l.fraud_flag) cityData[l.city].flagged++;
-    });
-    const cityOverview = Object.entries(cityData).map(([city, d]) => ({
-      city, count: d.count, avgPrice: Math.round(d.totalPrice / d.count), fraudRate: Math.round((d.flagged / d.count) * 100),
-    })).sort((a, b) => b.count - a.count);
-
-    return { priceOverTime, priceDistribution, sourceOverTime, reliabilityDist, fraudRate, topZones, cityOverview };
-  }, [cityFilter]);
+  const priceM2Data    = eda?.price_m2_stats      ?? [];
+  const trendData      = eda?.trend_stats          ?? [];
+  const topFeatures    = (eda?.top_features        ?? []).slice(0, 10);
+  const nullStats      = (quality?.null_field_stats ?? []).slice(0, 8);
+  const scoreDist      = quality?.score_distribution ?? [];
+  const sourceQuality  = quality?.source_quality    ?? [];
 
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex gap-3">
-          <Select value={cityFilter} onValueChange={setCityFilter}>
-            <SelectTrigger className="w-48"><SelectValue placeholder="All Cities" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Cities</SelectItem>
-              {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
+        <h1 className="text-xl font-bold">Analytics</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+          {/* Price/m² by region */}
           <Card>
-            <CardHeader><CardTitle className="text-sm">Avg Price/m² Over Time</CardTitle></CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.priceOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="avg" stroke="hsl(var(--primary))" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
+            <CardHeader><CardTitle className="text-sm">Avg Price/m² by Region</CardTitle></CardHeader>
+            <CardContent className="h-72">
+              {eLoading
+                ? <div className="h-full bg-muted animate-pulse rounded" />
+                : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={priceM2Data} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" className="text-xs"
+                        tickFormatter={v => `${v.toLocaleString()}`} />
+                      <YAxis type="category" dataKey="region"
+                        className="text-xs" width={110} />
+                      <Tooltip formatter={(v: number) => `${v.toLocaleString()} TND/m²`} />
+                      <Bar dataKey="avg_m2" fill="hsl(var(--primary))" radius={[0,4,4,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
             </CardContent>
           </Card>
 
+          {/* Listings over time */}
           <Card>
-            <CardHeader><CardTitle className="text-sm">Price Distribution</CardTitle></CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.priceDistribution}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="range" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardHeader><CardTitle className="text-sm">Listings Over Time</CardTitle></CardHeader>
+            <CardContent className="h-72">
+              {eLoading
+                ? <div className="h-full bg-muted animate-pulse rounded" />
+                : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trendData}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="date" className="text-xs"
+                        tickFormatter={v => v.slice(5)} />
+                      <YAxis className="text-xs" />
+                      <Tooltip />
+                      <Line type="monotone" dataKey="count"
+                        stroke="hsl(var(--primary))" strokeWidth={2} dot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
             </CardContent>
           </Card>
 
+          {/* Top features */}
           <Card>
-            <CardHeader><CardTitle className="text-sm">Listings by Source</CardTitle></CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.sourceOverTime}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="month" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="tayara" stackId="a" fill={COLORS[0]} />
-                  <Bar dataKey="mubawab" stackId="a" fill={COLORS[1]} />
-                  <Bar dataKey="affare" stackId="a" fill={COLORS[2]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardHeader><CardTitle className="text-sm">Top Listing Features</CardTitle></CardHeader>
+            <CardContent className="h-72">
+              {eLoading
+                ? <div className="h-full bg-muted animate-pulse rounded" />
+                : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topFeatures} layout="vertical">
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis type="number" className="text-xs" />
+                      <YAxis type="category" dataKey="feature"
+                        className="text-xs" width={130} />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="hsl(var(--secondary))" radius={[0,4,4,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
             </CardContent>
           </Card>
 
+          {/* Reliability score distribution */}
           <Card>
             <CardHeader><CardTitle className="text-sm">Reliability Score Distribution</CardTitle></CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.reliabilityDist}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="range" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--secondary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Fraud Rate Over Time (%)</CardTitle></CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.fraudRate}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis dataKey="date" className="text-xs" />
-                  <YAxis className="text-xs" />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="rate" stroke="hsl(var(--destructive))" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Top Zones by Listings</CardTitle></CardHeader>
-            <CardContent className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.topZones} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                  <XAxis type="number" className="text-xs" />
-                  <YAxis type="category" dataKey="zone" className="text-xs" width={120} />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="hsl(var(--primary))" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <CardContent className="h-72">
+              {qLoading
+                ? <div className="h-full bg-muted animate-pulse rounded" />
+                : (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={scoreDist}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="level" className="text-xs" />
+                      <YAxis className="text-xs" />
+                      <Tooltip />
+                      <Bar dataKey="count" fill="hsl(var(--primary))" radius={[4,4,0,0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
             </CardContent>
           </Card>
         </div>
 
-        {/* City Overview */}
+        {/* Null field stats table */}
         <Card>
-          <CardHeader><CardTitle className="text-sm">City Overview</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-sm">Field Completeness</CardTitle></CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {data.cityOverview.map(c => (
-                <div key={c.city} className="border rounded-lg p-4 space-y-2">
-                  <h4 className="font-semibold">{c.city}</h4>
-                  <div className="grid grid-cols-3 gap-2 text-center text-xs">
-                    <div><div className="font-bold text-lg">{c.count}</div><span className="text-muted-foreground">Listings</span></div>
-                    <div><div className="font-bold text-lg">{formatPricePerM2(c.avgPrice).replace(" TND/m²", "")}</div><span className="text-muted-foreground">TND/m²</span></div>
-                    <div><div className="font-bold text-lg">{c.fraudRate}%</div><span className="text-muted-foreground">Fraud</span></div>
-                  </div>
+            {qLoading
+              ? <div className="h-24 bg-muted animate-pulse rounded" />
+              : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="pb-2 pr-6">Field</th>
+                        <th className="pb-2 pr-6">Filled</th>
+                        <th className="pb-2 pr-6">Missing</th>
+                        <th className="pb-2">Completeness</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {nullStats.map((row: any) => (
+                        <tr key={row.field} className="border-b last:border-0">
+                          <td className="py-2 pr-6 font-medium">{row.field}</td>
+                          <td className="py-2 pr-6">{row.filled_count.toLocaleString()}</td>
+                          <td className="py-2 pr-6 text-muted-foreground">{row.null_count.toLocaleString()}</td>
+                          <td className="py-2">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-primary rounded-full"
+                                  style={{ width: `${row.filled_pct}%` }}
+                                />
+                              </div>
+                              <span className="text-xs w-10 text-right">{row.filled_pct}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
-              ))}
-            </div>
+              )}
+          </CardContent>
+        </Card>
+
+        {/* Source quality table */}
+        <Card>
+          <CardHeader><CardTitle className="text-sm">Quality by Source</CardTitle></CardHeader>
+          <CardContent>
+            {qLoading
+              ? <div className="h-24 bg-muted animate-pulse rounded" />
+              : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b text-left text-muted-foreground">
+                        <th className="pb-2 pr-6">Source</th>
+                        <th className="pb-2 pr-6">Total</th>
+                        <th className="pb-2 pr-6">HIGH</th>
+                        <th className="pb-2 pr-6">GOOD</th>
+                        <th className="pb-2 pr-6">LOW</th>
+                        <th className="pb-2">DROP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sourceQuality.map((row: any) => (
+                        <tr key={row.source} className="border-b last:border-0">
+                          <td className="py-2 pr-6 font-medium capitalize">{row.source}</td>
+                          <td className="py-2 pr-6">{row.total.toLocaleString()}</td>
+                          <td className="py-2 pr-6 text-green-600">{row.high}</td>
+                          <td className="py-2 pr-6 text-blue-600">{row.good}</td>
+                          <td className="py-2 pr-6 text-amber-600">{row.low}</td>
+                          <td className="py-2 text-red-600">{row.drop}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
           </CardContent>
         </Card>
       </div>

@@ -28,11 +28,16 @@ interface RegisterResult {
   errors?: string[];
 }
 
+interface LoginResult {
+  ok: boolean;
+  error?: string;
+}
+
 interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string) => Promise<LoginResult>;
   register: (data: RegisterData) => Promise<RegisterResult>;
   logout: () => Promise<void>;
   getAccessToken: () => Promise<string | null>;
@@ -137,29 +142,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, [checkSession]);
 
-  const login = async (email: string, password: string) => {
-    const response = await fetch('/api/login/', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body: JSON.stringify({ email, password }),
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || 'Login failed');
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    try {
+      const response = await fetch('/api/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { ok: false, error: data.error || 'Email ou mot de passe incorrect' };
+      }
+      
+      setIsAuthenticated(true);
+      setUser({
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        is_superuser: data.is_superuser,
+      });
+      
+      return { ok: true };
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      return { ok: false, error: 'Erreur réseau. Veuillez réessayer.' };
     }
-    
-    const data = await response.json();
-    setIsAuthenticated(true);
-    setUser({
-      id: data.id,
-      username: data.username,
-      email: data.email,
-      name: data.name,
-      role: data.role,
-      is_superuser: data.is_superuser,
-    });
   };
 
   const register = async (userData: RegisterData): Promise<RegisterResult> => {
@@ -174,14 +187,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       
       if (!response.ok) {
-        // Handle validation errors from backend
         if (data.errors) {
           return { ok: false, errors: data.errors };
         }
         return { ok: false, errors: [data.error || "Registration failed"] };
       }
       
-      // Registration successful - user is now logged in
       setIsAuthenticated(true);
       setUser({
         id: data.id,

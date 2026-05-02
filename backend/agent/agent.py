@@ -26,7 +26,7 @@ def get_session(session_id: str) -> Dict[str, Any]:
             "pending_search": None,
             "last_tool":      None,
             "last_result":    None,
-            "refinement_count": 0,  # 🔹 NEW: Track refinement rounds
+            "refinement_count": 0,
         }
     return SESSION_STORE[session_id]
 
@@ -34,7 +34,7 @@ def get_session(session_id: str) -> Dict[str, Any]:
 def clear_pending(session_id: str) -> None:
     session = get_session(session_id)
     session["pending_search"] = None
-    session["refinement_count"] = 0  # 🔹 Reset counter when clearing
+    session["refinement_count"] = 0
 
 
 # ---------------------------------------------------------------------------
@@ -44,11 +44,14 @@ CITIES = [
     "tunis", "sfax", "ariana", "sousse", "manouba",
     "bizerte", "nabeul", "monastir", "gabes", "gafsa",
 ]
+CITY_ALIASES = {
+    "ariena": "Ariana",
+}
 
 CLARIFICATION_THRESHOLD = 50
 MAX_DISPLAY_LISTINGS    = 5
-MAX_REFINEMENT_ROUNDS   = 3  # 🔹 NEW: Auto-show after this many refinements
-AUTO_SHOW_THRESHOLD     = 500  # 🔹 NEW: If results <= this, offer to show
+MAX_REFINEMENT_ROUNDS   = 3
+AUTO_SHOW_THRESHOLD     = 500
 
 
 class AgentOrchestrator:
@@ -196,7 +199,7 @@ class AgentOrchestrator:
         else:
             params["contract_type"] = "compromis_de_vente"  # Default
         
-# Extract buyer name from common phrasing like 'with X' or 'for X'
+        # Extract buyer name from common phrasing like 'with X' or 'for X'
         buyer_match = re.search(
             r'(?:with|for|buyer|client)\s+([^,\d]+?)(?:,|\bcin\b|\bid\b|$)',
             message,
@@ -243,9 +246,10 @@ class AgentOrchestrator:
         params.setdefault("transaction_type", "sale")
         
         return params
-        # ------------------------------------------------------------------
-        # Tool registry
-        # ------------------------------------------------------------------
+
+    # ------------------------------------------------------------------
+    # Tool registry
+    # ------------------------------------------------------------------
     def _get_tool_handler(self, tool_name: str):
         from agent.tools.search        import search_listings
         from agent.tools.predict_price import predict_price
@@ -257,7 +261,7 @@ class AgentOrchestrator:
             contract_handler = generate_contract
         except ImportError as e:
             logger.warning(f"⚠️ Contract tool not available: {e}")
-            contract_handler = None  # Fallback to None
+            contract_handler = None
 
         return {
                 "search_listings": search_listings,
@@ -268,7 +272,71 @@ class AgentOrchestrator:
             }.get(tool_name)
 
     # ------------------------------------------------------------------
+    # LLM-powered conversational fallback
+    # ------------------------------------------------------------------
+    CHAT_SYSTEM_PROMPT = """You are EstateMind, a warm and friendly real estate assistant specialised in the Tunisian property market.
+
+Your personality:
+- Conversational, helpful, and encouraging — like a knowledgeable friend
+- You use light emojis naturally (don't overdo it)
+- You keep replies concise (2-5 sentences max for chat messages)
+- You speak English, French, and Darija (Tunisian Arabic) naturally
+
+Your strict boundaries:
+- You ONLY discuss real estate topics: buying, renting, selling, prices, neighbourhoods, contracts, market trends, property types, renovation tips, investment advice in Tunisia
+- If someone asks about anything unrelated (sports, cooking, politics, weather, general coding, etc.), gently redirect them back to real estate
+- Never make up property listings or prices — those come from the database
+
+Your capabilities you can mention:
+- Search real listings (apartments, houses, villas, land, commercial)
+- Predict property prices with an ML model
+- Show market analytics and trends
+- Generate legal contracts (sales, rental)
+- Create new listings
+
+Always end chat messages with a soft nudge toward what you can actually do for them."""
+
+    def _llm_chat(self, user_message: str, history: List[Dict] = None) -> Generator[Dict, None, None]:
+        """
+        Stream a conversational response from the LLM.
+        Used for greetings, small talk, clarifications, and anything
+        that doesn't map to a specific tool call.
+        """
+        try:
+            from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
+
+            messages = [SystemMessage(content=self.CHAT_SYSTEM_PROMPT)]
+
+            # Include recent conversation history for context
+            if history:
+                for msg in history[-6:]:  # last 3 turns
+                    role    = msg.get("role", "")
+                    content = msg.get("content", "")
+                    if role == "user":
+                        messages.append(HumanMessage(content=content))
+                    elif role == "assistant":
+                        messages.append(AIMessage(content=content))
+
+            messages.append(HumanMessage(content=user_message))
+
+            # Stream response token by token
+            for chunk in self.llm.stream(messages):
+                token = chunk.content
+                if token:
+                    yield {"type": "token", "content": token}
+
+        except Exception as e:
+            logger.warning(f"LLM chat fallback error: {e}")
+            # Graceful degradation — still better than a cold error
+            yield {"type": "token", "content": (
+                "Hey! 😊 I'm EstateMind, your real estate assistant for Tunisia.\n\n"
+                "I can help you find properties, estimate prices, or generate contracts.\n"
+                "What are you looking for? 🏠"
+            )}
+
+    # ------------------------------------------------------------------
     # Intent detection  (specific → general, CREATE before SEARCH)
+    # ------------------------------------------------------------------
     # ------------------------------------------------------------------
     def _detect_intent(self, message: str) -> Optional[str]:
         msg = message.lower()
@@ -294,7 +362,7 @@ class AgentOrchestrator:
         ]):
             return "get_analytics"
 
-        # 4. 🔹 NEW: Contract generation
+        # 4. Contract generation
         if any(phrase in msg for phrase in [
             "generate contract", "create contract", "make contract",
             "sales agreement", "compromis de vente", "promesse de vente",
@@ -315,23 +383,95 @@ class AgentOrchestrator:
         return None
 
     # ------------------------------------------------------------------
-    # 🔹 NEW: Check for "show results" commands
+    # Check for "show results" commands
     # ------------------------------------------------------------------
     def _is_show_command(self, message: str) -> bool:
         """Check if user wants to see results now instead of refining."""
         msg = message.lower().strip()
         show_phrases = [
-            "show", "show me", "give me", "top", "just show", "enough",
+            "show", "show me", "give me", "best", "top", "just show", "enough",
             "ok show", "display", "see results", "that's enough", "stop asking",
             "i'm done", "show results", "show listings", "just display"
         ]
         return any(phrase in msg for phrase in show_phrases)
 
     def _extract_top_n(self, message: str) -> int:
-        """Extract 'top N' number from message (e.g., 'show top 5' → 5)."""
-        import re
-        match = re.search(r'(?:top|show|give)\s*(\d+)', message.lower())
+        """Extract 'top N' number from message (e.g., 'show top 5' or 'best 3' → 5/3)."""
+        match = re.search(r'(?:top|show|give|best)\s*(?:the\s*)?(\d+)', message.lower())
         return int(match.group(1)) if match else MAX_DISPLAY_LISTINGS
+
+    # ------------------------------------------------------------------
+    # Smart clarification question builder
+    # ------------------------------------------------------------------
+    def _build_clarification_message(
+        self,
+        count: int,
+        params: Dict[str, Any],
+        refinement_count: int,
+    ) -> str:
+        """
+        Build a targeted, friendly clarification question based on what
+        filters are already set vs. what's still missing.
+        Asks at most ONE focused question + offers an escape hatch.
+        """
+        has_price   = "min_price" in params or "max_price" in params
+        has_rooms   = "rooms" in params
+        has_surface = "min_surface" in params or "max_surface" in params
+        has_city    = "city" in params
+        has_tx      = "transaction_type" in params
+        prop_type   = params.get("property_type", "")
+
+        # --- Pick the single most-impactful missing filter ---
+
+        # 1. Transaction type unknown → buying or renting?
+        if not has_tx:
+            return (
+                f"🏠 Great, I found **{count} houses** in {params.get('city', 'the area')}! "
+                f"Are you looking to **buy** or **rent**?\n\n"
+                f"💬 *Reply:* \"buy\" or \"rent\" — or say **\"show top 3\"** to see the best matches now."
+            )
+
+        # 2. No budget set → what's the price range?
+        if not has_price:
+            tx_label = "rent" if params.get("transaction_type") == "rent" else "budget"
+            examples = (
+                "e.g. *\"under 800 TND/month\"*"
+                if params.get("transaction_type") == "rent"
+                else "e.g. *\"under 300k TND\"* or *\"between 150k and 400k\"*"
+            )
+            return (
+                f"💰 Found **{count} results** — that's quite a range! "
+                f"Do you have a {tx_label} in mind?\n\n"
+                f"💬 {examples} — or say **\"show top 3\"** to jump straight in."
+            )
+
+        # 3. No room count → how many bedrooms?
+        if not has_rooms:
+            return (
+                f"🛏️ **{count} listings** match so far. How many bedrooms are you looking for?\n\n"
+                f"💬 e.g. *\"3 bedrooms\"*, *\"at least 2 rooms\"* — or say **\"show top 5\"** to see results now."
+            )
+
+        # 4. No surface constraint → preferred size?
+        if not has_surface:
+            return (
+                f"📐 **{count} results** found. Any preference on size?\n\n"
+                f"💬 e.g. *\"at least 150m²\"*, *\"around 200m²\"* — or say **\"show top 5\"** if size doesn't matter."
+            )
+
+        # 5. All main filters set but still many results → offer to sort/show
+        price_hint = ""
+        if "max_price" in params:
+            price_hint = f" under {params['max_price']:,.0f} TND"
+
+        rooms_hint = f", {params['rooms']}+ beds" if has_rooms else ""
+
+        return (
+            f"🎯 I've narrowed it down to **{count} listings**{price_hint}{rooms_hint}. "
+            f"That's still a fair number — want me to sort by **best value**, "
+            f"**newest**, or just **show top 5** now?\n\n"
+            f"💬 *Reply:* \"best value\", \"newest\", \"show top 5\" — or give me another filter!"
+        )
 
     # ------------------------------------------------------------------
     # Main entry point
@@ -361,10 +501,10 @@ class AgentOrchestrator:
             state   = get_session(session_id)
             msg_low = user_message.lower().strip()
 
-            # 🔹 NEW: Check for reset command FIRST
+            # Check for reset command FIRST
             if any(w in msg_low for w in ["reset", "start over", "new search", "clear filters", "clear"]):
                 clear_pending(session_id)
-                yield {"type": "token", "content": "🔄 Search cleared! What are you looking for now?\n\n"}
+                yield {"type": "token", "content": "🔄 Search cleared! What are you looking for?\n\n"}
                 yield {"type": "token", "content": (
                     "💡 Try:\n"
                     "• *'3-bedroom apartments in Tunis under 200k'*\n"
@@ -380,32 +520,35 @@ class AgentOrchestrator:
             # ==============================================================
             if state["pending_search"] is not None:
                 
-                # 🔹 NEW: Check if user wants to SEE RESULTS now
+                # Check if user wants to SEE RESULTS now (top N / show / best)
                 if self._is_show_command(user_message):
-                    page_size = min(self._extract_top_n(user_message), 30)  # Cap at 30
+                    page_size = min(self._extract_top_n(user_message), 30)
                     
                     pending = state["pending_search"].copy()
                     pending["page"] = 1
                     pending["page_size"] = page_size
-                    
-                    yield {"type": "token", "content": f"📄 Showing top {page_size} results:\n\n"}
+
+                    # Natural acknowledgment based on what they asked for
+                    top_n_match = re.search(r'\d+', user_message)
+                    if top_n_match:
+                        yield {"type": "token", "content": f"👍 Here are the top **{page_size}** results:\n\n"}
+                    else:
+                        yield {"type": "token", "content": f"👍 Showing the best results for you:\n\n"}
                     
                     handler = self._get_tool_handler("search_listings")
                     result = handler(**pending)
                     
-                    # 🔹 Pass refinement_count for smart messaging
                     yield from self._format_search_response(
                         result, session_id, pending, 
                         refinement_count=state.get("refinement_count", 0),
-                        force_show=True  # 🔹 NEW: Skip clarification, just show
+                        force_show=True
                     )
                     
-                    # Clear pending after showing
                     clear_pending(session_id)
                     yield {"type": "end", "content": ""}
                     return
 
-                # User wants to refine further
+                # User wants to refine further — extract new params and merge
                 refinement = self._extract_search_params(user_message)
                 refinement.pop("page", None)
                 refinement.pop("page_size", None)
@@ -415,7 +558,7 @@ class AgentOrchestrator:
                 merged["page"] = 1
                 merged["page_size"] = state["pending_search"].get("page_size", 10)
 
-                # 🔹 Increment refinement counter
+                # Increment refinement counter
                 state["refinement_count"] = state.get("refinement_count", 0) + 1
                 state["pending_search"] = merged
 
@@ -424,7 +567,6 @@ class AgentOrchestrator:
                 handler = self._get_tool_handler("search_listings")
                 result = handler(**merged)
                 
-                # 🔹 Pass refinement_count for smart messaging
                 yield from self._format_search_response(
                     result, session_id, merged,
                     refinement_count=state["refinement_count"]
@@ -437,17 +579,9 @@ class AgentOrchestrator:
             # ==============================================================
             intent = self._detect_intent(user_message)
 
+            # ── Conversational fallback: let the LLM handle it naturally ──
             if not intent:
-                yield {"type": "token", "content": (
-                    "🤔 I'm not sure what you're looking for.\n\n"
-                    "I can help you with:\n"
-                    "• 🔍 **Search listings** — *'Find 3-bedroom apartments in Tunis'*\n"
-                    "• 💰 **Price prediction** — *'How much is a 120m² house in Sfax?'*\n"
-                    "• 📊 **Market analytics** — *'Show me market stats for Sousse'*\n"
-                    "• 📝 **Create a listing** — *'Create a new listing'*\n\n"
-                    "• 📄 **Generate contracts** — *'Generate sales agreement for my property'*\n\n"  
-                    "Could you rephrase your request?"
-                )}
+                yield from self._llm_chat(user_message, history=session_messages)
                 yield {"type": "end", "content": ""}
                 return
 
@@ -457,8 +591,7 @@ class AgentOrchestrator:
                 "predict_price":   self._extract_predict_params,
                 "create_listing":  self._extract_listing_params,
                 "get_analytics":   self._extract_analytics_params,
-                "generate_contract": self._extract_contract_params,  
-
+                "generate_contract": self._extract_contract_params,
             }
             tool_args = extractors[intent](user_message)
 
@@ -473,7 +606,7 @@ class AgentOrchestrator:
                 "predict_price":   "🤖 Running price prediction model...\n\n",
                 "create_listing":  "📝 Preparing listing...\n\n",
                 "get_analytics":   "📊 Fetching market analytics...\n\n",
-                "generate_contract": "📝 Generating contract...\n\n",  # ← NEW
+                "generate_contract": "📝 Generating contract...\n\n",
             }
             yield {"type": "token", "content": loading_msgs.get(intent, "⏳ Processing...\n\n")}
 
@@ -503,17 +636,14 @@ class AgentOrchestrator:
                 yield from self._format_analytics_response(result)
             elif intent == "create_listing":
                 yield {"type": "token", "content": result.get("message", "✅ Listing created!")}
-            elif intent == "generate_contract":  # ← NEW
+            elif intent == "generate_contract":
                 logger.info(f"📝 Agent: Detected contract intent, params: {tool_args}")
-                # Handle contract generation result
                 if "error" in result:
                     logger.error(f"📝 Agent: Contract generation error: {result['error']}")
                     yield {"type": "error", "content": result["error"]}
                 else:
                     logger.info(f"📝 Agent: Contract generated successfully, text length: {len(result.get('contract_text', ''))}")
-                    # Stream the contract text
                     yield {"type": "token", "content": result.get("contract_text", "")}
-                    # Mark as action_required for saving
                     yield {
                         "type": "action_required",
                         "action": "save_contract",
@@ -531,17 +661,27 @@ class AgentOrchestrator:
             yield {"type": "error", "content": f"Error processing request: {e}"}
 
     # ------------------------------------------------------------------
-    # Parameter extractors (unchanged - working well)
+    # Parameter extractors
     # ------------------------------------------------------------------
     def _extract_search_params(self, message: str) -> Dict[str, Any]:
         params  = {}
         msg_low = message.lower()
 
-        # City
-        for city in CITIES:
-            if city in msg_low:
-                params["city"] = city.capitalize()
+        # City alias handling first
+        for alias, canonical in CITY_ALIASES.items():
+            if alias in msg_low:
+                params["city"] = canonical
                 break
+        else:
+            for city in CITIES:
+                if city in msg_low:
+                    params["city"] = city.capitalize()
+                    break
+
+        # Top N / best results
+        top_n_match = re.search(r'(?:top|best|show)\s*(?:the\s*)?(\d+)', msg_low)
+        if top_n_match:
+            params["page_size"] = min(int(top_n_match.group(1)), 30)
 
         # Max price
         max_price_match = re.search(
@@ -585,18 +725,28 @@ class AgentOrchestrator:
             params["rooms"] = int(room_match.group(1))
 
         # Surface → min_surface / max_surface
+        # Detect "200m² or more" / "at least 200m²" patterns first
         surface_match = re.search(
             r'(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm|square\s*meters?)', msg_low
         )
         if surface_match:
             surface_val = float(surface_match.group(1))
-            if any(w in msg_low for w in ["at least", "minimum", "min", "more than", "above", "bigger", "over"]):
+            # Check full message for directional keywords (before OR after the number)
+            is_min = any(w in msg_low for w in [
+                "at least", "minimum", "min", "more than", "above",
+                "bigger", "over", "or more", "+", "≥",
+            ])
+            is_max = any(w in msg_low for w in [
+                "at most", "maximum", "max", "less than", "below",
+                "under", "smaller", "or less", "≤",
+            ])
+            if is_min:
                 params["min_surface"] = surface_val
-            elif any(w in msg_low for w in ["at most", "maximum", "max", "less than", "below", "under", "smaller"]):
+            elif is_max:
                 params["max_surface"] = surface_val
             else:
-                params["min_surface"] = round(surface_val * 0.8, 1)
-                params["max_surface"] = round(surface_val * 1.2, 1)
+                # Default: treat bare "200m²" as a minimum (user intent is usually "at least this big")
+                params["min_surface"] = surface_val
 
         # Property type
         if any(t in msg_low for t in ["apartment", "appart", "appartement", "flat"]):
@@ -642,9 +792,9 @@ class AgentOrchestrator:
             params.update({k: v for k, v in llm_params.items() if v is not None})
             params["_extraction_method"] = "llm"
             params["_llm_provider"] = self._detect_llm_provider()
-            logger.info(f"🎯 [AGENT] LLM extraction successful via {params['_llm_provider']}")  # ← NEW LOG
+            logger.info(f"🎯 [AGENT] LLM extraction successful via {params['_llm_provider']}")
         else:
-            logger.info("🎯 [AGENT] LLM extraction failed, falling back to regex")  # ← NEW LOG
+            logger.info("🎯 [AGENT] LLM extraction failed, falling back to regex")
             
         if params.get("surface") in (None, 100.0):
             surface_match = re.search(r'(\d+(?:\.\d+)?)\s*(?:m2|m²|sqm|square\s*meters?)', msg_low)
@@ -753,15 +903,15 @@ class AgentOrchestrator:
         return params
 
     # ------------------------------------------------------------------
-    # 🔹 UPDATED: Response formatters with smart thresholds
+    # Response formatters
     # ------------------------------------------------------------------
     def _format_search_response(
         self,
         result:          Dict,
         session_id:      str,
         tool_args:       Dict,
-        refinement_count: int = 0,      # 🔹 NEW param
-        force_show:      bool = False,  # 🔹 NEW param
+        refinement_count: int = 0,
+        force_show:      bool = False,
     ) -> Generator[Dict, None, None]:
 
         state = get_session(session_id)
@@ -782,65 +932,13 @@ class AgentOrchestrator:
             clear_pending(session_id)
             yield {"type": "token", "content": "🔍 No listings found matching your criteria.\n\n"}
             yield {"type": "token", "content": (
-                "💡 Tips:\n"
+                "💡 Try:\n"
                 "• Widen your price range\n"
                 "• Try a different city or property type\n"
                 "• Remove some filters\n\n"
                 "Or say *'reset'* to start a fresh search! 🏠"
             )}
             return
-
-        # 🔹 SMART THRESHOLD: Auto-show if refined enough OR results manageable
-        should_ask = (
-            count > CLARIFICATION_THRESHOLD 
-            and refinement_count < MAX_REFINEMENT_ROUNDS
-            and count > AUTO_SHOW_THRESHOLD
-            and not force_show
-        )
-
-        if should_ask:
-            # Store pending for next refinement round
-            state["pending_search"] = tool_args
-            
-            # Positive, encouraging language
-            progress_msg = {
-                0: "🏠 Found many listings! Let's narrow it down.",
-                1: "✨ Great progress! Getting closer.",
-                2: "🎯 Almost there! Just a bit more.",
-            }.get(refinement_count, "💡 Let's refine a bit more.")
-            
-            yield {"type": "token", "content": f"{progress_msg}\n\n"}
-            yield {"type": "token", "content": "Please answer one or more of these:\n\n"}
-            yield {"type": "token", "content": (
-                "**💰 Budget?**\n"
-                "   e.g. *'under 150,000 TND'* or *'between 80k and 200k'*\n\n"
-                "**🛏️ Bedrooms?**\n"
-                "   e.g. *'2 bedrooms'* or *'3 rooms'*\n\n"
-                "**📐 Size?**\n"
-                "   e.g. *'under 100m²'* or *'at least 80m²'*\n\n"
-                "**🏠 Property type?**\n"
-                "   apartment / house / villa / land / commercial\n\n"
-                "**📍 More specific area?**\n"
-                "   e.g. *'in Sfax'* or *'in Sousse'*\n\n"
-                "💡 You can combine them: *'2 bedrooms under 150,000 in Sfax'*\n\n"
-                "Or say *'show top 5'* to see the best matches now! ✨\n"
-                "Or *'reset'* to start over.\n"
-            )}
-            yield {
-                "type":           "clarification",
-                "content":        f"Awaiting refinement for {count} results.",
-                "pending_params": tool_args,
-            }
-            return
-
-        # 🔹 Show results! (either forced, or below threshold, or refined enough)
-        clear_pending(session_id)
-
-        # Header
-        yield {"type": "token", "content": f"🏠 Found **{count} listing{'s' if count != 1 else ''}**"}
-        if pages > 1:
-            yield {"type": "token", "content": f" (Page {page}/{pages})"}
-        yield {"type": "token", "content": ":\n\n"}
 
         TYPE_EMOJI = {
             "apartment":  "🏢",
@@ -849,6 +947,75 @@ class AgentOrchestrator:
             "land":       "🌾",
             "commercial": "🏪",
         }
+
+        # ---------------------------------------------------------------
+        # SMART THRESHOLD: Ask for refinement when result set is broad
+        # ---------------------------------------------------------------
+        should_ask = (
+            count > CLARIFICATION_THRESHOLD
+            and refinement_count < MAX_REFINEMENT_ROUNDS
+            and not force_show
+        )
+
+        if should_ask:
+            state["pending_search"] = tool_args
+
+            # Always show a small preview (top 3) so the user isn't in the dark
+            preview_count = min(3, len(results))
+            yield {"type": "token", "content": (
+                f"🏠 I found **{count} listings** — here's a quick preview:\n\n"
+            )}
+
+            for i, listing in enumerate(results[:preview_count], 1):
+                title      = listing.get("title", "Untitled")
+                price      = listing.get("price", 0)
+                city       = listing.get("city", "Unknown")
+                surface    = listing.get("surface")
+                rooms      = listing.get("rooms")
+                prop_type  = (listing.get("property_type") or "").lower()
+                listing_id = listing.get("id")
+
+                listing_url = f"http://localhost:8081/listing/{listing_id}" if listing_id else "#"
+                price_str   = f"{price:,.0f} TND" if price else "Price on request"
+                parts       = []
+                if surface:
+                    parts.append(f"{int(surface)}m²")
+                if rooms:
+                    parts.append(f"{rooms} bed")
+                details_str = " • ".join(parts) if parts else "Details on request"
+                emoji       = TYPE_EMOJI.get(prop_type, "🏠")
+                title       = title[:47] + "..." if len(title) > 50 else title
+
+                yield {"type": "token", "content": (
+                    f"{i}. {emoji} **{title}**\n"
+                    f"   💰 {price_str} • 📍 {city}\n"
+                    f"   📐 {details_str}\n"
+                    f"   🔗 [View →]({listing_url})\n\n"
+                )}
+
+            # Build and yield the targeted clarification question
+            clarification_msg = self._build_clarification_message(
+                count, tool_args, refinement_count
+            )
+            yield {"type": "token", "content": f"---\n{clarification_msg}"}
+
+            yield {
+                "type":           "clarification",
+                "content":        clarification_msg,
+                "pending_params": tool_args,
+            }
+            return
+
+        # ---------------------------------------------------------------
+        # Show results (forced, below threshold, or refined enough)
+        # ---------------------------------------------------------------
+        clear_pending(session_id)
+
+        # Header
+        yield {"type": "token", "content": f"🏠 Found **{count} listing{'s' if count != 1 else ''}**"}
+        if pages > 1:
+            yield {"type": "token", "content": f" (Page {page}/{pages})"}
+        yield {"type": "token", "content": ":\n\n"}
 
         for i, listing in enumerate(results[:MAX_DISPLAY_LISTINGS], 1):
             title      = listing.get("title", "Untitled")
@@ -883,58 +1050,43 @@ class AgentOrchestrator:
                 f"   🔗 [View listing →]({listing_url})\n\n"
             )}
 
-        # 🔹 Smart footer based on count and refinement history
+        # Smart footer based on count
         if count > MAX_DISPLAY_LISTINGS:
-            yield {"type": "token", "content": f"🎯 **Showing {MAX_DISPLAY_LISTINGS} of {count} results.**\n\n"}
+            yield {"type": "token", "content": f"🎯 **Showing {min(MAX_DISPLAY_LISTINGS, len(results))} of {count} results.**\n\n"}
 
-        # Options footer
         if pages > 1 and page < pages:
             yield {"type": "token", "content": (
                 "💬 **What next?**\n"
                 "• *'Show next page'* — more results\n"
                 "• *'Cheaper options'* — reduce price\n"
-                "• *'Bigger properties'* — increase size\n"
-                "• *'Different city'* — change location\n\n"
-            )}
-        elif count > AUTO_SHOW_THRESHOLD and refinement_count < MAX_REFINEMENT_ROUNDS and not force_show:
-            # Still many results, but offer escape hatch
-            yield {"type": "token", "content": (
-                "💡 **Still quite a few!** You can:\n"
-                "• Say *'show top 10'* to see more now\n"
-                "• Or refine: *'with balcony'*, *'newly built'*, *'near metro'*\n"
-                "• Or *'reset'* to start fresh 🔄\n\n"
+                "• *'Bigger properties'* — increase size\n\n"
             )}
         else:
-            # Good number of results → encourage exploration
             yield {"type": "token", "content": (
                 "💬 **Want to refine?** Try:\n"
-                "• *'With garden'* — add amenity\n"
-                "• *'Under 100,000'* — adjust budget\n"
-                "• *'Details on #1'* — learn more about a listing\n\n"
+                "• *'Under 200k'* — adjust budget\n"
+                "• *'3 bedrooms'* — filter by rooms\n"
+                "• *'reset'* — start a new search 🔄\n\n"
             )}
 
-        # Cross-sell other capabilities
         yield {"type": "token", "content": (
             "❤️ I can also **predict prices**, show **market stats**, or **create a listing**!"
         )}
-
-    # In agent.py, update _format_predict_response:
 
     def _format_predict_response(self, result: Dict) -> Generator[Dict, None, None]:
         if "error" in result:
             yield {"type": "token", "content": f"❌ {result['error']}\n"}
             return
 
-        price = result.get("predicted_price", 0)
+        price      = result.get("predicted_price", 0)
         confidence = result.get("confidence", 0)
-        min_est = result.get("min_estimate", 0)
-        max_est = result.get("max_estimate", 0)
-        reasoning = result.get("reasoning", "")
+        min_est    = result.get("min_estimate", 0)
+        max_est    = result.get("max_estimate", 0)
+        reasoning  = result.get("reasoning", "")
         
-        # 🔹 Show extracted params in debug mode
-        debug_mode = os.getenv("DEBUG_EXTRACTED_PARAMS", "false").lower() == "true"
+        debug_mode        = os.getenv("DEBUG_EXTRACTED_PARAMS", "false").lower() == "true"
         extraction_method = result.get("_extraction_method", "regex")
-        llm_provider = result.get("_llm_provider", "unknown")
+        llm_provider      = result.get("_llm_provider", "unknown")
         
         if debug_mode and extraction_method == "llm" and result.get("_extracted_params"):
             extracted = result["_extracted_params"]
@@ -947,12 +1099,8 @@ class AgentOrchestrator:
                 f"• 💱 Transaction: {extracted.get('transaction_type', 'N/A')}\n\n"
             )}
         elif debug_mode:
-            # Show that regex was used
-            yield {"type": "token", "content": (
-                f"🔍 **Extracted via REGEX** (LLM unavailable)\n\n"
-            )}
+            yield {"type": "token", "content": "🔍 **Extracted via REGEX** (LLM unavailable)\n\n"}
 
-        # Original prediction output
         yield {"type": "token", "content": (
             f"💰 **Predicted Price: {price:,.0f} TND**\n\n"
             f"📊 Range: {min_est:,.0f} – {max_est:,.0f} TND\n"

@@ -12,8 +12,8 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFteG5vamxmY3p3ZmZ2dHd1dHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjE3NDMsImV4cCI6MjA5MTI5Nzc0M30.hxj1C-NiJ2DSWK1p_63OgYtwX2uzjSLS1osMuek9Ow0",
 );
 
-
 const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+
 // ── CSRF helper ───────────────────────────────────────────────────────────────
 function getCsrfToken(): string {
   const name = "csrftoken";
@@ -69,6 +69,44 @@ export class ApiError extends Error {
   }
 }
 
+export interface Governorate {
+  id: number;
+  name: string;
+  name_ar: string;
+  value: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface Delegation {
+  id: number;
+  governorate_id: number;
+  name: string;
+  name_ar: string;
+  value: string;
+  postal_code: string;
+  latitude: number | null;
+  longitude: number | null;
+}
+
+export interface TitleValidationResponse {
+  valid: boolean;
+  message: string;
+  confidence: number;
+  suggested_title?: string;
+}
+
+export interface DelegationMatchResponse {
+  original: string;
+  corrected: string | null;
+  matched: boolean;
+  confidence: number;
+  delegation_id: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  governorate: string | null;
+  message: string;
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 export interface Listing {
@@ -93,7 +131,6 @@ export interface Listing {
   features: string[];
   images: { url: string; label: string }[];
   images_count: number;
-  //fraud_flag: boolean;
   fraud_score: number | null;
   fraud_reason: string | null;
   reliability_score: number | null;
@@ -134,7 +171,7 @@ export interface ListingFilters {
   q?: string;
   city?: string;
   region?: string;
-  transaction?: "sale" | "rent";
+  transaction_type?: "Sale" | "Rent";
   type?: string;
   min_price?: number;
   max_price?: number;
@@ -165,7 +202,6 @@ export interface RegisterPayload {
   role: "particular" | "agency";
   date_of_birth: string;   // ISO: YYYY-MM-DD
   phone?: string;
-  // agency only
   agency_name?: string;
   matricule_fiscale?: string;
 }
@@ -179,19 +215,38 @@ export interface CreateListingPayload {
   rooms: number;
   surface: number;
   price: number;
-  description?: string;
-  images?: string[]; // Supabase URLs
-  features?: string[];
-  latitude?: number;
-  longitude?: number;
-  poi?: string[];
+  description: string;
+  images: string[];
+  features: string[];
+  poi: string[];
+  latitude: number | null;
+  longitude: number | null;
+  governorate?: string;
+  region?: string;
+  zone?: string;
+  municipality?: string;
 }
 
 export interface CreateListingResponse {
   success: boolean;
   listing_id: string;
+  pois_found: number;
   reliability_score: number;
   reliability_level: "HIGH" | "GOOD" | "LOW" | "DROP";
+  title_validated: boolean;
+  title_confidence: number;
+  predicted_price: number | null;
+  price_range: {
+    low: number | null;
+    high: number | null;
+  };
+  auto_corrected?: boolean;
+  auto_correct_info?: {
+    original: string;
+    corrected: string;
+    confidence: number;
+    message: string;
+  };
   message: string;
 }
 
@@ -207,7 +262,7 @@ export interface GenerateDescriptionPayload {
     price?: string;
     furnished?: string;
   };
-  images?: File[]; // For future multimodal support
+  images?: File[];
 }
 
 export interface GenerateDescriptionResponse {
@@ -223,7 +278,114 @@ export interface UploadImageResponse {
   errors?: { filename: string; error: string }[];
 }
 
-// ── Listings API ────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// PREDICTION / AI SCENARIO TYPES
+// ════════════════════════════════════════════════════════════════════════════
+export interface ScenarioInput {
+  property_type: "Apartment" | "Villa" | "Land" | "Commercial" | "Other";
+  surface: number;
+  city: string;
+  region: string;
+  years: number;
+  monthly_rent?: number;
+  initial_price?: number;
+}
+
+export interface YearlyPrediction {
+  year: number;
+  price: number;
+  cumulative_rent: number;
+  total_value: number;
+  roi: number;
+  inflation: number;
+}
+
+export interface PredictionResult {
+  initial_price: number;
+  yearly_predictions: YearlyPrediction[];
+  total_roi: number;
+  final_value: number;
+  confidence_score: number;
+  model_used: string;
+  factors: Record<string, any>;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  cached?: boolean;
+}
+
+export interface ModelStatusResponse {
+  models: Record<string, boolean>;
+  models_path: string;
+}
+
+export interface MacroForecastResponse {
+  inflation_forecast: number[];
+  years: number[];
+}
+
+export interface BasePricesResponse {
+  base_prices: Record<string, number>;
+  city_multipliers: Record<string, number>;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PREDICTION API
+// ════════════════════════════════════════════════════════════════════════════
+export const predictionApi = {
+  /**
+   * Predict property investment scenario
+   * POST /api/ai/predict/
+   */
+  async predict(scenario: ScenarioInput): Promise<ApiResponse<PredictionResult>> {
+    return apiFetch<ApiResponse<PredictionResult>>("/api/ai/predict/", {
+      method: "POST",
+      body: JSON.stringify(scenario),
+    });
+  },
+
+  /**
+   * Compare multiple scenarios
+   * POST /api/ai/compare/
+   */
+  async compare(scenarios: ScenarioInput[]): Promise<ApiResponse<{ comparison: PredictionResult[] }>> {
+    return apiFetch<ApiResponse<{ comparison: PredictionResult[] }>>("/api/ai/compare/", {
+      method: "POST",
+      body: JSON.stringify({ scenarios }),
+    });
+  },
+
+  /**
+   * Get base prices by property type and city multipliers
+   * GET /api/ai/base-prices/
+   */
+  async getBasePrices(): Promise<ApiResponse<BasePricesResponse>> {
+    return apiFetch<ApiResponse<BasePricesResponse>>("/api/ai/base-prices/");
+  },
+
+  /**
+   * Get macroeconomic forecast (inflation)
+   * GET /api/ai/macro-forecast/
+   */
+  async getMacroForecast(): Promise<ApiResponse<MacroForecastResponse>> {
+    return apiFetch<ApiResponse<MacroForecastResponse>>("/api/ai/macro-forecast/");
+  },
+
+  /**
+   * Get model status (which models are loaded)
+   * GET /api/ai/status/
+   */
+  async getModelStatus(): Promise<ApiResponse<ModelStatusResponse>> {
+    return apiFetch<ApiResponse<ModelStatusResponse>>("/api/ai/status/");
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// LISTINGS API
+// ════════════════════════════════════════════════════════════════════════════
 export const listingsApi = {
   list(filters: ListingFilters = {}): Promise<ListingsResponse> {
     const params = new URLSearchParams();
@@ -244,7 +406,6 @@ export const listingsApi = {
     return apiFetch<ListingsMetaResponse>("/api/listings/meta/");
   },
 
-  // ✅ CREATE NEW LISTING (User-submitted)
   create(payload: CreateListingPayload): Promise<CreateListingResponse> {
     return apiFetch<CreateListingResponse>("/api/listings/create/", {
       method: "POST",
@@ -252,27 +413,71 @@ export const listingsApi = {
     });
   },
 
-  async generateDescription(
-    payload: GenerateDescriptionPayload & { files?: File[] } // Allow passing files
-  ): Promise<GenerateDescriptionResponse> {
+  validateTitle(title: string): Promise<TitleValidationResponse> {
+    return apiFetch<TitleValidationResponse>("/api/validate-title/", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+    });
+  },
 
-    // If files are provided, use the Real API via FormData
+  getGovernorates(): Promise<Governorate[]> {
+    return apiFetch<Governorate[]>("/api/governorates/");
+  },
+
+  getDelegations(governorateId: number): Promise<Delegation[]> {
+    return apiFetch<Delegation[]>(`/api/governorates/${governorateId}/delegations/`);
+  },
+
+  autoCorrectDelegation(delegationName: string, governorateId?: number): Promise<DelegationMatchResponse> {
+    return apiFetch<DelegationMatchResponse>("/api/delegation/autocorrect/", {
+      method: "POST",
+      body: JSON.stringify({ delegation_name: delegationName, governorate_id: governorateId }),
+    });
+  },
+
+  getUserListings(): Promise<{ listings: Listing[]; total: number; active_count: number }> {
+    return apiFetch("/api/user/listings/");
+  },
+
+  getUserLikes(): Promise<{ likes: any[]; total: number }> {
+    return apiFetch("/api/user/likes/");
+  },
+
+  getUserStats(): Promise<{
+    active_listings: number;
+    active_change: string;
+    total_views: number;
+    views_change: string;
+    total_likes: number;
+    likes_change: string;
+    messages: number;
+    unread_messages: number;
+    roi_estimate: number;
+  }> {
+    return apiFetch("/api/user/stats/");
+  },
+
+  getUserActivity(): Promise<{ activities: Array<{ text: string; time: string; type: string }> }> {
+    return apiFetch("/api/user/activity/");
+  },
+
+  like(listingId: string): Promise<{ liked: boolean; like_count: number }> {
+    return apiFetch(`/api/listings/${listingId}/like/`, { method: "POST" });
+  },
+
+  async generateDescription(
+    payload: GenerateDescriptionPayload & { files?: File[] }
+  ): Promise<GenerateDescriptionResponse> {
     if (payload.files && payload.files.length > 0) {
       const formData = new FormData();
-
-      // Append images
       payload.files.forEach(file => {
         formData.append("images", file);
       });
-
-      // Append metadata as JSON string
       formData.append("metadata", JSON.stringify(payload.metadata));
 
-      // Call Django Proxy (which forwards to FastAPI)
-      // Note: Do NOT set Content-Type header manually for FormData!
       const res = await fetch(`${BASE_URL}/api/generate-description/`, {
         method: "POST",
-        credentials: "include", // Send CSRF cookie if needed by Django proxy
+        credentials: "include",
         body: formData,
       });
 
@@ -284,7 +489,6 @@ export const listingsApi = {
       return res.json();
     }
 
-    // Fallback: Mock behavior if no files provided (for testing without backend)
     console.warn("Using mock description generator (no images provided)");
     await new Promise((resolve) => setTimeout(resolve, 1500));
 
@@ -304,7 +508,7 @@ export const listingsApi = {
     };
   },
 
-    async predictPrice(payload: {
+  async predictPrice(payload: {
     transaction: string;
     type: string;
     city: string;
@@ -320,13 +524,32 @@ export const listingsApi = {
       body: JSON.stringify(payload),
     });
   },
-
 };
 
+// ════════════════════════════════════════════════════════════════════════════
+// LOCATIONS API
+// ════════════════════════════════════════════════════════════════════════════
+export const locationsApi = {
+  getGovernorates(): Promise<Governorate[]> {
+    return apiFetch<Governorate[]>("/api/governorates/");
+  },
 
-// ── Storage API (Supabase) ──────────────────────────────────────────────────
+  getDelegations(governorateId: number): Promise<Delegation[]> {
+    return apiFetch<Delegation[]>(`/api/governorates/${governorateId}/delegations/`);
+  },
+
+  autoCorrectDelegation(delegationName: string, governorateId?: number): Promise<DelegationMatchResponse> {
+    return apiFetch<DelegationMatchResponse>("/api/delegation/autocorrect/", {
+      method: "POST",
+      body: JSON.stringify({ delegation_name: delegationName, governorate_id: governorateId }),
+    });
+  },
+};
+
+// ════════════════════════════════════════════════════════════════════════════
+// STORAGE API (Supabase)
+// ════════════════════════════════════════════════════════════════════════════
 export const storageApi = {
-  // ✅ Upload images to Supabase Storage bucket "property-images"
   async uploadImages(files: File[]): Promise<UploadImageResponse> {
     const urls: string[] = [];
     const errors: { filename: string; error: string }[] = [];
@@ -357,10 +580,8 @@ export const storageApi = {
     return { urls, errors: errors.length > 0 ? errors : undefined };
   },
 
-  // ✅ Remove image from Supabase Storage (optional cleanup)
   async removeImage(url: string): Promise<boolean> {
     try {
-      // Extract path from URL: https://.../property-images/listings/uuid.jpg
       const path = url.split("/property-images/")[1];
       if (!path) return false;
 
@@ -375,7 +596,9 @@ export const storageApi = {
   },
 };
 
-// ── Auth API ──────────────────────────────────────────────────────────────────
+// ════════════════════════════════════════════════════════════════════════════
+// AUTH API
+// ════════════════════════════════════════════════════════════════════════════
 export const authApi = {
   register(payload: RegisterPayload): Promise<SessionUser> {
     return apiFetch<SessionUser>("/api/register/", {
@@ -399,4 +622,3 @@ export const authApi = {
     return apiFetch<SessionUser>("/api/session/");
   },
 };
-

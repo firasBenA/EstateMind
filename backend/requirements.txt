@@ -48,3 +48,62 @@ sentry-sdk==1.39.1
 
 xgboost==2.1.1
 lightgbm==4.5.0
+# Core Django
+Django==6.0.4
+django-cors-headers==4.9.0
+django-extensions==4.1
+djangorestframework==3.17.1
+
+# Database
+psycopg2-binary==2.9.12
+supabase==2.29.0
+sqlalchemy
+
+# Authentication & Security
+argon2-cffi==23.1.0
+pyjwt==2.12.1
+cryptography==47.0.0
+python-dotenv
+
+# Machine Learning & Data Processing
+numpy==2.4.4
+pandas==3.0.2
+scikit-learn==1.8.0
+scipy==1.17.1
+category-encoders==2.7.1
+joblib==1.5.3
+
+# Image & Document Processing
+Pillow==12.2.0
+reportlab==4.5.0
+markdown2==2.5.5
+
+# API & HTTP
+requests==2.33.1
+httpx==0.28.1
+fastapi==0.136.1
+starlette==1.0.0
+
+# Real-time & Notifications
+pusher==3.3.4
+websockets==15.0.1
+python-socketio
+
+# Data Validation & Serialization
+pydantic==2.13.3
+pydantic-core==2.46.3
+typing-extensions==4.15.0
+
+# Logging & Utilities
+loguru==0.7.3
+python-dateutil==2.9.0
+uuid
+python-multipart
+
+# Image Embeddings (optional - requires torch fix)
+# sentence-transformers==5.4.1
+# torch==2.11.0
+# torchvision==0.26.0
+# torchaudio==2.11.0
+
+
