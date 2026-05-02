@@ -15,6 +15,7 @@ urlpatterns = [
     path("accounts/logout/", auth_views.LogoutView.as_view(), name="logout"),
     path("api/generate-description/", generate_description),
     path('api/predict-price/', predict_price),
+    path("api/chat/", include("agent.urls")),  # ✨ NEW: Agent chatbot endpoints
     
 
         # ✅ TEMPORARY TEST ENDPOINT AT ROOT LEVEL

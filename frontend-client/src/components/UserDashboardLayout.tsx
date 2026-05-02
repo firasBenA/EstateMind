@@ -102,7 +102,7 @@ export function UserDashboardLayout({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
-      <ChatbotButton />
+      
     </div>
   );
 }

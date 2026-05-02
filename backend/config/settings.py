@@ -30,6 +30,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "corsheaders",
     "services",
+    
+    "agent",  # ✨ NEW: Agentic chatbot app
     "django_extensions",
 ]
 

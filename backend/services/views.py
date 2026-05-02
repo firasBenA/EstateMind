@@ -46,7 +46,12 @@ from models.prediction_models.predictor import get_predictor
 # Import UserProfile at the bottom to avoid circular imports
 from .models import UserProfile, AgentMetrics
 
+try:
+    from data.preprocessing.steps.scorer import compute_score
+except ImportError:
+    compute_score = None
 
+from models.prediction_models.predictor import get_predictor
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────

@@ -7,7 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { Loader2 } from "lucide-react";
+import { ChatBot } from "@/components/ChatBot"; // ✨ NEW: Agentic chatbot
 
 import LandingPage from "./pages/LandingPage";
 import SearchPage from "./pages/SearchPage";
@@ -30,6 +30,7 @@ import UserMessages from "./pages/user/UserMessages";
 import UserSettings from "./pages/user/UserSettings";
 import NotFound from "./pages/NotFound";
 import RecommendationsPage from "@/pages/user/recommendation";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <ChatBot /> {/* ✨ NEW: Floating chatbot widget */}
           <BrowserRouter>
             <Routes>
               {/* Public */}
