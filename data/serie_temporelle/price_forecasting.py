@@ -7,9 +7,14 @@ Run: python serie_temporelle/price_forecasting.py
   2. IPIM     — 97 quarterly points 2000-2024, base 2015=100 (INS)
   3. Prophet  — one model per type, regressors: IPC + Taux Directeur
   4. TND      — price(Q) = ipim_forecast(Q) × (anchor / ipim_at_2024Q1)
+
+PKL files saved per IPIM type:
+  prophet_ipim_appartement.pkl  ·  prophet_ipim_maison.pkl  ·  prophet_ipim_terrain.pkl
+  Usage: model = pickle.load(open('prophet_ipim_appartement.pkl', 'rb'))
 """
 import warnings; warnings.filterwarnings('ignore')
 from pathlib import Path
+import pickle
 import pandas as pd, numpy as np
 from prophet import Prophet
 import matplotlib; matplotlib.use('Agg')
@@ -20,7 +25,17 @@ EXPORTS = HERE / 'timeseries_exports'
 latest  = lambda p: sorted(EXPORTS.glob(p))[-1]
 
 # ── LOAD ──────────────────────────────────────────────────────────────────────
-ipim  = pd.read_csv(latest('ipim_historical*.csv'), on_bad_lines='skip', parse_dates=['date'])
+# Look for ipim_historical.csv in timeseries_exports/ OR the script's folder
+_ipim_candidates = list(EXPORTS.glob('ipim_historical*.csv')) + \
+                   list(HERE.glob('ipim_historical*.csv')) + \
+                   list(HERE.parent.glob('ipim_historical*.csv'))
+if not _ipim_candidates:
+    raise FileNotFoundError(
+        "ipim_historical.csv not found.\n"
+        f"Copy it to: {EXPORTS}\n"
+        "File to copy: ipim_historical__1_.csv (uploaded to EstateMind)"
+    )
+ipim  = pd.read_csv(_ipim_candidates[-1], on_bad_lines='skip', parse_dates=['date'])
 macro = pd.read_csv(latest('macro_wide_*.csv'), index_col='date', parse_dates=True)
 ipc_fc= pd.read_csv(EXPORTS/'forecast_ipc_12m.csv',   parse_dates=['ds'])
 td_fc = pd.read_csv(EXPORTS/'forecast_taux_directeur_12m.csv', parse_dates=['ds'])
@@ -64,6 +79,10 @@ for col in ['ipim_appartement', 'ipim_maison', 'ipim_terrain']:
                  changepoint_prior_scale=0.1, seasonality_prior_scale=5.0, interval_width=0.95)
     m.add_regressor('ipc_general_ins'); m.add_regressor('taux_directeur')
     m.fit(tr); fc_[col] = m.predict(fu)
+    # save fitted model as pkl
+    with open(EXPORTS / f'prophet_ipim_{col.replace("ipim_","")}.pkl', 'wb') as f:
+        pickle.dump(m, f)
+    print(f"  Saved prophet_ipim_{col.replace('ipim_','')}.pkl")
 
 # ── CONVERT INDEX → TND ───────────────────────────────────────────────────────
 # price_per_unit = anchor / ipim_at_2024Q1  (last real observation)
@@ -147,4 +166,6 @@ fig.suptitle('EstateMind — Prévision Prix Immobiliers\n'
              fontsize=13, fontweight='bold', color=C['navy'], y=1.01)
 plt.tight_layout()
 plt.savefig(EXPORTS / 'price_forecast_chart.png', dpi=150, bbox_inches='tight', facecolor=C['bg'])
-print(f"\nCSV + Chart → {EXPORTS}")
+print(f"\nCSV + Chart + PKL → {EXPORTS}")
+print("  price_forecast.csv  ·  price_forecast_chart.png")
+print("  prophet_ipim_appartement.pkl  ·  prophet_ipim_maison.pkl  ·  prophet_ipim_terrain.pkl")
