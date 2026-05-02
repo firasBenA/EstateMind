@@ -1,5 +1,4 @@
 // frontend-client/src/pages/LandingPage.tsx
-// Add the toggle section right after the "How it works" section
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
@@ -19,8 +18,6 @@ import {
   Shield, BarChart3, FileText, ArrowRight,
   Users, Zap, Sparkles, Target, Clock, Flame,
 } from "lucide-react";
-
-// ... StatSkeleton function stays the same ...
 
 export default function LandingPage() {
   const navigate = useNavigate();
@@ -56,22 +53,22 @@ export default function LandingPage() {
 
   const stats = [
     {
-      icon: Building2, label: "Annonces actives",
-      value: metaLoading ? null : (meta?.total_listings ?? 0).toLocaleString("fr-TN"),
+      icon: Building2, label: "Active Listings",
+      value: metaLoading ? null : (meta?.total_listings ?? 0).toLocaleString("en-US"),
       color: "bg-primary/10 text-primary",
     },
     {
-      icon: MapPin, label: "Villes couvertes",
+      icon: MapPin, label: "Cities Covered",
       value: metaLoading ? null : String(meta?.cities_covered ?? 0),
       color: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400",
     },
     {
-      icon: TrendingUp, label: "Prix moy./m²",
-      value: metaLoading ? null : `${(meta?.avg_price_per_m2 ?? 0).toLocaleString("fr-TN")} TND`,
+      icon: TrendingUp, label: "Avg. Price/m²",
+      value: metaLoading ? null : `${(meta?.avg_price_per_m2 ?? 0).toLocaleString("en-US")} TND`,
       color: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
     },
     {
-      icon: CalendarDays, label: "Ajoutées cette semaine",
+      icon: CalendarDays, label: "Added This Week",
       value: metaLoading ? null : String(meta?.listings_this_week ?? 0),
       color: "bg-violet-500/10 text-violet-600 dark:text-violet-400",
     },
@@ -81,28 +78,27 @@ export default function LandingPage() {
     <PublicLayout>
       {/* ── Hero ──────────────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background">
-        {/* Hero content - same as before */}
         <div className="container mx-auto px-4 pt-8 md:pt-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             {/* Left: headline */}
             <div className="space-y-6 text-center lg:text-left relative z-10">
               <div className="inline-flex items-center gap-2 rounded-full border bg-card px-4 py-1.5 text-sm text-muted-foreground">
                 <Zap className="h-3.5 w-3.5 text-primary" />
-                Données en temps réel depuis 3+ sources
+                Real-time data from 3+ sources
               </div>
               <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-tight">
-                Trouvez votre bien en{" "}
-                <span className="text-gradient-brand">Tunisie</span>
+                Find your property in{" "}
+                <span className="text-gradient-brand">Tunisia</span>
               </h1>
               <p className="text-lg text-muted-foreground max-w-lg">
-                Recherchez, analysez et investissez intelligemment grâce à l'IA — données agrégées de Tayara, Mubawab, Affare et plus encore.
+                Search, analyze and invest intelligently with AI — aggregated data from Tayara, Mubawab, Affare and more.
               </p>
               <div className="flex flex-wrap gap-3 justify-center lg:justify-start">
                 <Button size="lg" onClick={() => navigate("/search")} className="gap-2">
-                  <Search className="h-4 w-4" /> Explorer les annonces
+                  <Search className="h-4 w-4" /> Explore listings
                 </Button>
                 <Button size="lg" variant="outline" asChild>
-                  <Link to="/register">Commencer gratuitement <ArrowRight className="h-4 w-4 ml-1" /></Link>
+                  <Link to="/register">Get started <ArrowRight className="h-4 w-4 ml-1" /></Link>
                 </Button>
               </div>
             </div>
@@ -110,37 +106,6 @@ export default function LandingPage() {
             {/* Right: hero scene */}
             <div className="relative">
               <HeroScene />
-            </div>
-          </div>
-
-          {/* Search bar */}
-          <div className="max-w-4xl mx-auto bg-card rounded-2xl shadow-xl border p-4 md:p-5 -mb-8 relative z-20 mt-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <Select value={city} onValueChange={setCity}>
-                <SelectTrigger><SelectValue placeholder="Ville" /></SelectTrigger>
-                <SelectContent>
-                  {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                </SelectContent>
-              </Select>
-              <Select value={transType} onValueChange={setTransType}>
-                <SelectTrigger><SelectValue placeholder="Transaction" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="sale">Vente</SelectItem>
-                  <SelectItem value="rent">Location</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={propType} onValueChange={setPropType}>
-                <SelectTrigger><SelectValue placeholder="Type de bien" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="apartment">Appartement</SelectItem>
-                  <SelectItem value="house">Villa</SelectItem>
-                  <SelectItem value="land">Terrain</SelectItem>
-                  <SelectItem value="commercial">Commercial</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button onClick={handleSearch} className="gap-2">
-                <Search className="h-4 w-4" /> Rechercher
-              </Button>
             </div>
           </div>
         </div>
@@ -151,7 +116,7 @@ export default function LandingPage() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {metaLoading
-              ? Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} />)
+              ? Array.from({ length: 4 }).map((_, i) => <div key={i}><Skeleton className="h-24 w-full" /></div>)
               : stats.map(s => (
                   <div key={s.label}
                     className="flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm hover:shadow-md transition-shadow">
@@ -172,19 +137,19 @@ export default function LandingPage() {
       {/* ── How it works ──────────────────────────────────────────────────── */}
       <section className="container mx-auto px-4 py-16">
         <div className="text-center mb-14">
-          <span className="inline-block text-xs font-semibold tracking-widest uppercase text-primary mb-2">Processus simple</span>
-          <h2 className="text-3xl md:text-4xl font-bold">Comment ça marche</h2>
+          <span className="inline-block text-xs font-semibold tracking-widest uppercase text-primary mb-2">Simple Process</span>
+          <h2 className="text-3xl md:text-4xl font-bold">How It Works</h2>
           <p className="text-muted-foreground max-w-xl mx-auto mt-3">
-            Que vous achetiez, louiez ou investissiez — trois étapes vers votre prochain bien.
+            Whether you're buying, renting or investing — three steps to your next property.
           </p>
         </div>
         <div className="relative max-w-4xl mx-auto">
           <div className="hidden md:block absolute top-12 left-[16%] right-[16%] h-0.5 bg-border" />
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
             {[
-              { icon: Search,   num: "01", title: "Rechercher et découvrir",    desc: "Parcourez des milliers d'annonces agrégées de toutes les grandes plateformes tunisiennes avec des filtres intelligents." },
-              { icon: BarChart3,num: "02", title: "Analyser et comparer",       desc: "Obtenez des informations de prix, une détection de fraude et une analyse de rentabilité alimentées par l'IA." },
-              { icon: FileText, num: "03", title: "Agir et conclure",           desc: "Publiez des annonces, générez des contrats et négociez — tout depuis une seule plateforme unifiée." },
+              { icon: Search,   num: "01", title: "Search & Discover",    desc: "Browse thousands of listings aggregated from all major Tunisian platforms with smart filters." },
+              { icon: BarChart3,num: "02", title: "Analyze & Compare",     desc: "Get AI-powered price insights, fraud detection, and profitability analysis." },
+              { icon: FileText, num: "03", title: "Act & Close",           desc: "Post listings, generate contracts, and negotiate — all from one unified platform." },
             ].map((item, i) => (
               <div key={i} className="relative text-center group">
                 <div className="relative z-10 h-16 w-16 rounded-full bg-primary text-primary-foreground flex items-center justify-center mx-auto text-lg font-bold shadow-lg shadow-primary/25 group-hover:scale-110 transition-transform">
@@ -217,7 +182,7 @@ export default function LandingPage() {
               }`}
             >
               <Flame className="h-4 w-4" />
-              Annonces en vedette
+              Featured Listings
             </button>
             <button
               onClick={() => setActiveSection("recommended")}
@@ -228,7 +193,7 @@ export default function LandingPage() {
               }`}
             >
               <Sparkles className="h-4 w-4" />
-              Recommandations IA
+              Recommendations
             </button>
           </div>
         </div>
@@ -238,13 +203,13 @@ export default function LandingPage() {
           <div>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold">Annonces en vedette</h2>
+                <h2 className="text-2xl font-bold">Featured Listings</h2>
                 <p className="text-muted-foreground text-sm mt-1">
-                  Les dernières annonces publiées sur EstateMind
+                  Latest listings published on EstateMind
                 </p>
               </div>
               <Button variant="ghost" onClick={() => navigate("/search")} className="gap-1">
-                Voir tout <ArrowRight className="h-4 w-4" />
+                View all <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
 
@@ -273,20 +238,20 @@ export default function LandingPage() {
         {activeSection === "recommended" && (
           <div>
             {isAuthenticated ? (
-              <Recommendations  />
+              <Recommendations />
             ) : (
               <div className="text-center py-16 bg-muted/30 rounded-2xl">
                 <Sparkles className="h-12 w-12 mx-auto text-primary/50 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">Connectez-vous pour voir vos recommandations</h3>
+                <h3 className="text-xl font-semibold mb-2">Sign in to see your recommendations</h3>
                 <p className="text-muted-foreground mb-6">
-                  Créez un compte ou connectez-vous pour recevoir des recommandations personnalisées basées sur vos recherches.
+                  Create an account or sign in to get personalized recommendations based on your searches.
                 </p>
                 <div className="flex gap-3 justify-center">
                   <Button asChild variant="outline">
-                    <Link to="/login">Se connecter</Link>
+                    <Link to="/login">Sign in</Link>
                   </Button>
                   <Button asChild>
-                    <Link to="/register">Créer un compte</Link>
+                    <Link to="/register">Create account</Link>
                   </Button>
                 </div>
               </div>
@@ -298,20 +263,20 @@ export default function LandingPage() {
       {/* ── Why EstateMind ────────────────────────────────────────────────── */}
       <section className="container mx-auto px-4 py-20">
         <div className="text-center mb-12">
-          <span className="inline-block text-xs font-semibold tracking-widest uppercase text-primary mb-2">Notre avantage</span>
-          <h2 className="text-3xl md:text-4xl font-bold">Pourquoi choisir EstateMind ?</h2>
+          <span className="inline-block text-xs font-semibold tracking-widest uppercase text-primary mb-2">Our Advantage</span>
+          <h2 className="text-3xl md:text-4xl font-bold">Why Choose EstateMind?</h2>
           <p className="text-muted-foreground max-w-xl mx-auto mt-3">
-            Analyses IA combinées à des données multi-sources pour la vue la plus transparente du marché immobilier tunisien.
+            AI-powered analysis combined with multi-source data for the most transparent view of Tunisia's real estate market.
           </p>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
           {[
-            { icon: Shield,   title: "Détection de fraude",     desc: "Nous signalons automatiquement les annonces suspectes.", span: "md:col-span-2" },
-            { icon: TrendingUp,title: "Intelligence des prix",   desc: "Sachez si une annonce est au juste prix.", span: "" },
-            { icon: Target,   title: "Correspondance IA",        desc: "Recommandations personnalisées selon vos critères.", span: "" },
-            { icon: Sparkles, title: "Descriptions IA",          desc: "Générez annonces et contrats en un clic.", span: "" },
-            { icon: Users,    title: "Pour tous",                desc: "Particuliers, agences et investisseurs — une seule plateforme.", span: "" },
-            { icon: Clock,    title: "Mises à jour en temps réel", desc: "Les nouvelles annonces apparaissent en minutes.", span: "md:col-span-2" },
+            { icon: Shield,   title: "Fraud Detection",     desc: "We automatically flag suspicious listings.", span: "md:col-span-2" },
+            { icon: TrendingUp,title: "Price Intelligence",  desc: "Know if a listing is fairly priced.", span: "" },
+            { icon: Target,   title: "AI Matching",         desc: "Personalized recommendations based on your criteria.", span: "" },
+            { icon: Sparkles, title: "AI Descriptions",      desc: "Generate listings and contracts in one click.", span: "" },
+            { icon: Users,    title: "For Everyone",        desc: "Individuals, agencies and investors — one platform.", span: "" },
+            { icon: Clock,    title: "Real-time Updates",   desc: "New listings appear within minutes.", span: "md:col-span-2" },
           ].map((item, i) => (
             <div key={i} className={`group rounded-2xl border bg-card p-6 hover:shadow-lg hover:border-primary/20 transition-all ${item.span}`}>
               <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
@@ -336,18 +301,18 @@ export default function LandingPage() {
               style={{ background: "rgba(100,200,255,0.12)" }} />
           </div>
           <div className="relative z-10 max-w-2xl mx-auto text-center space-y-6">
-            <h2 className="text-3xl md:text-4xl font-bold text-white">Prêt à publier votre bien ?</h2>
+            <h2 className="text-3xl md:text-4xl font-bold text-white">Ready to list your property?</h2>
             <p className="text-lg text-white/90">
-              Publiez votre annonce en quelques minutes avec des descriptions IA, une tarification intelligente et une visibilité instantanée en Tunisie.
+              Post your listing in minutes with AI descriptions, smart pricing, and instant visibility in Tunisia.
             </p>
             <div className="flex flex-wrap gap-3 justify-center">
               <Button size="lg" asChild
                 className="bg-white/95 text-primary hover:bg-white shadow-lg shadow-black/20">
-                <Link to="/user/post-listing">Publier une annonce</Link>
+                <Link to="/user/post-listing">Post a listing</Link>
               </Button>
               <Button size="lg" asChild
                 className="bg-white/10 text-white border border-white/40 hover:bg-white/20 backdrop-blur-sm">
-                <Link to="/search">Parcourir les annonces</Link>
+                <Link to="/search">Browse listings</Link>
               </Button>
             </div>
           </div>

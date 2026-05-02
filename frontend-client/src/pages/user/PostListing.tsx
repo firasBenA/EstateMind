@@ -1,14 +1,18 @@
+// frontend-client/src/pages/user/PostListing.tsx
+
 import { UserDashboardLayout } from "@/components/UserDashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { supabase } from "@/lib/supabase";
 import { Textarea } from "@/components/ui/textarea";
 import {
   listingsApi,
+  locationsApi,
   storageApi,
   ApiError,
   type CreateListingPayload,
+  type Governorate,
+  type Delegation,
 } from "@/lib/api";
 import {
   Select,
@@ -26,10 +30,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { CITIES } from "@/lib/mock-data";
 import {
   Wand2,
-  Upload,
   AlertTriangle,
   CheckCircle2,
   ArrowLeft,
@@ -38,51 +40,20 @@ import {
   X,
   Loader2,
   MapPin,
+  Info,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
 
-// ️ Leaflet Imports
-import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
-import "leaflet/dist/leaflet.css";
-import L from "leaflet";
-
-// Fix for default marker icon in React/Webpack
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png",
-  iconUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png",
-  shadowUrl:
-    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
-});
+// Pure-Leaflet map component
+import { ClientMap, ClientMapRef } from "@/components/ClientMap";
 
 const steps = [
-  "Property Details & Location", // Updated step name
+  "Property Details & Location",
   "Images & Description",
   "Smart Pricing",
   "Review & Publish",
 ];
-
-// 📍 Helper Component to Handle Map Clicks
-function LocationMarker({
-  setCoords,
-}: {
-  setCoords: (lat: number, lng: number) => void;
-}) {
-  const [position, setPosition] = useState<L.LatLng | null>(null);
-
-  const map = useMapEvents({
-    click(e) {
-      setPosition(e.latlng);
-      setCoords(e.latlng.lat, e.latlng.lng);
-      map.flyTo(e.latlng, map.getZoom());
-    },
-  });
-
-  return position === null ? null : <Marker position={position}></Marker>;
-}
 
 export default function PostListing() {
   const [step, setStep] = useState(0);
@@ -96,8 +67,13 @@ export default function PostListing() {
     description: "",
     price: "",
     images: [] as string[],
-    latitude: null as number | null, // ✅ Added
-    longitude: null as number | null, // ✅ Added
+    latitude: null as number | null,
+    longitude: null as number | null,
+    delegation_id: null as number | null,
+    custom_delegation: "",
+    region: "",
+    municipality: "",
+    zone: "",
   });
 
   const [generating, setGenerating] = useState(false);
@@ -105,20 +81,240 @@ export default function PostListing() {
   const [publishing, setPublishing] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // --- PRICING LOGIC ---
-  const suggestedMin = form.surface ? parseInt(form.surface) * 2200 : 0;
-  const suggestedMax = form.surface ? parseInt(form.surface) * 3800 : 0;
-
-  // --- HANDLERS ---
+  const mapRef = useRef<ClientMapRef>(null);
   const [tempFiles, setTempFiles] = useState<File[]>([]);
+
+  // Location state
+  const [governorates, setGovernorates] = useState<Governorate[]>([]);
+  const [delegations, setDelegations] = useState<Delegation[]>([]);
+  const [selectedGovernorateId, setSelectedGovernorateId] = useState<number | null>(null);
+  const [selectedGovernorateName, setSelectedGovernorateName] = useState("");
+  const [selectedDelegationId, setSelectedDelegationId] = useState<number | null>(null);
+  const [showCustomDelegation, setShowCustomDelegation] = useState(false);
+  const [customDelegation, setCustomDelegation] = useState("");
+  const [autoCorrectInfo, setAutoCorrectInfo] = useState<any>(null);
+
+  // Validation state
+  const [titleValid, setTitleValid] = useState<boolean | null>(null);
+  const [titleMessage, setTitleMessage] = useState("");
+  const [titleValidating, setTitleValidating] = useState(false);
+  const [step1Valid, setStep1Valid] = useState(false);
+
+  // Load governorates on mount
+  useEffect(() => {
+  const loadGovernorates = async () => {
+    try {
+      const data = await locationsApi.getGovernorates();
+      // The backend now returns latitude/longitude
+      setGovernorates(data);
+    } catch (error) {
+      console.error("Failed to load governorates:", error);
+      toast.error("Could not load governorates list");
+    }
+  };
+  loadGovernorates();
+}, []);
+
+  // Load delegations when governorate changes
+  useEffect(() => {
+  if (selectedGovernorateId) {
+    const loadDelegations = async () => {
+      try {
+        console.log(`🔍 Loading delegations for governorate ID: ${selectedGovernorateId}`);
+        const data = await locationsApi.getDelegations(selectedGovernorateId);
+        console.log(`✅ Received ${data.length} delegations:`, data);
+        
+        // Important: Set the delegations state
+        setDelegations(data);
+        
+        // Also check what's in the state after setting
+        console.log(`📊 Delegations state updated with ${data.length} items`);
+        
+        if (data.length === 0) {
+          console.warn(`⚠️ No delegations found for governorate ${selectedGovernorateId}`);
+          setShowCustomDelegation(true);
+        } else {
+          // Log the first delegation to see structure
+          console.log("First delegation sample:", data[0]);
+        }
+      } catch (error) {
+        console.error("Failed to load delegations:", error);
+        toast.error("Could not load delegations for this governorate");
+      }
+    };
+    loadDelegations();
+  } else {
+    setDelegations([]);
+  }
+}, [selectedGovernorateId]);
+
+  // Validate title on change (debounced)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (form.title && form.title.length >= 5) {
+        setTitleValidating(true);
+        try {
+          const result = await listingsApi.validateTitle(form.title);
+          setTitleValid(result.valid);
+          setTitleMessage(result.message);
+        } catch (error) {
+          console.error("Title validation error:", error);
+        } finally {
+          setTitleValidating(false);
+        }
+      } else {
+        setTitleValid(null);
+        setTitleMessage("");
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [form.title]);
+
+  // Validate Step 1 before allowing next
+  useEffect(() => {
+    let valid = true;
+
+    // Title validation
+    if (!form.title || form.title.length < 5 || titleValid === false) {
+      valid = false;
+    }
+
+    // Property type
+    if (!form.type) valid = false;
+
+    // Transaction type
+    if (!form.transaction) valid = false;
+
+    // Governorate
+    if (!selectedGovernorateId) valid = false;
+
+    // Delegation (either selected from dropdown OR custom entered)
+    const hasDelegation = selectedDelegationId || (showCustomDelegation && customDelegation.trim().length > 0);
+    if (!hasDelegation) valid = false;
+
+    // Surface
+    if (!form.surface || parseFloat(form.surface) <= 0) valid = false;
+
+    // Coordinates
+    if (!form.latitude || !form.longitude) valid = false;
+
+    setStep1Valid(valid);
+  }, [
+    form.title,
+    titleValid,
+    form.type,
+    form.transaction,
+    selectedGovernorateId,
+    selectedDelegationId,
+    showCustomDelegation,
+    customDelegation,
+    form.surface,
+    form.latitude,
+    form.longitude,
+  ]);
+
+  // Auto-correct delegation when user types in custom input
+  const handleCustomDelegationChange = async (value: string) => {
+    setCustomDelegation(value);
+    setForm((f) => ({ ...f, custom_delegation: value, city: value }));
+
+    if (value.length >= 3 && selectedGovernorateId) {
+      try {
+        const result = await locationsApi.autoCorrectDelegation(value, selectedGovernorateId);
+        setAutoCorrectInfo(result);
+
+        if (result.matched && result.corrected) {
+          // Auto-fill coordinates from matched delegation
+          if (result.latitude && result.longitude) {
+            setForm((f) => ({
+              ...f,
+              latitude: result.latitude,
+              longitude: result.longitude,
+            }));
+            if (mapRef.current) {
+              mapRef.current.flyTo(result.latitude, result.longitude, 14);
+            }
+          }
+          toast.info(`Did you mean "${result.corrected}"?`, { duration: 3000 });
+        }
+      } catch (error) {
+        console.error("Auto-correct error:", error);
+      }
+    } else {
+      setAutoCorrectInfo(null);
+    }
+  };
+
+  // Handle governorate selection
+  const handleGovernorateChange = (value: string) => {
+  const govId = parseInt(value);
+  const gov = governorates.find((g) => g.id === govId);
+  
+  setSelectedGovernorateId(govId);
+  setSelectedGovernorateName(gov?.name || "");
+  setForm((f) => ({ ...f, region: gov?.name || "" }));
+  setSelectedDelegationId(null);
+  setShowCustomDelegation(false);
+  setCustomDelegation("");
+  setAutoCorrectInfo(null);
+  
+  // 🗺️ Fly map to governorate coordinates if available
+  if (gov?.latitude && gov?.longitude && mapRef.current) {
+    mapRef.current.flyTo(gov.latitude, gov.longitude, 11);
+    // Also set the location pin at governorate center
+    setForm((f) => ({ 
+      ...f, 
+      latitude: gov.latitude, 
+      longitude: gov.longitude 
+    }));
+  } else if (delegations.length > 0 && delegations[0]?.latitude && delegations[0]?.longitude && mapRef.current) {
+    // Fallback: use first delegation's coordinates
+    const firstDel = delegations[0];
+    mapRef.current.flyTo(firstDel.latitude, firstDel.longitude, 12);
+    setForm((f) => ({ 
+      ...f, 
+      latitude: firstDel.latitude, 
+      longitude: firstDel.longitude 
+    }));
+  }
+};
+
+  // Handle delegation selection from dropdown
+  const handleDelegationChange = (value: string) => {
+    if (value === "other") {
+      setShowCustomDelegation(true);
+      setSelectedDelegationId(null);
+      setForm((f) => ({ ...f, delegation_id: null, custom_delegation: "" }));
+    } else {
+      const delId = parseInt(value);
+      const delegation = delegations.find((d) => d.id === delId);
+      if (delegation) {
+        setSelectedDelegationId(delId);
+        setShowCustomDelegation(false);
+        setCustomDelegation("");
+        setForm((f) => ({
+          ...f,
+          delegation_id: delId,
+          custom_delegation: "",
+          city: delegation.name.split("(")[0].trim(),
+          municipality: delegation.name,
+          latitude: delegation.latitude || f.latitude,
+          longitude: delegation.longitude || f.longitude,
+        }));
+        setAutoCorrectInfo(null);
+
+        // Fly map to delegation coordinates
+        if (mapRef.current && delegation.latitude && delegation.longitude) {
+          mapRef.current.flyTo(delegation.latitude, delegation.longitude, 14);
+        }
+      }
+    }
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.length) {
       setUploading(true);
       const files = Array.from(e.target.files);
-
-      // Keep reference for AI generation
       setTempFiles((prev) => [...prev, ...files]);
 
       try {
@@ -127,7 +323,9 @@ export default function PostListing() {
           setForm((prev) => ({ ...prev, images: [...prev.images, ...urls] }));
           toast.success(`${urls.length} image(s) uploaded!`);
         }
-        // ... error handling ...
+        if (errors?.length) {
+          toast.error(`${errors.length} image(s) failed to upload`);
+        }
       } catch {
         toast.error("Error uploading images");
       } finally {
@@ -146,12 +344,9 @@ export default function PostListing() {
     }));
   };
 
-  // Add this inside the PostListing component, before the return statement
   const generateAIDescription = async () => {
     if (tempFiles.length === 0) {
-      toast.error(
-        "Please upload at least one image to generate a description.",
-      );
+      toast.error("Please upload at least one image to generate a description.");
       return;
     }
     if (!form.city || !form.type) {
@@ -161,7 +356,6 @@ export default function PostListing() {
 
     setGenerating(true);
     try {
-      // Call the REAL API with files
       const result = await listingsApi.generateDescription({
         metadata: {
           property_type: form.type,
@@ -170,15 +364,10 @@ export default function PostListing() {
           surface_m2: form.surface,
           rooms: form.rooms,
           price: form.price,
-          // tone: "professional",
         },
-        files: tempFiles, // Pass the raw File objects here
+        files: tempFiles,
       });
-
-      // The API returns the description directly or with specific properties.
-      // Use the description property if available, otherwise format highlights.
-      const fullDesc = result.description || result.highlights.join(". ");
-
+      const fullDesc = result.description || result.highlights?.join(". ") || "";
       setForm((prev) => ({ ...prev, description: fullDesc }));
       toast.success("AI Description generated!");
     } catch (error: any) {
@@ -189,47 +378,49 @@ export default function PostListing() {
     }
   };
 
-  // frontend-client/src/pages/PostListing.tsx
+const publishListing = async () => {
+  setPublishing(true);
+  try {
+    const payload: CreateListingPayload = {
+      title: form.title,
+      type: form.type as "apartment" | "house" | "land" | "commercial",
+      transaction: form.transaction as "sale" | "rent",
+      city: showCustomDelegation ? customDelegation : (delegations.find(d => d.id === selectedDelegationId)?.name || form.city),
+      rooms: form.rooms === "Studio" ? 1 : parseInt(form.rooms),
+      surface: parseFloat(form.surface) || 0,
+      price: parseFloat(form.price) || 0,
+      description: form.description,
+      images: form.images,
+      features: [],
+      poi: [],
+      latitude: form.latitude,
+      longitude: form.longitude,
+      governorate: selectedGovernorateName,
+      region: selectedGovernorateName,  // You can map this based on governorate
+      zone: "",  // You can derive this (North/South/Center) based on governorate
+      municipality: selectedGovernorateName,
+    };
 
-  const publishListing = async () => {
-    setPublishing(true);
-    try {
-      const payload: CreateListingPayload = {
-        title: form.title,
-        type: form.type as "apartment" | "house" | "land" | "commercial",
-        transaction: form.transaction as "sale" | "rent",
-        city: form.city,
-        rooms: form.rooms === "Studio" ? 1 : parseInt(form.rooms),
-        surface: parseFloat(form.surface) || 0,
-        price: parseFloat(form.price) || 0,
-        description: form.description,
-        images: form.images,
-        features: [],
-        poi: [],
-        latitude: form.latitude,
-        longitude: form.longitude,
-      };
-
-      // 📝 LOG 1: Check what React is sending
-      console.log("🚀 Sending Payload to Django:", payload);
-      console.log(
-        `📍 Coordinates: Lat=${payload.latitude}, Lng=${payload.longitude}`,
-      );
-
-      const result = await listingsApi.create(payload);
-
-      toast.success("✅ Listing published successfully!");
-    } catch (error) {
-      console.error("Publish error:", error);
-      if (error instanceof ApiError) {
-        toast.error(error.message);
-      } else {
-        toast.error("Failed to publish listing. Please try again.");
-      }
-    } finally {
-      setPublishing(false);
+    const result = await listingsApi.create(payload);
+    
+    if (result.auto_corrected && result.auto_correct_info?.message) {
+      toast.info(result.auto_correct_info.message);
     }
-  };
+    
+    toast.success("✅ Listing published successfully!");
+    // Optionally redirect to the listing page
+    // navigate(`/listings/${result.listing_id}`);
+  } catch (error) {
+    console.error("Publish error:", error);
+    if (error instanceof ApiError) {
+      toast.error(error.message);
+    } else {
+      toast.error("Failed to publish listing. Please try again.");
+    }
+  } finally {
+    setPublishing(false);
+  }
+};
 
   const [prediction, setPrediction] = useState<{
     predicted_price: number;
@@ -241,27 +432,23 @@ export default function PostListing() {
   } | null>(null);
   const [loadingPrediction, setLoadingPrediction] = useState(false);
 
-  // ── Add this function ────────────────────────────────────────────────────────
-
   const fetchPricePrediction = async () => {
     if (!form.city || !form.type || !form.surface || !form.transaction) return;
 
     setLoadingPrediction(true);
     setPrediction(null);
     try {
-      // ✅ USE THE API CLIENT INSTEAD OF RAW FETCH
       const data = await listingsApi.predictPrice({
         transaction: form.transaction,
         type: form.type,
         city: form.city,
-        surface: parseFloat(form.surface), // Ensure it's a number
+        surface: parseFloat(form.surface),
         rooms: form.rooms === "Studio" ? 0 : parseInt(form.rooms) || 0,
         images_count: form.images.length,
         has_description: form.description ? 1 : 0,
         desc_length: form.description?.length ?? 0,
         has_coords: form.latitude ? 1 : 0,
       });
-
       setPrediction(data);
     } catch (error) {
       console.error(error);
@@ -271,12 +458,10 @@ export default function PostListing() {
     }
   };
 
-  // ── Trigger prediction when user reaches step 2 (pricing) ───────────────────
   useEffect(() => {
     if (step === 2) fetchPricePrediction();
   }, [step]);
 
-  // ── Update price validation to use model ceiling ─────────────────────────────
   const priceNum = parseInt(form.price) || 0;
   const hardCeiling = prediction?.price_high ?? null;
   const isBeyondCeiling = hardCeiling !== null && priceNum > hardCeiling;
@@ -285,14 +470,18 @@ export default function PostListing() {
     priceNum === 0
       ? "none"
       : isBeyondCeiling
-        ? "blocked"
-        : prediction && priceNum > prediction.predicted_price * 1.1
-          ? "warning"
-          : prediction && priceNum >= prediction.price_low
-            ? "good"
-            : priceNum > 0
-              ? "low"
-              : "none";
+      ? "blocked"
+      : prediction && priceNum > prediction.predicted_price * 1.1
+      ? "warning"
+      : prediction && priceNum >= prediction.price_low
+      ? "good"
+      : priceNum > 0
+      ? "low"
+      : "none";
+
+  const handleLocationSelect = (lat: number, lng: number) => {
+    setForm((f) => ({ ...f, latitude: lat, longitude: lng }));
+  };
 
   return (
     <UserDashboardLayout>
@@ -300,7 +489,7 @@ export default function PostListing() {
         <div>
           <h1 className="text-2xl font-bold">Post a New Listing</h1>
           <p className="text-muted-foreground">
-            Fill in the details to publish your property
+            Fill in the details to publish your property. Title is validated by AI.
           </p>
         </div>
 
@@ -310,13 +499,13 @@ export default function PostListing() {
             {steps.map((s, i) => (
               <span
                 key={s}
-                className={`${
+                className={
                   i === step
                     ? "text-primary font-semibold"
                     : i < step
-                      ? "text-green-600"
-                      : "text-muted-foreground"
-                }`}
+                    ? "text-green-600"
+                    : "text-muted-foreground"
+                }
               >
                 {i < step ? "✓ " : ""}
                 {s}
@@ -332,42 +521,73 @@ export default function PostListing() {
             <CardHeader>
               <CardTitle>Property Details & Location</CardTitle>
               <CardDescription>
-                Click on the map to set the exact location
+                Fill all fields below. Title will be validated by AI. Click on map to set exact location.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Basic Details */}
               <div className="space-y-4">
+                {/* TITLE FIELD */}
                 <div className="space-y-2">
-                  <Label>Title</Label>
+                  <Label htmlFor="title">Title *</Label>
                   <Input
+                    id="title"
                     value={form.title}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, title: e.target.value }))
                     }
-                    placeholder="e.g. Modern Apartment in La Marsa"
+                    placeholder="e.g. Modern apartment in La Marsa with sea view"
+                    className={
+                      titleValid === false
+                        ? "border-red-500"
+                        : titleValid === true
+                        ? "border-green-500"
+                        : ""
+                    }
                   />
+                  {titleValidating && (
+                    <p className="text-xs text-blue-500 flex items-center gap-1">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Validating
+                      title with AI...
+                    </p>
+                  )}
+                  {titleValid === false && (
+                    <p className="text-xs text-red-500">{titleMessage}</p>
+                  )}
+                  {titleValid === true && (
+                    <p className="text-xs text-green-500 flex items-center gap-1">
+                      <CheckCircle2 className="h-3 w-3" />{" "}
+                      {titleMessage || "Title looks good"}
+                    </p>
+                  )}
                 </div>
+
+                {/* PROPERTY TYPE & TRANSACTION TYPE */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>Property Type</Label>
+                    <Label>Property Type *</Label>
                     <Select
                       value={form.type}
-                      onValueChange={(v) => setForm((f) => ({ ...f, type: v }))}
+                      onValueChange={(v) =>
+                        setForm((f) => ({ ...f, type: v }))
+                      }
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="apartment">Apartment</SelectItem>
-                        <SelectItem value="house">House</SelectItem>
-                        <SelectItem value="land">Land</SelectItem>
-                        <SelectItem value="commercial">Commercial</SelectItem>
+                        <SelectItem value="apartment">
+                          Apartment / Appartement
+                        </SelectItem>
+                        <SelectItem value="house">House / Villa / Maison</SelectItem>
+                        <SelectItem value="land">Land / Terrain</SelectItem>
+                        <SelectItem value="commercial">
+                          Commercial / Bureau
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Transaction</Label>
+                    <Label>Transaction Type *</Label>
                     <Select
                       value={form.transaction}
                       onValueChange={(v) =>
@@ -375,34 +595,110 @@ export default function PostListing() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue />
+                        <SelectValue placeholder="Select transaction" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sale">Sale</SelectItem>
-                        <SelectItem value="rent">Rent</SelectItem>
+                        <SelectItem value="sale">Sale / Vente</SelectItem>
+                        <SelectItem value="rent">Rent / Location</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
+
+                {/* GOVERNORATE & DELEGATION */}
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label>City</Label>
+                    <Label>Governorate / Region *</Label>
                     <Select
-                      value={form.city}
-                      onValueChange={(v) => setForm((f) => ({ ...f, city: v }))}
+                      value={selectedGovernorateId?.toString() || ""}
+                      onValueChange={handleGovernorateChange}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select" />
+                        <SelectValue placeholder="Select governorate" />
                       </SelectTrigger>
-                      <SelectContent>
-                        {CITIES.map((c) => (
-                          <SelectItem key={c} value={c}>
-                            {c}
+                      <SelectContent className="max-h-60">
+                        {governorates.map((gov) => (
+                          <SelectItem key={gov.id} value={gov.id.toString()}>
+                            {gov.name} ({gov.name_ar})
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label>Delegation / Area *</Label>
+                    {!showCustomDelegation ? (
+                      <Select
+                        value={selectedDelegationId?.toString() || ""}
+                        onValueChange={handleDelegationChange}
+                        disabled={!selectedGovernorateId}
+                      >
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              selectedGovernorateId
+                                ? "Select delegation"
+                                : "Select governorate first"
+                            }
+                          />
+                        </SelectTrigger>
+                        <SelectContent className="max-h-60">
+                          {delegations.map((del) => (
+                            <SelectItem key={del.id} value={del.id.toString()}>
+                              {del.name}
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="other">
+                            ➕ Other (not in list)
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="space-y-2">
+                        <Input
+                          value={customDelegation}
+                          onChange={(e) =>
+                            handleCustomDelegationChange(e.target.value)
+                          }
+                          placeholder="Enter delegation name"
+                          className={
+                            autoCorrectInfo?.matched ? "border-green-500" : ""
+                          }
+                        />
+                        {autoCorrectInfo?.matched && autoCorrectInfo.corrected && (
+                          <div className="p-2 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-xs text-green-700 flex items-center gap-1">
+                              <CheckCircle2 className="h-3 w-3" />
+                              Auto-corrected to: {autoCorrectInfo.corrected} (
+                              {Math.round(autoCorrectInfo.confidence * 100)}%
+                              match)
+                            </p>
+                          </div>
+                        )}
+                        {autoCorrectInfo && !autoCorrectInfo.matched && (
+                          <p className="text-xs text-yellow-600">
+                            ⚠️ {autoCorrectInfo.message}
+                          </p>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShowCustomDelegation(false);
+                            setCustomDelegation("");
+                            setAutoCorrectInfo(null);
+                          }}
+                        >
+                          ← Back to list
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* ROOMS & SURFACE */}
+                <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Rooms</Label>
                     <Select
@@ -424,7 +720,7 @@ export default function PostListing() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label>Surface (m²)</Label>
+                    <Label>Surface (m²) *</Label>
                     <Input
                       type="number"
                       value={form.surface}
@@ -432,52 +728,72 @@ export default function PostListing() {
                         setForm((f) => ({ ...f, surface: e.target.value }))
                       }
                       placeholder="120"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* 🗺️ MAP SECTION */}
-              <div className="space-y-2 pt-4 border-t">
-                <Label className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" /> Location (Click on map to pin)
-                </Label>
-
-                <div className="h-[300px] w-full rounded-md overflow-hidden border z-0 relative">
-                  {/* Default center: Tunis, Tunisia */}
-                  <MapContainer
-                    center={[36.8065, 10.1815]}
-                    zoom={12}
-                    scrollWheelZoom={false}
-                    className="h-full w-full"
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    <LocationMarker
-                      setCoords={(lat, lng) =>
-                        setForm((f) => ({
-                          ...f,
-                          latitude: lat,
-                          longitude: lng,
-                        }))
+                      className={
+                        !form.surface || parseFloat(form.surface) <= 0
+                          ? "border-red-500"
+                          : ""
                       }
                     />
-                  </MapContainer>
-                </div>
-
-                {/* Display Coordinates */}
-                {form.latitude && form.longitude && (
-                  <div className="flex gap-4 text-xs text-muted-foreground bg-accent p-2 rounded">
-                    <span>Lat: {form.latitude.toFixed(4)}</span>
-                    <span>Lng: {form.longitude.toFixed(4)}</span>
                   </div>
+                </div>
+              </div>
+
+              {/* MAP SECTION */}
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4" /> Exact Location *
+                </Label>
+
+                <ClientMap
+                  ref={mapRef}
+                  initialCenter={[36.8065, 10.1815]}
+                  initialZoom={12}
+                  height="350px"
+                  onLocationSelect={handleLocationSelect}
+                />
+
+                {form.latitude && form.longitude ? (
+                  <div className="flex gap-4 text-xs text-green-600 bg-green-50 p-2 rounded">
+                    <CheckCircle2 className="h-3 w-3" />
+                    <span>Lat: {form.latitude.toFixed(6)}</span>
+                    <span>Lng: {form.longitude.toFixed(6)}</span>
+                  </div>
+                ) : (
+                  <p className="text-xs text-red-500">
+                    Click on the map to set property location
+                  </p>
                 )}
               </div>
+
+              {/* Validation Summary */}
+              {!step1Valid && (
+                <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm font-medium text-yellow-800">
+                    Please fix the following before continuing:
+                  </p>
+                  <ul className="text-xs text-yellow-700 mt-1 list-disc list-inside">
+                    {(!form.title || titleValid === false) && (
+                      <li>Valid title is required (min 5 chars, no test words)</li>
+                    )}
+                    {!form.type && <li>Property type is required</li>}
+                    {!form.transaction && <li>Transaction type is required</li>}
+                    {!selectedGovernorateId && <li>Governorate is required</li>}
+                    {!selectedDelegationId && !(showCustomDelegation && customDelegation) && (
+                      <li>Delegation area is required</li>
+                    )}
+                    {(!form.surface || parseFloat(form.surface) <= 0) && (
+                      <li>Valid surface area is required</li>
+                    )}
+                    {(!form.latitude || !form.longitude) && (
+                      <li>Click on map to set property location</li>
+                    )}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
+
         {/* STEP 2: IMAGES & DESCRIPTION */}
         {step === 1 && (
           <Card>
@@ -488,7 +804,7 @@ export default function PostListing() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Image Upload Section (Existing) */}
+              {/* Image Upload Section */}
               <div className="space-y-2">
                 <Label>Property Images</Label>
                 <input
@@ -500,7 +816,9 @@ export default function PostListing() {
                   className="hidden"
                 />
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer hover:border-primary/50 hover:bg-accent/50 ${uploading ? "opacity-50 pointer-events-none" : ""}`}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer hover:border-primary/50 hover:bg-accent/50 ${
+                    uploading ? "opacity-50 pointer-events-none" : ""
+                  }`}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {uploading ? (
@@ -546,9 +864,7 @@ export default function PostListing() {
                     variant="outline"
                     size="sm"
                     onClick={generateAIDescription}
-                    disabled={
-                      generating || form.images.length === 0 || !form.city
-                    }
+                    disabled={generating || form.images.length === 0 || !form.city}
                   >
                     <Wand2 className="h-4 w-4 mr-2" />
                     {generating ? "Writing..." : "Generate with AI"}
@@ -582,12 +898,10 @@ export default function PostListing() {
             <CardHeader>
               <CardTitle>Smart Pricing</CardTitle>
               <CardDescription>
-                Our AI model estimates a fair market price based on your
-                property
+                Our AI model estimates a fair market price based on your property
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* AI Prediction Panel */}
               {loadingPrediction ? (
                 <div className="flex items-center gap-3 p-4 rounded-lg bg-accent">
                   <Loader2 className="h-5 w-5 animate-spin text-primary" />
@@ -604,7 +918,6 @@ export default function PostListing() {
                     </Badge>
                   </div>
 
-                  {/* Price band visual */}
                   <div className="flex items-end gap-3">
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">Min</p>
@@ -622,10 +935,7 @@ export default function PostListing() {
                     </div>
                     <div className="text-center">
                       <p className="text-xs text-muted-foreground mb-1">
-                        Max{" "}
-                        <span className="text-red-500 font-bold">
-                          (ceiling)
-                        </span>
+                        Max <span className="text-red-500 font-bold">(ceiling)</span>
                       </p>
                       <p className="text-sm font-medium text-red-600">
                         {prediction.price_high.toLocaleString()}
@@ -633,7 +943,6 @@ export default function PostListing() {
                     </div>
                   </div>
 
-                  {/* Visual bar */}
                   <div className="relative h-2 rounded-full bg-gradient-to-r from-green-300 via-blue-400 to-red-400">
                     {priceNum > 0 && hardCeiling && (
                       <div
@@ -645,7 +954,7 @@ export default function PostListing() {
                             ((priceNum - prediction.price_low) /
                               (hardCeiling - prediction.price_low)) *
                               100,
-                            100,
+                            100
                           )}%`,
                         }}
                       />
@@ -669,7 +978,11 @@ export default function PostListing() {
                     setForm((f) => ({ ...f, price: e.target.value }))
                   }
                   placeholder="Enter your price"
-                  className={`text-lg ${isBeyondCeiling ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  className={`text-lg ${
+                    isBeyondCeiling
+                      ? "border-red-500 focus-visible:ring-red-500"
+                      : ""
+                  }`}
                 />
                 {hardCeiling && (
                   <p className="text-xs text-muted-foreground">
@@ -740,7 +1053,13 @@ export default function PostListing() {
                   { label: "Title", value: form.title || "—" },
                   { label: "Type", value: form.type },
                   { label: "Transaction", value: form.transaction },
-                  { label: "City", value: form.city || "—" },
+                  { label: "Governorate", value: selectedGovernorateName || "—" },
+                  {
+                    label: "Delegation",
+                    value: showCustomDelegation
+                      ? customDelegation || "—"
+                      : delegations.find((d) => d.id === selectedDelegationId)?.name || "—",
+                  },
                   { label: "Rooms", value: form.rooms },
                   {
                     label: "Surface",
@@ -756,18 +1075,17 @@ export default function PostListing() {
                     label: "Location",
                     value:
                       form.latitude && form.longitude
-                        ? `${form.latitude.toFixed(2)}, ${form.longitude.toFixed(2)}`
+                        ? `${form.latitude.toFixed(4)}, ${form.longitude.toFixed(4)}`
                         : "Not set",
                   },
                 ].map((item) => (
                   <div key={item.label}>
-                    <p className="text-xs text-muted-foreground">
-                      {item.label}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{item.label}</p>
                     <p className="font-medium text-sm">{item.value}</p>
                   </div>
                 ))}
               </div>
+
               {form.images.length > 0 && (
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">
@@ -779,11 +1097,13 @@ export default function PostListing() {
                         key={i}
                         src={img}
                         className="h-16 w-16 object-cover rounded border"
+                        alt="Preview"
                       />
                     ))}
                   </div>
                 </div>
               )}
+
               {form.description && (
                 <div>
                   <p className="text-xs text-muted-foreground mb-1">
@@ -807,24 +1127,22 @@ export default function PostListing() {
           >
             <ArrowLeft className="h-4 w-4 mr-2" /> Back
           </Button>
+
           {step < steps.length - 1 ? (
             <Button
               onClick={() => setStep((s) => s + 1)}
-              disabled={step === 2 && (isBeyondCeiling || !form.price)}
+              disabled={step === 0 ? !step1Valid : false}
             >
               Next <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           ) : (
             <Button
               onClick={publishListing}
-              disabled={
-                publishing || !form.title || !form.city || !form.surface
-              }
+              disabled={publishing || !form.title || !form.city || !form.surface}
             >
               {publishing ? (
                 <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />{" "}
-                  Publishing...
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Publishing...
                 </>
               ) : (
                 "Publish Listing"

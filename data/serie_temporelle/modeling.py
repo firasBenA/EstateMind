@@ -40,6 +40,9 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
 
+import joblib
+from pathlib import Path
+
 # =============================================================================
 # PATHS
 # =============================================================================
@@ -392,4 +395,57 @@ Next steps for price forecasting:
 ''')
 
 print('Files saved to:', _EXPORTS)
-EOF
+
+
+
+#---------------------------EXPORT MODEL .PKL -----
+print('\n' + '='*60)
+print('SAUVEGARDE DES MODÈLES')
+print('='*60)
+
+# Créer le dossier models s'il n'existe pas
+MODELS_DIR = _EXPORTS.parent / "models"
+MODELS_DIR.mkdir(exist_ok=True)
+
+# 1. Sauvegarder le modèle Prophet IPC
+if 'prophet_ipc' in dir():
+    joblib.dump(prophet_ipc, MODELS_DIR / 'prophet_ipc.pkl')
+    print(f'✅ Modèle Prophet IPC sauvegardé: {MODELS_DIR / "prophet_ipc.pkl"}')
+
+# 2. Sauvegarder le modèle Prophet Taux Directeur
+if 'prophet_td' in dir():
+    joblib.dump(prophet_td, MODELS_DIR / 'prophet_taux_directeur.pkl')
+    print(f'✅ Modèle Prophet Taux Directeur sauvegardé: {MODELS_DIR / "prophet_taux_directeur.pkl"}')
+
+# 3. Sauvegarder le modèle XGBoost
+if 'xgb' in dir():
+    joblib.dump(xgb, MODELS_DIR / 'xgboost_ipc.pkl')
+    print(f'✅ Modèle XGBoost sauvegardé: {MODELS_DIR / "xgboost_ipc.pkl"}')
+
+# 4. Sauvegarder aussi les prévisions long terme (optionnel)
+print('\n📊 Génération des prévisions long terme (20 ans)...')
+from prophet import Prophet
+
+def extend_prophet_forecast(model, periods=240, freq='MS'):  # 20 ans = 240 mois
+    """Génère une prévision longue durée depuis un modèle Prophet entraîné"""
+    future = model.make_future_dataframe(periods=periods, freq=freq, include_history=False)
+    forecast = model.predict(future)
+    return forecast
+
+# IPC long terme
+if 'prophet_ipc' in dir():
+    ipc_long = extend_prophet_forecast(prophet_ipc, periods=240)
+    ipc_long[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].to_csv(
+        MODELS_DIR / 'forecast_ipc_20years.csv', index=False
+    )
+    print(f'   ✅ forecast_ipc_20years.csv')
+
+# Taux Directeur long terme
+if 'prophet_td' in dir():
+    td_long = extend_prophet_forecast(prophet_td, periods=240)
+    td_long[['ds', 'yhat', 'yhat_lower', 'yhat_upper']].to_csv(
+        MODELS_DIR / 'forecast_taux_directeur_20years.csv', index=False
+    )
+    print(f'   ✅ forecast_taux_directeur_20years.csv')
+
+print(f'\n📁 Tous les modèles sauvegardés dans: {MODELS_DIR}')

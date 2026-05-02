@@ -1,6 +1,9 @@
 // frontend-client/src/components/NotificationBell.tsx
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { Bell } from 'lucide-react';
+import Pusher from 'pusher-js';
+import { useAuth } from '@/lib/auth-context';
 
 interface Notification {
   id: number;
@@ -13,194 +16,157 @@ interface Notification {
   data?: Record<string, any>;
 }
 
-// Declare Pusher type for TypeScript
-declare global {
-  interface Window {
-    Pusher: any;
-  }
+function getCsrfToken(): string {
+  const match = document.cookie.match(/(^|;\s*)csrftoken=([^;]*)/);
+  return match ? decodeURIComponent(match[2]) : '';
 }
 
 const NotificationBell: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
-  const [pusher, setPusher] = useState<any>(null);
+  const pusherRef = useRef<Pusher | null>(null);
+  const channelRef = useRef<any>(null);
 
-  // Request notification permission on mount
+  // Request browser notification permission
   useEffect(() => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
   }, []);
 
-  // Fetch notifications
+  // Fetch notifications from backend
   const fetchNotifications = useCallback(async () => {
+    if (!isAuthenticated) return;
     try {
-      const response = await fetch('/api/notifications/?limit=20', {
-        headers: {
-          'Content-Type': 'application/json',
-          ...(localStorage.getItem('access_token') && {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          })
-        }
+      const res = await fetch('/api/notifications/?limit=20', {
+        credentials: 'include',
       });
-      
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      
-      const data = await response.json();
+      if (!res.ok) return;
+      const data = await res.json();
       setNotifications(data.notifications || []);
       setUnreadCount(data.unread_count || 0);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    }
+  }, [isAuthenticated]);
+
+  // Add a notification to state + show browser notification
+  const addNotification = useCallback((raw: any) => {
+    const n: Notification = {
+      id: raw.id || Date.now(),
+      type: raw.type || 'new_listing',
+      title: raw.title,
+      message: raw.message,
+      listing_id: raw.listing_id ?? null,
+      is_read: false,
+      created_at: raw.created_at || new Date().toISOString(),
+      data: raw.data,
+    };
+    setNotifications(prev => [n, ...prev]);
+    setUnreadCount(prev => prev + 1);
+
+    if (Notification.permission === 'granted') {
+      new Notification(n.title, {
+        body: n.message,
+        icon: '/favicon.ico',
+        tag: String(n.id),
+      });
     }
   }, []);
 
-  // Initialize Pusher
+  // Setup Pusher once user is known
   useEffect(() => {
-    // Dynamically import Pusher
-    const initPusher = async () => {
-      try {
-        // Load Pusher from CDN if not already loaded
-        if (!window.Pusher) {
-          const script = document.createElement('script');
-          script.src = 'https://js.pusher.com/8.2.0/pusher.min.js';
-          script.async = true;
-          document.head.appendChild(script);
-          
-          await new Promise((resolve) => {
-            script.onload = resolve;
-          });
-        }
-        
-        const userId = localStorage.getItem('userId');
-        if (!userId || !process.env.REACT_APP_PUSHER_KEY) {
-          console.warn('Missing Pusher config or user ID');
-          return;
-        }
-        
-        const pusherInstance = new window.Pusher(process.env.REACT_APP_PUSHER_KEY, {
-          cluster: process.env.REACT_APP_PUSHER_CLUSTER || 'eu',
-          authEndpoint: '/api/pusher/auth',
-        });
-        
-        const channel = pusherInstance.subscribe(`user-${userId}`);
-        
-        channel.bind('new-listing', (data: any) => {
-          addNotification(data);
-        });
-        
-        channel.bind('price-drop', (data: any) => {
-          addNotification(data);
-        });
-        
-        channel.bind('similar-listing', (data: any) => {
-          addNotification(data);
-        });
-        
-        setPusher(pusherInstance);
-      } catch (error) {
-        console.error('Failed to initialize Pusher:', error);
-      }
-    };
-    
-    initPusher();
-    fetchNotifications();
-    
-    return () => {
-      if (pusher) {
-        pusher.disconnect();
-      }
-    };
-  }, [fetchNotifications]);
+    if (!isAuthenticated || !user?.id) return;
 
-  const addNotification = (notification: any) => {
-    const newNotification: Notification = {
-      id: notification.id || Date.now(),
-      type: notification.type,
-      title: notification.title,
-      message: notification.message,
-      listing_id: notification.listing_id,
-      is_read: false,
-      created_at: notification.created_at || new Date().toISOString(),
-      data: notification.data
-    };
-    
-    setNotifications(prev => [newNotification, ...prev]);
-    setUnreadCount(prev => prev + 1);
-    
-    // Show browser notification
-    if (Notification.permission === 'granted') {
-      new Notification(notification.title, {
-        body: notification.message,
-        icon: '/logo192.png',
-        tag: notification.id?.toString(),
-      });
+    const pusherKey = import.meta.env.VITE_PUSHER_KEY;
+    const pusherCluster = import.meta.env.VITE_PUSHER_CLUSTER || 'eu';
+
+    if (!pusherKey) {
+      console.warn('VITE_PUSHER_KEY not set — real-time notifications disabled');
+      return;
     }
-  };
 
-  const markAsRead = async (notificationId: number) => {
+    // Clean up any existing connection
+    if (channelRef.current) {
+      channelRef.current.unbind_all();
+      channelRef.current = null;
+    }
+    if (pusherRef.current) {
+      pusherRef.current.disconnect();
+      pusherRef.current = null;
+    }
+
+    pusherRef.current = new Pusher(pusherKey, {
+      cluster: pusherCluster,
+      // ✅ Use session-based auth (same as chat)
+      authEndpoint: '/api/pusher/auth/',
+      auth: {
+        headers: { 'X-CSRFToken': getCsrfToken() },
+      },
+    });
+
+    // ✅ Private channel requires "private-" prefix + Pusher auth
+    const channelName = `private-user-${user.id}`;
+    channelRef.current = pusherRef.current.subscribe(channelName);
+
+    channelRef.current.bind('new-listing',      addNotification);
+    channelRef.current.bind('price-drop',        addNotification);
+    channelRef.current.bind('similar-listing',   addNotification);
+
+    channelRef.current.bind('pusher:subscription_error', (err: any) => {
+      console.error('Pusher subscription error:', err);
+    });
+
+    fetchNotifications();
+
+    return () => {
+      channelRef.current?.unbind_all();
+      pusherRef.current?.disconnect();
+    };
+  }, [isAuthenticated, user?.id, addNotification, fetchNotifications]);
+
+  const markAsRead = async (id: number) => {
     try {
-      const response = await fetch(`/api/notifications/${notificationId}/read/`, {
+      await fetch(`/api/notifications/${id}/read/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(localStorage.getItem('access_token') && {
-            'Authorization': `Bearer ${localStorage.getItem('access_token')}`
-          })
-        }
+        credentials: 'include',
+        headers: { 'X-CSRFToken': getCsrfToken() },
       });
-      
-      if (!response.ok) throw new Error('Failed to mark as read');
-      
-      setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId ? { ...n, is_read: true } : n
-        )
-      );
+      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
     }
   };
 
   const markAllAsRead = async () => {
-    const unreadIds = notifications.filter(n => !n.is_read).map(n => n.id);
-    for (const id of unreadIds) {
-      await markAsRead(id);
-    }
+    const unread = notifications.filter(n => !n.is_read);
+    await Promise.all(unread.map(n => markAsRead(n.id)));
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getIcon = (type: string) => {
     switch (type) {
-      case 'new_listing': return '🏠';
-      case 'price_drop': return '💰';
+      case 'new_listing':     return '🏠';
+      case 'price_drop':      return '💰';
       case 'similar_listing': return '🔍';
-      default: return '🔔';
+      default:                return '🔔';
     }
   };
 
-  const getNotificationColor = (type: string) => {
-    switch (type) {
-      case 'new_listing': return 'bg-blue-50 border-blue-200';
-      case 'price_drop': return 'bg-green-50 border-green-200';
-      case 'similar_listing': return 'bg-purple-50 border-purple-200';
-      default: return 'bg-gray-50';
-    }
-  };
+  if (!isAuthenticated) return null;
 
   return (
     <div className="relative">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => setIsOpen(v => !v)}
         className="relative p-2 rounded-full hover:bg-gray-100 transition-colors"
         aria-label="Notifications"
       >
-        <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} 
-            d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
+        <Bell className="w-5 h-5 text-gray-600" />
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center animate-pulse">
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
@@ -210,11 +176,11 @@ const NotificationBell: React.FC = () => {
         <>
           {/* Backdrop */}
           <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
-          
+
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl z-50 max-h-[500px] overflow-hidden">
-            <div className="p-3 border-b flex justify-between items-center bg-gray-50">
-              <h3 className="font-semibold">Notifications</h3>
+          <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-2xl z-50 max-h-[500px] overflow-hidden border">
+            <div className="p-3 border-b flex justify-between items-center bg-gray-50 rounded-t-xl">
+              <h3 className="font-semibold text-sm">Notifications</h3>
               {unreadCount > 0 && (
                 <button
                   onClick={markAllAsRead}
@@ -224,45 +190,40 @@ const NotificationBell: React.FC = () => {
                 </button>
               )}
             </div>
-            
-            <div className="overflow-y-auto max-h-[400px]">
+
+            <div className="overflow-y-auto max-h-[420px] divide-y">
               {notifications.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <span className="text-4xl opacity-50">🔔</span>
+                <div className="p-8 text-center text-gray-400">
+                  <span className="text-4xl">🔔</span>
                   <p className="mt-2 text-sm">No notifications yet</p>
                 </div>
               ) : (
-                notifications.map(notification => (
+                notifications.map(n => (
                   <div
-                    key={notification.id}
-                    className={`p-3 border-b hover:bg-gray-50 cursor-pointer transition ${!notification.is_read ? 'bg-blue-50' : ''
-                      } ${getNotificationColor(notification.type)}`}
-                    onClick={() => markAsRead(notification.id)}
+                    key={n.id}
+                    onClick={() => markAsRead(n.id)}
+                    className={`p-3 cursor-pointer hover:bg-gray-50 transition ${!n.is_read ? 'bg-blue-50' : ''}`}
                   >
-                    <div className="flex items-start">
-                      <span className="text-2xl mr-3">
-                        {getNotificationIcon(notification.type)}
-                      </span>
+                    <div className="flex items-start gap-3">
+                      <span className="text-xl shrink-0">{getIcon(n.type)}</span>
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-sm">{notification.title}</div>
-                        <div className="text-sm text-gray-600 mt-0.5">
-                          {notification.message}
-                        </div>
-                        {notification.listing_id && (
+                        <p className="font-semibold text-sm">{n.title}</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{n.message}</p>
+                        {n.listing_id && (
                           <Link
-                            to={`/listing/${notification.listing_id}`}
+                            to={`/listing/${n.listing_id}`}
                             className="text-xs text-blue-600 hover:underline mt-1 inline-block"
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={e => e.stopPropagation()}
                           >
                             View property →
                           </Link>
                         )}
-                        <div className="text-xs text-gray-400 mt-1">
-                          {new Date(notification.created_at).toLocaleString()}
-                        </div>
+                        <p className="text-[10px] text-gray-400 mt-1">
+                          {new Date(n.created_at).toLocaleString()}
+                        </p>
                       </div>
-                      {!notification.is_read && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
+                      {!n.is_read && (
+                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1 shrink-0" />
                       )}
                     </div>
                   </div>

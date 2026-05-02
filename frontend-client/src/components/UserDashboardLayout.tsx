@@ -69,21 +69,7 @@ export function UserDashboardLayout({ children }: { children: ReactNode }) {
             {!collapsed && <span>Public Site</span>}
           </Link>
           
-          {/* ADD NOTIFICATION BELL IN SIDEBAR */}
-          {!collapsed && (
-            <div className="px-3 py-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Notifications</span>
-                <NotificationBell />
-              </div>
-            </div>
-          )}
           
-          {collapsed && (
-            <div className="flex justify-center py-2">
-              <NotificationBell />
-            </div>
-          )}
           
           <button onClick={toggle} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors w-full">
             {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}

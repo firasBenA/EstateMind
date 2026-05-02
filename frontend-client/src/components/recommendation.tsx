@@ -73,7 +73,7 @@ const Recommendations: React.FC = () => {
   if (loading) {
     return (
       <div className="recommendations-section">
-        <h2 className="text-2xl font-bold mb-6">Recommended For You</h2>
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[1, 2, 3, 4].map(i => (
             <div key={i} className="border rounded-lg overflow-hidden animate-pulse">
@@ -123,9 +123,9 @@ const Recommendations: React.FC = () => {
                   (e.target as HTMLImageElement).src = '/no-image.svg';
                 }}
               />
-              <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
+              {/* <div className="absolute top-2 right-2 bg-blue-500 text-white text-xs px-2 py-1 rounded-full">
                 {Math.round(listing.recommendation_score * 100)}% match
-              </div>
+              </div> */}
               {listing.reliability_score > 80 && (
                 <div className="absolute bottom-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
                   Verified
