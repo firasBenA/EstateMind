@@ -28,7 +28,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const images = ((listing.images ?? []) as (string | { url: string; label?: string })[])
     .map(i => typeof i === "string" ? { url: i, label: "photo" } : i)
     .filter(i => i?.url);
-  const img = images[imgIdx]?.url ?? "/placeholder.svg";
+  const img = images[imgIdx]?.url ?? "/no-image.svg";
 
   return (
     <Link to={`/listing/${listing.id}`} className="group">
@@ -41,7 +41,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             alt={listing.title}
             className="w-full h-full object-cover transition-transform group-hover:scale-105"
             loading="lazy"
-            onError={e => { (e.target as HTMLImageElement).src = "/placeholder.svg"; }}
+            onError={e => { (e.target as HTMLImageElement).src = "/no-image.svg"; }}
           />
 
           {/* Image dots */}
@@ -58,11 +58,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
           )}
 
           {/* Fraud banner */}
-          {listing.fraud_flag && (
+          {/* {listing.fraud_flag && (
             <div className="absolute top-0 inset-x-0 bg-destructive/90 text-destructive-foreground text-xs font-medium py-1 text-center">
               Annonce suspecte
             </div>
-          )}
+          )} */}
 
           {/* Transaction badge */}
           <div className="absolute top-2 left-2 flex gap-1">

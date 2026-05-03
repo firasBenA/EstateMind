@@ -1,3 +1,4 @@
+// frontend-client/src/components/PublicNavbar.tsx
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Sun, Moon, Menu, X } from "lucide-react";
 import { useState } from "react";
 import logoImg from "@/assets/logo.png";
+import NotificationBell from "@/components/notificationBell" // ADD THIS
 
 export function PublicNavbar() {
   const { isAuthenticated, user } = useAuth();
@@ -30,9 +32,18 @@ export function PublicNavbar() {
           <Link to="/post-listing" className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === "/post-listing" ? "text-primary" : "text-muted-foreground"}`}>
             Post a Listing
           </Link>
+          
+          {/* ADD NOTIFICATION BELL - Only for authenticated users */}
+          {isAuthenticated && (
+            <div className="ml-2">
+              <NotificationBell />
+            </div>
+          )}
+          
           <button onClick={toggle} className="p-2 rounded-md hover:bg-muted transition-colors">
             {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           </button>
+          
           {isAuthenticated ? (
             <Button asChild size="sm"><Link to={dashboardLink}>{dashboardLabel}</Link></Button>
           ) : (
@@ -52,6 +63,14 @@ export function PublicNavbar() {
         <div className="md:hidden border-t bg-background p-4 space-y-3">
           <Link to="/search" className="block text-sm font-medium" onClick={() => setMobileOpen(false)}>Search</Link>
           <Link to="/post-listing" className="block text-sm font-medium" onClick={() => setMobileOpen(false)}>Post a Listing</Link>
+          
+          {/* Mobile notification bell */}
+          {isAuthenticated && (
+            <div className="py-1">
+              <NotificationBell />
+            </div>
+          )}
+          
           <div className="flex items-center justify-between">
             <span className="text-sm">Theme</span>
             <button onClick={toggle} className="p-2 rounded-md hover:bg-muted">

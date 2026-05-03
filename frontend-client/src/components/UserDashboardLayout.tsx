@@ -1,14 +1,17 @@
+// frontend-client/src/components/UserDashboardLayout.tsx
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 import {
   LayoutDashboard, List, TrendingUp, FileText, FileSignature, MessageCircle,
   Sun, Moon, ChevronLeft, ChevronRight, Home, LogOut, PlusCircle, Settings,
+  Sparkles,
 } from "lucide-react";
 import { useState, ReactNode } from "react";
 import { ChatbotButton } from "@/components/ChatbotButton";
+import NotificationBell from "@/components/notificationBell"; // ADD THIS
 import logoImg from "@/assets/logo.png";
-
+import Recommendations from "@/components/recommendation"; // ADD THIS
 const navItems = [
   { label: "Dashboard", path: "/user", icon: LayoutDashboard },
   { label: "My Listings", path: "/user/listings", icon: List },
@@ -16,6 +19,7 @@ const navItems = [
   { label: "Profitability", path: "/user/profitability", icon: TrendingUp },
   { label: "Reports", path: "/user/reports", icon: FileText },
   { label: "Contracts", path: "/user/contracts", icon: FileSignature },
+  { label: "Recommendations", path: "/user/recommendations", icon: Sparkles },
   { label: "Messages", path: "/user/messages", icon: MessageCircle },
   { label: "Settings", path: "/user/settings", icon: Settings },
 ];
@@ -64,6 +68,9 @@ export function UserDashboardLayout({ children }: { children: ReactNode }) {
             <Home className="h-4 w-4 shrink-0" />
             {!collapsed && <span>Public Site</span>}
           </Link>
+          
+          
+          
           <button onClick={toggle} className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent transition-colors w-full">
             {theme === "dark" ? <Sun className="h-4 w-4 shrink-0" /> : <Moon className="h-4 w-4 shrink-0" />}
             {!collapsed && <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>}
@@ -82,14 +89,20 @@ export function UserDashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-16 border-b flex items-center px-6 bg-background shrink-0">
+        <header className="h-16 border-b flex items-center justify-between px-6 bg-background shrink-0">
           <h2 className="text-lg font-semibold truncate">
             {navItems.find(n => n.path === location.pathname)?.label || "Dashboard"}
           </h2>
+          {/* Optional: Add notification bell in header too */}
+          <div className="md:hidden">
+            <NotificationBell />
+          </div>
         </header>
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-6">
+          {children}
+        </main>
       </div>
-      <ChatbotButton />
+      
     </div>
   );
 }

@@ -45,7 +45,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
           </div>
         </div>
       </footer>
-      <ChatbotButton />
+      
     </div>
   );
 }

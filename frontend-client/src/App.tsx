@@ -1,3 +1,4 @@
+// App.tsx
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -6,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ChatBot } from "@/components/ChatBot"; // ✨ NEW: Agentic chatbot
 
 import LandingPage from "./pages/LandingPage";
 import SearchPage from "./pages/SearchPage";
@@ -27,13 +29,33 @@ import UserContracts from "./pages/user/UserContracts";
 import UserMessages from "./pages/user/UserMessages";
 import UserSettings from "./pages/user/UserSettings";
 import NotFound from "./pages/NotFound";
+import RecommendationsPage from "@/pages/user/recommendation";
+import { Loader2 } from "lucide-react";
 
 const queryClient = new QueryClient();
 
+// ── Shared loading spinner ────────────────────────────────────────────────────
+function AuthLoadingSpinner() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
+
+// ── User route guard ──────────────────────────────────────────────────────────
 function UserRoute({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
+
+  // ✅ Wait for session check to complete before making any decision
+  if (loading) return <AuthLoadingSpinner />;
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role === "admin" || user?.role === "analyst") return <Navigate to="/dashboard" replace />;
+
+  if (user?.role === "admin" || user?.role === "analyst") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
   return <>{children}</>;
 }
 
@@ -44,6 +66,7 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
+          <ChatBot /> {/* ✨ NEW: Floating chatbot widget */}
           <BrowserRouter>
             <Routes>
               {/* Public */}
@@ -61,6 +84,7 @@ const App = () => (
               <Route path="/user/profitability" element={<UserRoute><ProfitabilityPlanner /></UserRoute>} />
               <Route path="/user/reports" element={<UserRoute><UserReports /></UserRoute>} />
               <Route path="/user/contracts" element={<UserRoute><UserContracts /></UserRoute>} />
+              <Route path="/user/recommendations" element={<RecommendationsPage />} />
               <Route path="/user/messages" element={<UserRoute><UserMessages /></UserRoute>} />
               <Route path="/user/settings" element={<UserRoute><UserSettings /></UserRoute>} />
 
