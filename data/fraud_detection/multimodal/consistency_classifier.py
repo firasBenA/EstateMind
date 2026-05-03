@@ -1,247 +1,225 @@
 """
-EstateMind — DSO 2.2 : Classificateur de Cohérence Multimodale
-==============================================================
-Combine les signaux image (CLIP), texte (CLIP) et prix (déviation régionale)
-pour produire un score de cohérence global entre 0 et 1.
+DSO 2.2 — Score de Cohérence Sémantique Multimodale
+=====================================================
+Combine deux signaux pour décider si une annonce est cohérente :
 
-Principe :
-──────────
-Une annonce honnête doit être cohérente sur 3 dimensions :
-  (A) Image ↔ Texte   — les photos correspondent à la description
-  (B) Image ↔ Prix    — les photos reflètent un bien au prix annoncé
-  (C) Texte ↔ Prix    — la description est alignée avec le niveau de prix
+  A. Category Match Score (60%)
+     Compare les catégories détectées par CLIP dans les images
+     avec les catégories attendues d'après la description.
 
-Score final = weighted_average(A, B, C)
-  - Pondération : A×0.4 + B×0.3 + C×0.3
+     Exemple :
+       Description : "villa avec piscine et jardin"
+       Catégories attendues : {exterior, living_room, bedroom, pool, garden}
+       Catégories détectées : {bedroom, living_room, bathroom}
+       → pool et garden manquants → match_score = 2/5 = 0.40 → suspect
 
-Interprétation du multimodal_score (0–1) :
-  0.0 – 0.30 → Forte incohérence (fraude probable)
+  B. Price Deviation Score (40%)
+     Mesure l'écart entre le prix annoncé et la médiane régionale.
+     Un prix trop bas ou trop haut par rapport au marché est un signal.
+
+Score final (multimodal_score) ∈ [0, 1] :
+  0.00 – 0.30 → Forte incohérence  (fraude probable)
   0.31 – 0.55 → Incohérence modérée (suspect)
   0.56 – 0.75 → Cohérence acceptable
-  0.76 – 1.0  → Très cohérent (annonce fiable)
+  0.76 – 1.00 → Très cohérent       (annonce fiable)
 
-Types de mismatch détectés :
-  "image_text_low_similarity"     : photos ≠ description sémantiquement
-  "overpriced_vs_images"          : prix élevé mais images modestes
-  "underpriced_trap"              : prix trop bas (appât possible)
-  "no_images_suspicious_price"    : pas de photos + prix anormal
-  "luxury_description_poor_price" : description luxe mais prix bas
-  "price_inflation_suspected"     : prix >> médiane régionale (> 100%)
+Flags sémantiques détectés :
+  claimed_feature_not_visible : une caractéristique promise (piscine, vue...)
+                                n'apparaît pas dans les images
+  wrong_property_type         : les images ne correspondent pas au type déclaré
+                                (ex: terrain décrit comme villa)
+  no_real_estate_images       : les images ne semblent pas immobilières
+  no_images_suspicious_price  : pas de photos + prix anormal
+  overpriced_vs_images        : prix très au-dessus de la médiane régionale
+  underpriced_trap            : prix trop bas (possible appât frauduleux)
 """
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional, Tuple
-import json
+from typing import Any, Dict, List, Set, Tuple
 
-import numpy as np
 from loguru import logger
 
 from fraud_detection.multimodal.image_encoder import (
-    encode_listings_batch,
-    cosine_similarity,
-    CLIP_DIM,
+    analyze_listings_batch,
+    REAL_ESTATE_CATEGORIES,
 )
 from fraud_detection.multimodal.text_price_signal import (
-    compute_text_price_signals,
+    compute_description_signals,
 )
 
 # ── Poids du score final ──────────────────────────────────────────────────────
+WEIGHT_CATEGORY_MATCH = 0.60   # Cohérence sémantique image ↔ description
+WEIGHT_PRICE          = 0.40   # Cohérence prix ↔ marché régional
 
-WEIGHT_IMAGE_TEXT  = 0.40   # Similarité image ↔ texte (CLIP)
-WEIGHT_IMAGE_PRICE = 0.30   # Cohérence image ↔ prix
-WEIGHT_TEXT_PRICE  = 0.30   # Cohérence texte ↔ prix
+# Seuils de déviation prix
+_PRICE_HIGH      = 100.0
+_PRICE_MOD       = 50.0
+_PRICE_UNDER     = -50.0
 
-# Seuils de similarité cosine (espace CLIP, [-1, 1] → on mappe en [0, 1])
-SIM_LOW_THRESHOLD  = 0.20   # < 0.20 → fort mismatch image-texte
-SIM_HIGH_THRESHOLD = 0.50   # > 0.50 → bonne cohérence image-texte
+# Catégories "non immobilières" → suspicion si elles dominent
+_NON_REALESTATE_CATS = {"other"}
 
-# Seuils de déviation de prix
-PRICE_OVERPRICED_MOD  = 50.0   # > 50% → overpriced modéré
-PRICE_OVERPRICED_HIGH = 100.0  # > 100% → overpriced fort
-PRICE_UNDERPRICED     = -50.0  # < -50% → underpriced suspect
-
-
-# ── Mots indicateurs de luxe dans le texte ───────────────────────────────────
-
-LUXURY_KEYWORDS = [
-    "luxe", "luxueux", "haut standing", "prestige", "villa",
-    "piscine", "vue mer", "vue panoramique", "marbre", "jacuzzi",
-    "suite", "penthouse", "duplex", "triplex", "sécurisé",
-    "gardien", "parking souterrain", "climatisation centralisée",
-]
+# Catégories qui DEVRAIENT distinguer les types de biens
+_LAND_CATEGORIES = {"land"}
+_INTERIOR_CATEGORIES = {"bedroom", "living_room", "kitchen", "bathroom"}
 
 
-# ── Sous-scores ───────────────────────────────────────────────────────────────
+# ── Score A : Cohérence catégories image ↔ description ───────────────────────
 
-def _score_image_text(
-    image_emb: Optional[np.ndarray],
-    text_emb:  Optional[np.ndarray],
-) -> Tuple[float, Optional[str]]:
-    """
-    Score A : cohérence sémantique image ↔ texte.
-    Retourne (score 0–1, flag ou None).
-    """
-    if image_emb is None or text_emb is None:
-        return 0.5, None   # Inconnu → score neutre
-
-    sim = cosine_similarity(image_emb, text_emb)
-
-    # Mapper [-1, 1] → [0, 1]
-    score = (sim + 1.0) / 2.0
-    score = max(0.0, min(1.0, score))
-
-    flag = None
-    if sim < SIM_LOW_THRESHOLD:
-        flag = "image_text_low_similarity"
-
-    return round(score, 4), flag
-
-
-def _score_image_price(
-    image_emb:       Optional[np.ndarray],
-    price_deviation: float,
-    has_images:      bool,
+def _score_category_match(
+    detected_categories: List[str],
+    expected_categories: Set[str],
+    listing: Dict[str, Any],
 ) -> Tuple[float, List[str]]:
     """
-    Score B : cohérence image ↔ prix.
+    Compare les catégories détectées par CLIP avec celles attendues.
 
-    Logique :
-    - Pas d'image + prix anormal → suspect
-    - Image disponible + prix >> médiane → overpriced vs images
-    - Image disponible + prix << médiane → underpriced trap
+    Règles :
+      1. Pas d'images → score bas (0.20) + flag no_images_suspicious_price
+         si prix anormal
+      2. Catégories attendues toutes présentes → score élevé
+      3. Catégories manquantes → score proportionnel
+      4. Images non immobilières → flag + pénalité
+      5. Type de bien incohérent → flag wrong_property_type
+
+    Returns:
+        (match_score [0-1], flags)
     """
-    flags = []
+    flags: List[str] = []
+    detected_set = set(detected_categories)
+    price        = float(listing.get("price") or 0)
 
-    if not has_images:
-        # Pas d'image
-        if abs(price_deviation) > PRICE_OVERPRICED_MOD:
+    # Cas : pas d'images
+    if not detected_categories:
+        if price > 200_000:
             flags.append("no_images_suspicious_price")
-            score = 0.30
-        else:
-            score = 0.50   # neutre
-        return round(score, 4), flags
+            return 0.20, flags
+        return 0.40, flags  # neutre si pas cher
 
-    # Images disponibles
-    if price_deviation > PRICE_OVERPRICED_HIGH:
-        flags.append("overpriced_vs_images")
-        score = 0.25
-    elif price_deviation > PRICE_OVERPRICED_MOD:
-        score = 0.45
-    elif price_deviation < PRICE_UNDERPRICED:
-        flags.append("underpriced_trap")
-        score = 0.35
-    else:
-        score = 0.85   # prix dans la norme
+    # Cas : images non immobilières (toutes classées "other")
+    non_re_ratio = sum(1 for c in detected_categories if c in _NON_REALESTATE_CATS) / len(detected_categories)
+    if non_re_ratio >= 0.6:
+        flags.append("no_real_estate_images")
+        return 0.15, flags
 
-    return round(score, 4), flags
+    # Cas : incohérence type de bien
+    # Si la description dit "terrain" mais les images montrent des intérieurs
+    prop_type = (listing.get("type") or "").lower()
+    if "terrain" in prop_type:
+        interior_count = sum(1 for c in detected_categories if c in _INTERIOR_CATEGORIES)
+        if interior_count > len(detected_categories) * 0.5:
+            flags.append("wrong_property_type")
+            return 0.20, flags
+
+    # Cas général : comparer expected vs detected
+    if not expected_categories:
+        return 0.65, flags  # pas d'attentes précises → score neutre positif
+
+    found   = expected_categories & detected_set
+    missing = expected_categories - detected_set
+
+    # Flags pour chaque catégorie promise mais absente
+    important_missing = {"pool", "view", "garden", "terrace", "parking", "land"}
+    for cat in missing:
+        if cat in important_missing:
+            flags.append(f"claimed_{cat}_not_visible")
+
+    # Score : proportion de catégories attendues trouvées
+    match_score = len(found) / len(expected_categories)
+
+    # Bonus léger si plus d'images que prévu (annonce détaillée)
+    if len(detected_categories) > len(expected_categories):
+        match_score = min(1.0, match_score + 0.05)
+
+    return round(match_score, 4), flags
 
 
-def _score_text_price(
-    description:     str,
-    price_deviation: float,
+# ── Score B : Cohérence prix ──────────────────────────────────────────────────
+
+def _score_price(
+    price_deviation_pct: float,
     deviation_level: str,
+    has_images: bool,
 ) -> Tuple[float, List[str]]:
     """
-    Score C : cohérence texte ↔ prix.
-
-    Détecte :
-    - Description de luxe + prix bas (description trompeuse)
-    - Prix très au-dessus de la médiane (inflation)
+    Convertit la déviation de prix en score [0-1].
+    Plus le prix est anormal, plus le score est bas.
     """
-    flags = []
-    desc_lower = description.lower() if description else ""
+    flags: List[str] = []
 
-    # Compter les indicateurs de luxe dans la description
-    luxury_count = sum(1 for kw in LUXURY_KEYWORDS if kw in desc_lower)
-    is_luxury_desc = luxury_count >= 2
+    if deviation_level == "no_data":
+        return 0.60, flags   # Pas de données → neutre
 
-    if is_luxury_desc and price_deviation < -PRICE_OVERPRICED_MOD:
-        # Description luxueuse mais prix très bas → suspect
-        flags.append("luxury_description_poor_price")
-        score = 0.25
-    elif price_deviation > PRICE_OVERPRICED_HIGH:
-        flags.append("price_inflation_suspected")
-        score = 0.30
-    elif deviation_level == "high" and price_deviation < 0:
-        # Prix très bas sans raison textuelle → appât
+    abs_dev = abs(price_deviation_pct)
+
+    if price_deviation_pct > _PRICE_HIGH:
+        flags.append("overpriced_vs_images")
+        score = 0.20
+    elif price_deviation_pct > _PRICE_MOD:
+        score = 0.45
+    elif price_deviation_pct < _PRICE_UNDER:
         flags.append("underpriced_trap")
-        score = 0.40
-    elif deviation_level in ("normal", "no_data"):
-        score = 0.85
-    elif deviation_level == "moderate":
-        score = 0.60
+        score = 0.30
+    elif abs_dev > 30:
+        score = 0.55
     else:
-        score = 0.50
+        score = 0.85   # prix dans la norme régionale
 
     return round(score, 4), flags
 
 
 # ── Score de cohérence global ─────────────────────────────────────────────────
 
-def compute_consistency_score(
-    listing: Dict[str, Any],
-) -> Dict[str, Any]:
+def compute_consistency_score(listing: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Calcule le score de cohérence multimodale pour un seul listing enrichi.
+    Calcule le score de cohérence multimodale sémantique pour un listing.
 
     Le listing doit avoir été enrichi par :
-      - encode_listings_batch()        → image_embedding, images_analyzed, has_images
-      - compute_text_price_signals()   → clip_text_embedding, price_deviation_pct,
+      - analyze_listings_batch()       → detected_categories, has_images, images_analyzed
+      - compute_description_signals()  → expected_categories, price_deviation_pct,
                                          deviation_level, price_signal
 
     Returns:
-        dict avec multimodal_score, image_text_similarity,
-              price_deviation_pct, mismatch_types, images_analyzed
+        dict compatible avec FraudDBConnector.save_multimodal_results()
     """
-    image_emb       = listing.get("image_embedding")
-    text_emb        = listing.get("clip_text_embedding")
-    price_deviation = listing.get("price_deviation_pct") or 0.0
-    deviation_level = listing.get("deviation_level")    or "normal"
-    has_images      = listing.get("has_images",   False)
-    images_analyzed = listing.get("images_analyzed", 0)
-    description     = str(listing.get("description") or "")
+    detected_cats    = listing.get("detected_categories", [])
+    expected_cats    = listing.get("expected_categories", set())
+    price_dev        = listing.get("price_deviation_pct", 0.0)
+    dev_level        = listing.get("deviation_level", "no_data")
+    has_images       = listing.get("has_images", False)
+    images_analyzed  = listing.get("images_analyzed", 0)
 
-    # Sous-scores
-    score_A, flag_A = _score_image_text(image_emb, text_emb)
-    score_B, flags_B = _score_image_price(image_emb, price_deviation, has_images)
-    score_C, flags_C = _score_text_price(description, price_deviation, deviation_level)
+    # Score A — Cohérence sémantique catégories
+    score_A, flags_A = _score_category_match(detected_cats, expected_cats, listing)
+
+    # Score B — Cohérence prix
+    score_B, flags_B = _score_price(price_dev, dev_level, has_images)
 
     # Score final pondéré
-    multimodal_score = (
-        WEIGHT_IMAGE_TEXT  * score_A +
-        WEIGHT_IMAGE_PRICE * score_B +
-        WEIGHT_TEXT_PRICE  * score_C
+    multimodal_score = round(
+        WEIGHT_CATEGORY_MATCH * score_A + WEIGHT_PRICE * score_B,
+        4,
     )
-    multimodal_score = round(max(0.0, min(1.0, multimodal_score)), 4)
+    multimodal_score = max(0.0, min(1.0, multimodal_score))
 
-    # Similarité image-texte brute
-    if image_emb is not None and text_emb is not None:
-        img_text_sim = round(cosine_similarity(image_emb, text_emb), 4)
-    else:
-        img_text_sim = None
+    # Consolider les flags
+    all_flags = list(set(flags_A + flags_B))
 
-    # Consolider tous les flags
-    mismatch_types = []
-    if flag_A:
-        mismatch_types.append(flag_A)
-    mismatch_types.extend(flags_B)
-    mismatch_types.extend(flags_C)
-    mismatch_types = list(set(mismatch_types))  # dédupliquer
-
+    # image_text_similarity = category match score (pour compatibilité DB)
     return {
         "property_id":           listing.get("property_id"),
         "source_name":           listing.get("source_name"),
         "multimodal_score":      multimodal_score,
-        "image_text_similarity": img_text_sim,
-        "price_deviation_pct":   price_deviation,
-        "mismatch_types":        mismatch_types,
+        "image_text_similarity": score_A,         # category match score
+        "price_deviation_pct":   price_dev,
+        "mismatch_types":        all_flags,
         "images_analyzed":       images_analyzed,
-        "subscores": {
-            "image_text":   score_A,
-            "image_price":  score_B,
-            "text_price":   score_C,
-        },
-        "model_version": "clip_vit_base_patch32_v1",
+        "model_version":         "clip_zeroshot_semantic_v1",
+        # Détail pour debug / rapport
+        "_detected_categories":  detected_cats,
+        "_expected_categories":  list(expected_cats),
+        "_score_category":       score_A,
+        "_score_price":          score_B,
     }
 
 
@@ -253,59 +231,62 @@ def run_multimodal_pipeline(
     max_images_per_listing: int = 3,
 ) -> List[Dict[str, Any]]:
     """
-    Pipeline complet DSO 2.2 : image + texte + prix → score de cohérence.
+    Pipeline DSO 2.2 — Cohérence Sémantique Multimodale (CLIP Zero-Shot).
+
+    Étapes :
+      1. Classification zero-shot des images par CLIP → catégories détectées
+      2. Extraction des catégories attendues depuis la description
+      3. Calcul de la déviation de prix régionale
+      4. Score de cohérence = 60% category_match + 40% price_score
+      5. Flags sémantiques (piscine non visible, type incohérent...)
 
     Args:
-        listings:               Liste de dicts listing (avec images, description, price…)
-        regional_stats:         Stats régionales de prix (depuis FraudDBConnector)
-        max_images_per_listing: Max images à analyser par listing
+        listings               : listings avec images (depuis fetch_listings_with_images)
+        regional_stats         : stats de prix régionaux
+        max_images_per_listing : max images analysées par annonce
 
     Returns:
-        Liste de dicts résultats pour sauvegarde via FraudDBConnector.save_multimodal_results()
+        Résultats prêts pour save_multimodal_results()
     """
-    logger.info(f"[MultimodalPipeline] Démarrage DSO 2.2 sur {len(listings)} listings")
+    logger.info(f"[DSO2.2] Démarrage pipeline sémantique CLIP sur {len(listings)} listings")
 
-    # Étape 1 : Encoder les images
-    logger.info("[MultimodalPipeline] Étape 1/3 — Encodage images (CLIP)")
-    listings_with_images = encode_listings_batch(listings, max_images_per_listing)
+    # Étape 1 : Classification zero-shot des images
+    logger.info("[DSO2.2] Étape 1/3 — Classification zero-shot des images (CLIP)")
+    listings_with_images = analyze_listings_batch(listings, max_images_per_listing)
 
-    # Étape 2 : Encoder les textes + calculer déviation prix
-    logger.info("[MultimodalPipeline] Étape 2/3 — Signaux texte + prix")
-    listings_enriched = compute_text_price_signals(listings_with_images, regional_stats)
+    # Étape 2+3 : Catégories attendues + déviation prix
+    logger.info("[DSO2.2] Étape 2/3 — Extraction catégories attendues + signal prix")
+    listings_enriched = compute_description_signals(listings_with_images, regional_stats)
 
-    # Étape 3 : Score de cohérence final
-    logger.info("[MultimodalPipeline] Étape 3/3 — Score de cohérence multimodale")
-    results = []
-    for listing in listings_enriched:
-        result = compute_consistency_score(listing)
-        results.append(result)
+    # Étape 4 : Score de cohérence
+    logger.info("[DSO2.2] Étape 3/3 — Calcul scores de cohérence sémantique")
+    results = [compute_consistency_score(l) for l in listings_enriched]
 
-    # Rapport rapide
-    scores        = [r["multimodal_score"] for r in results]
-    n_incoherent  = sum(1 for s in scores if s < 0.31)
-    n_suspicious  = sum(1 for s in scores if 0.31 <= s < 0.56)
-    n_coherent    = sum(1 for s in scores if s >= 0.56)
+    # Rapport
+    scores       = [r["multimodal_score"] for r in results]
+    n_incoherent = sum(1 for s in scores if s < 0.31)
+    n_suspicious = sum(1 for s in scores if 0.31 <= s < 0.56)
+    n_coherent   = sum(1 for s in scores if s >= 0.56)
+
+    all_flags    = [f for r in results for f in r["mismatch_types"]]
+    top_flag     = max(set(all_flags), key=all_flags.count) if all_flags else "aucun"
 
     logger.info(
-        f"[MultimodalPipeline] Terminé — "
-        f"{len(results)} listings analysés | "
-        f"Incohérents: {n_incoherent} | "
-        f"Suspects: {n_suspicious} | "
-        f"Cohérents: {n_coherent}"
+        f"[DSO2.2] Terminé — {len(results)} listings | "
+        f"Incohérents: {n_incoherent} | Suspects: {n_suspicious} | Cohérents: {n_coherent} | "
+        f"Top flag: {top_flag}"
     )
-
     return results
 
 
-# ── Utilitaire : interprétation du score ──────────────────────────────────────
+# ── Interprétation du score ───────────────────────────────────────────────────
 
 def interpret_score(score: float) -> str:
-    """Retourne une étiquette lisible pour un multimodal_score."""
     if score < 0.31:
-        return "INCOHERENT (fraude probable)"
+        return "INCOHERENT — fraude probable"
     elif score < 0.56:
-        return "SUSPECT (incohérence modérée)"
+        return "SUSPECT — incohérence modérée"
     elif score < 0.76:
         return "ACCEPTABLE"
     else:
-        return "COHERENT (annonce fiable)"
+        return "COHERENT — annonce fiable"

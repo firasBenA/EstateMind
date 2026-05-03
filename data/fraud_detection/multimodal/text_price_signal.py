@@ -1,130 +1,146 @@
 """
-EstateMind — DSO 2.2 : Signal Texte et Déviation de Prix
-=========================================================
-Encode le texte des annonces avec CLIP (espace partagé image/texte)
-et calcule la déviation du prix par rapport à la médiane régionale.
+DSO 2.2 — Extraction des Catégories Attendues + Signal Prix
+============================================================
+Deux rôles :
 
-Deux signaux produits :
-──────────────────────
-1. text_embedding (512-dim CLIP)
-   Encode le texte de l'annonce dans l'espace CLIP pour permettre
-   la comparaison directe avec l'embedding image.
+1. extract_expected_categories(listing)
+   Détermine quelles catégories visuelles DEVRAIENT apparaître dans les photos
+   en se basant sur le type de bien et les mots-clés de la description.
 
-   Texte encodé = titre + type + localisation + prix déclaré + description
+   Exemple :
+     description = "villa avec piscine et jardin, vue mer"
+     → expected = {"exterior", "pool", "garden", "view"}
 
-2. price_deviation_pct
-   % d'écart entre le prix réel et la médiane régionale (region×type×tx_type).
-   Formule : (prix - médiane_région) / médiane_région × 100
-   - Positif  → prix au-dessus de la médiane (potentiel surévaluation)
-   - Négatif  → prix en-dessous (potentiel fraude/appât)
+   Ces catégories attendues seront comparées aux catégories détectées par CLIP
+   dans les vraies images. Si une catégorie promise est absente → mismatch.
 
-   Seuils d'alerte :
-   - |déviation| > 50%  → signal modéré
-   - |déviation| > 100% → signal fort (prix × 2 ou ÷ 2 vs médiane)
-
-Note : On utilise CLIP pour le texte (au lieu des embeddings sentence-transformers
-déjà en DB) car seul CLIP garantit la comparabilité image↔texte dans le même espace.
+2. compute_price_deviation(listing, regional_stats)
+   Calcule l'écart entre le prix de l'annonce et la médiane régionale.
+   Signal de surévaluation ou de prix-appât.
 """
 from __future__ import annotations
 
-from typing import List, Dict, Any, Optional, Tuple
-import json
+from typing import Any, Dict, List, Set, Tuple
 
 import numpy as np
 from loguru import logger
 
-from fraud_detection.multimodal.image_encoder import CLIPEncoder, CLIP_DIM
+# ── Catégories attendues selon le type de bien ───────────────────────────────
 
-# ── Seuils de déviation de prix ───────────────────────────────────────────────
+_TYPE_BASE_CATEGORIES: Dict[str, Set[str]] = {
+    "villa":        {"exterior", "living_room", "bedroom"},
+    "maison":       {"exterior", "living_room", "bedroom"},
+    "appartement":  {"living_room", "bedroom"},
+    "apartment":    {"living_room", "bedroom"},
+    "studio":       {"living_room"},
+    "duplex":       {"living_room", "bedroom"},
+    "triplex":      {"living_room", "bedroom"},
+    "penthouse":    {"living_room", "bedroom", "view"},
+    "terrain":      {"land"},
+    "bureau":       {"living_room"},
+    "commercial":   {"living_room"},
+    "local":        {"living_room"},
+    "immeuble":     {"building", "exterior"},
+}
 
-PRICE_DEVIATION_MODERATE = 50.0    # % d'écart — signal modéré
-PRICE_DEVIATION_HIGH     = 100.0   # % d'écart — signal fort
+# Mots-clés de description → catégorie visuelle attendue
+_KEYWORD_CATEGORY_MAP: Dict[str, str] = {
+    # Piscine
+    "piscine":   "pool",
+    "pool":      "pool",
+    # Vue
+    "vue mer":          "view",
+    "vue panoramique":  "view",
+    "vue sur mer":      "view",
+    "panoramique":      "view",
+    # Jardin
+    "jardin":    "garden",
+    "garden":    "garden",
+    "parc":      "garden",
+    # Terrasse / Balcon
+    "terrasse":  "terrace",
+    "balcon":    "terrace",
+    "rooftop":   "terrace",
+    # Parking / Garage
+    "garage":    "parking",
+    "parking":   "parking",
+    "box":       "parking",
+    # Cuisine (si mentionnée explicitement)
+    "cuisine équipée": "kitchen",
+    "cuisine aménagée": "kitchen",
+    # Extérieur
+    "façade":    "exterior",
+    "extérieur": "exterior",
+}
+
+# Seuils de déviation prix
+_PRICE_MOD  = 50.0    # > 50% → signal modéré
+_PRICE_HIGH = 100.0   # > 100% → signal fort
 
 
-# ── Construction du texte d'entrée CLIP ──────────────────────────────────────
+# ── Extraction des catégories attendues ───────────────────────────────────────
 
-def _build_clip_text(listing: Dict[str, Any]) -> str:
+def extract_expected_categories(listing: Dict[str, Any]) -> Set[str]:
     """
-    Construit le texte à encoder via CLIP pour une annonce.
+    Détermine les catégories visuelles attendues pour ce listing.
 
-    Le texte est conçu pour refléter le contenu visible de l'annonce :
-    type de bien, localisation, prix, features, description.
-    On l'optimise pour la comparabilité avec les images (style descriptif).
+    Logique :
+      1. Catégories de base selon le type de bien (villa, appartement, terrain...)
+      2. Ajout des catégories liées aux mots-clés de la description
+      3. Ajout des catégories liées aux features (amenities)
 
-    Longueur : tronquée à 300 chars (limite CLIP ~77 tokens).
+    Returns:
+        Ensemble de catégories attendues (ex: {"exterior", "pool", "garden"})
     """
-    parts = []
+    categories: Set[str] = set()
 
-    # Type et transaction
-    prop_type = listing.get("type") or ""
-    tx_type   = listing.get("transaction_type") or ""
-    if prop_type:
-        label = prop_type.lower()
-        if tx_type.lower() == "rent":
-            label += " à louer"
-        else:
-            label += " à vendre"
-        parts.append(label)
+    # 1. Catégories de base selon le type
+    prop_type = (listing.get("type") or "").lower().strip()
+    for type_key, base_cats in _TYPE_BASE_CATEGORIES.items():
+        if type_key in prop_type:
+            categories.update(base_cats)
+            break
 
-    # Localisation
-    city   = listing.get("city")   or ""
-    region = listing.get("region") or ""
-    if city:
-        parts.append(f"à {city}")
-    elif region:
-        parts.append(f"région {region}")
+    if not categories:
+        categories.add("living_room")   # défaut si type inconnu
 
-    # Surface et pièces
-    surface = listing.get("surface")
-    rooms   = listing.get("rooms")
-    if surface and float(surface) > 0:
-        parts.append(f"surface {int(surface)} m²")
-    if rooms and int(rooms) > 0:
-        parts.append(f"{int(rooms)} pièces")
+    # 2. Analyse de la description
+    description = (listing.get("description") or "").lower()
+    for keyword, cat in _KEYWORD_CATEGORY_MAP.items():
+        if keyword in description:
+            categories.add(cat)
 
-    # Prix
-    price    = listing.get("price")
-    currency = listing.get("currency") or "TND"
-    if price and float(price) > 0:
-        parts.append(f"prix {int(price):,} {currency}".replace(",", " "))
-
-    # Features (amenities)
+    # 3. Analyse des features (amenities)
     features = listing.get("features") or []
     if isinstance(features, str):
+        import json
         try:
             features = json.loads(features)
         except Exception:
             features = []
-    if isinstance(features, list) and features:
-        parts.append("avec " + ", ".join(str(f) for f in features[:4]))
 
-    # Description (tronquée)
-    desc = str(listing.get("description") or "").strip()
-    if desc:
-        parts.append(desc[:150])
+    features_text = " ".join(str(f) for f in features).lower()
+    for keyword, cat in _KEYWORD_CATEGORY_MAP.items():
+        if keyword in features_text:
+            categories.add(cat)
 
-    text = " — ".join(parts)
-    return text[:300]
+    return categories
 
 
-# ── Calcul de la déviation de prix ───────────────────────────────────────────
+# ── Déviation de prix régionale ───────────────────────────────────────────────
 
 def compute_price_deviation(
     listing: Dict[str, Any],
     regional_stats: Dict[str, Dict[str, float]],
 ) -> Tuple[float, str, str]:
     """
-    Calcule la déviation du prix d'une annonce par rapport à sa médiane régionale.
-
-    Args:
-        listing:        Dict listing
-        regional_stats: Stats régionales depuis FraudDBConnector.get_regional_price_stats()
+    Calcule l'écart entre le prix de l'annonce et la médiane régionale.
 
     Returns:
-        Tuple (price_deviation_pct, deviation_level, price_signal)
-          - price_deviation_pct : % d'écart (peut être négatif)
-          - deviation_level     : "normal" | "moderate" | "high"
-          - price_signal        : "overpriced" | "underpriced" | "normal"
+        (price_deviation_pct, deviation_level, price_signal)
+        - price_deviation_pct : % d'écart (positif = surpayé, négatif = sous-payé)
+        - deviation_level     : "normal" | "moderate" | "high" | "no_data"
+        - price_signal        : "overpriced" | "underpriced" | "normal"
     """
     price  = listing.get("price")
     region = (listing.get("region") or "unknown").lower().strip()
@@ -132,136 +148,79 @@ def compute_price_deviation(
     tx     = listing.get("transaction_type") or "Sale"
 
     if not price or float(price) <= 0:
-        return 0.0, "unknown", "unknown"
+        return 0.0, "no_data", "normal"
 
     price = float(price)
+    key   = f"{region}|{ptype}|{tx}"
+    stats = regional_stats.get(key)
 
-    # Chercher les stats pour ce groupe
-    key    = f"{region}|{ptype}|{tx}"
-    stats  = regional_stats.get(key)
-
-    # Fallback : chercher avec seulement région
+    # Fallback : médiane des médianes disponibles pour cette région
     if not stats:
-        fallback_keys = [k for k in regional_stats if k.startswith(f"{region}|")]
-        if fallback_keys:
-            # Prendre la médiane des médianes disponibles
-            medians = [regional_stats[k]["median"] for k in fallback_keys if regional_stats[k].get("median", 0) > 0]
+        fallback = [k for k in regional_stats if k.startswith(f"{region}|")]
+        if fallback:
+            medians = [
+                regional_stats[k]["median"]
+                for k in fallback
+                if regional_stats[k].get("median", 0) > 0
+            ]
             if medians:
-                stats = {"median": float(np.median(medians)), "count": len(medians)}
+                stats = {"median": float(np.median(medians))}
 
     if not stats or stats.get("median", 0) <= 0:
         return 0.0, "no_data", "normal"
 
     median = stats["median"]
-    deviation_pct = (price - median) / median * 100.0
+    dev_pct = (price - median) / median * 100.0
+    abs_dev = abs(dev_pct)
 
-    # Niveau de déviation
-    abs_dev = abs(deviation_pct)
-    if abs_dev > PRICE_DEVIATION_HIGH:
-        level = "high"
-    elif abs_dev > PRICE_DEVIATION_MODERATE:
-        level = "moderate"
-    else:
-        level = "normal"
+    level = "high" if abs_dev > _PRICE_HIGH else ("moderate" if abs_dev > _PRICE_MOD else "normal")
+    signal = "overpriced" if dev_pct > _PRICE_MOD else ("underpriced" if dev_pct < -_PRICE_MOD else "normal")
 
-    # Signal directionnel
-    if deviation_pct > PRICE_DEVIATION_MODERATE:
-        signal = "overpriced"
-    elif deviation_pct < -PRICE_DEVIATION_MODERATE:
-        signal = "underpriced"
-    else:
-        signal = "normal"
-
-    return round(deviation_pct, 2), level, signal
+    return round(dev_pct, 2), level, signal
 
 
-# ── Encodage texte en batch ───────────────────────────────────────────────────
+# ── Enrichissement batch ──────────────────────────────────────────────────────
 
-def encode_listing_texts(
-    listings: List[Dict[str, Any]],
-) -> List[Optional[np.ndarray]]:
-    """
-    Encode les textes de tous les listings avec CLIP.
-
-    Args:
-        listings: Liste de dicts listing
-
-    Returns:
-        Liste d'embeddings np.array(512,) ou None par listing
-    """
-    texts = [_build_clip_text(lst) for lst in listings]
-    logger.info(f"[TextSignal] Encodage CLIP de {len(texts)} textes")
-
-    # Encoder en batches de 64 (limite mémoire CLIP)
-    all_embeddings: List[Optional[np.ndarray]] = [None] * len(texts)
-    batch_size = 64
-
-    for start in range(0, len(texts), batch_size):
-        batch_texts = texts[start:start + batch_size]
-        batch_embs  = CLIPEncoder.encode_texts(batch_texts)  # shape (N, 512)
-
-        for j, emb in enumerate(batch_embs):
-            idx = start + j
-            if np.linalg.norm(emb) > 1e-9:
-                all_embeddings[idx] = emb
-            # else: reste None
-
-    n_encoded = sum(1 for e in all_embeddings if e is not None)
-    logger.info(f"[TextSignal] {n_encoded}/{len(listings)} textes encodés avec succès")
-    return all_embeddings
-
-
-# ── Pipeline complet texte + prix par listing ─────────────────────────────────
-
-def compute_text_price_signals(
+def compute_description_signals(
     listings: List[Dict[str, Any]],
     regional_stats: Dict[str, Dict[str, float]],
 ) -> List[Dict[str, Any]]:
     """
-    Calcule les signaux texte (CLIP embedding) et prix (déviation régionale)
-    pour une liste de listings.
-
-    Args:
-        listings:       Liste de dicts listing
-        regional_stats: Statistiques régionales de prix
-
-    Returns:
-        Listings enrichis avec :
-          - clip_text_embedding:  np.array(512,) ou None
-          - price_deviation_pct:  float
-          - deviation_level:      "normal" | "moderate" | "high"
-          - price_signal:         "overpriced" | "underpriced" | "normal"
-          - clip_text_input:      str (texte utilisé pour l'encodage, pour debug)
+    Enrichit chaque listing avec :
+      - expected_categories  : Set[str] — catégories visuelles promises
+      - price_deviation_pct  : float
+      - deviation_level      : str
+      - price_signal         : str
     """
-    logger.info(f"[TextSignal] Calcul des signaux texte+prix pour {len(listings)} listings")
-
-    # Encoder tous les textes en une passe
-    text_embeddings = encode_listing_texts(listings)
-
-    # Enrichir chaque listing
+    logger.info(f"[DescriptionParser] Extraction catégories attendues + prix — {len(listings)} listings")
     results = []
-    for i, listing in enumerate(listings):
+
+    n_with_pool    = 0
+    n_with_view    = 0
+    n_overpriced   = 0
+    n_underpriced  = 0
+
+    for listing in listings:
+        expected = extract_expected_categories(listing)
         dev_pct, dev_level, price_signal = compute_price_deviation(listing, regional_stats)
-        clip_text = _build_clip_text(listing)
+
+        if "pool"   in expected: n_with_pool   += 1
+        if "view"   in expected: n_with_view   += 1
+        if price_signal == "overpriced":  n_overpriced  += 1
+        if price_signal == "underpriced": n_underpriced += 1
 
         results.append({
             **listing,
-            "clip_text_embedding":  text_embeddings[i],
-            "price_deviation_pct":  dev_pct,
-            "deviation_level":      dev_level,
-            "price_signal":         price_signal,
-            "clip_text_input":      clip_text,
+            "expected_categories": expected,
+            "price_deviation_pct": dev_pct,
+            "deviation_level":     dev_level,
+            "price_signal":        price_signal,
         })
 
-    # Stats rapides
-    n_overpriced   = sum(1 for r in results if r["price_signal"] == "overpriced")
-    n_underpriced  = sum(1 for r in results if r["price_signal"] == "underpriced")
-    n_high_dev     = sum(1 for r in results if r["deviation_level"] == "high")
-
     logger.info(
-        f"[TextSignal] Résumé — "
-        f"surpayés: {n_overpriced} | "
-        f"sous-payés: {n_underpriced} | "
-        f"déviation forte: {n_high_dev}"
+        f"[DescriptionParser] Résumé — "
+        f"piscines promises: {n_with_pool} | "
+        f"vues promises: {n_with_view} | "
+        f"surpayés: {n_overpriced} | sous-payés: {n_underpriced}"
     )
     return results
