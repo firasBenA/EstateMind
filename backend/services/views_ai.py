@@ -18,8 +18,12 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from django.core.cache import cache
 import logging
-
+from opentelemetry import trace
+from services.otel_ollama import trace_function, OllamaInstrumentor
 logger = logging.getLogger(__name__)
+
+
+tracer = trace.get_tracer(__name__)
 
 AI_SERVICE_URL = os.environ.get("AI_SERVICE_URL", "http://localhost:8001")
 PRIMARY_TIMEOUT = 15  # seconds - don't keep user waiting too long

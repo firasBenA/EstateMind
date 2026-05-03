@@ -23,7 +23,7 @@ import SettingsPage from "./pages/dashboard/SettingsPage";
 import UserDashboard from "./pages/user/UserDashboard";
 import UserListings from "./pages/user/UserListings";
 import PostListing from "./pages/user/PostListing";
-import ProfitabilityPlanner from "./pages/user/ProfitabilityPlanner";
+
 import UserReports from "./pages/user/UserReports";
 import UserContracts from "./pages/user/UserContracts";
 import UserMessages from "./pages/user/UserMessages";
@@ -81,7 +81,7 @@ const App = () => (
               <Route path="/user" element={<UserRoute><UserDashboard /></UserRoute>} />
               <Route path="/user/listings" element={<UserRoute><UserListings /></UserRoute>} />
               <Route path="/user/post-listing" element={<UserRoute><PostListing /></UserRoute>} />
-              <Route path="/user/profitability" element={<UserRoute><ProfitabilityPlanner /></UserRoute>} />
+              
               <Route path="/user/reports" element={<UserRoute><UserReports /></UserRoute>} />
               <Route path="/user/contracts" element={<UserRoute><UserContracts /></UserRoute>} />
               <Route path="/user/recommendations" element={<RecommendationsPage />} />

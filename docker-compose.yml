@@ -1,4 +1,8 @@
+# docker-compose.yml — EstateMind project services only
+# SigNoz runs separately from D:\signoz\deploy\docker\
+
 services:
+
   postgres:
     image: pgvector/pgvector:pg17
     container_name: estatemind_postgres
@@ -12,5 +16,15 @@ services:
       - pgdata:/var/lib/postgresql/data
     restart: unless-stopped
 
+  ollama:
+    image: ollama/ollama:latest
+    container_name: estatemind_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
 volumes:
   pgdata:
+  ollama_data:

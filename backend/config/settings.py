@@ -35,6 +35,22 @@ INSTALLED_APPS = [
     "django_extensions",
 ]
 
+
+# ── SigNoz / OpenTelemetry Configuration ──────────────────────────────────────
+SIGNOZ_ENABLED = os.getenv("SIGNOZ_ENABLED", "False") == "True"
+
+if SIGNOZ_ENABLED:
+    try:
+        from .otel_config import setup_telemetry
+        setup_telemetry()
+        print("✅ SigNoz telemetry enabled")
+    except ImportError:
+        print("⚠️ otel_config module not found")
+    except Exception as e:
+        print(f"⚠️ SigNoz setup failed: {e}")
+else:
+    print("ℹ️ SigNoz telemetry disabled")
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "config.middleware.CloseOldConnectionsMiddleware",
