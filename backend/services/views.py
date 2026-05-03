@@ -1943,3 +1943,181 @@ def pusher_auth(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+    
+@login_required
+def fraud_summary_api(request):
+    """GET /api/fraud/summary/ — KPI cards for fraud detection dashboard."""
+    try:
+        from django.db import connection as db_conn
+        with db_conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    COUNT(*)                                                                  AS total,
+                    SUM(CASE WHEN multimodal_score < 0.31 THEN 1 ELSE 0 END)                AS incoherent,
+                    SUM(CASE WHEN multimodal_score >= 0.31 AND multimodal_score < 0.56
+                             THEN 1 ELSE 0 END)                                             AS suspect,
+                    SUM(CASE WHEN multimodal_score >= 0.56 THEN 1 ELSE 0 END)               AS coherent,
+                    ROUND(AVG(multimodal_score)::numeric, 3)                                AS avg_score,
+                    ROUND(AVG(ABS(price_deviation_pct))::numeric, 1)                        AS avg_price_deviation
+                FROM fraud_detection_results
+            """)
+            row = cur.fetchone()
+        total, incoherent, suspect, coherent, avg_score, avg_price_dev = row
+        return JsonResponse({
+            "total":              int(total or 0),
+            "incoherent":         int(incoherent or 0),
+            "suspect":            int(suspect or 0),
+            "coherent":           int(coherent or 0),
+            "avg_score":          float(avg_score or 0),
+            "avg_price_deviation": float(avg_price_dev or 0),
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def fraud_listings_api(request):
+    """
+    GET /api/fraud/listings/
+    Params: page, page_size, risk (incoherent|suspect|coherent), region, flag
+    Returns suspicious listings joined with listing details.
+    """
+    try:
+        from django.db import connection as db_conn
+
+        risk     = request.GET.get("risk", "").strip()
+        region   = request.GET.get("region", "").strip()
+        flag     = request.GET.get("flag", "").strip()
+        try:
+            page      = max(int(request.GET.get("page", 1)), 1)
+            page_size = min(int(request.GET.get("page_size", 20)), 100)
+        except ValueError:
+            page, page_size = 1, 20
+        offset = (page - 1) * page_size
+
+        conditions, params = [], []
+        if risk == "incoherent":
+            conditions.append("f.multimodal_score < 0.31")
+        elif risk == "suspect":
+            conditions.append("f.multimodal_score >= 0.31 AND f.multimodal_score < 0.56")
+        elif risk == "coherent":
+            conditions.append("f.multimodal_score >= 0.56")
+        if region:
+            conditions.append("l.region ILIKE %s")
+            params.append(f"%{region}%")
+        if flag:
+            conditions.append("f.mismatch_types::text ILIKE %s")
+            params.append(f"%{flag}%")
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+        base_join = """
+            FROM fraud_detection_results f
+            LEFT JOIN listings l
+                   ON COALESCE(l.source_id, l.id::text) = f.property_id
+        """
+
+        with db_conn.cursor() as cur:
+            cur.execute(f"SELECT COUNT(*) {base_join} {where}", params)
+            total = cur.fetchone()[0]
+
+            cur.execute(f"""
+                SELECT
+                    f.property_id,
+                    f.source_name,
+                    f.multimodal_score,
+                    f.image_text_similarity,
+                    f.price_deviation_pct,
+                    f.mismatch_types,
+                    f.images_analyzed,
+                    f.analyzed_at,
+                    l.title,
+                    l.price,
+                    l.city,
+                    l.region,
+                    l.property_type,
+                    l.url
+                {base_join}
+                {where}
+                ORDER BY f.multimodal_score ASC
+                LIMIT %s OFFSET %s
+            """, params + [page_size, offset])
+            rows = cur.fetchall()
+
+        results = []
+        for row in rows:
+            (prop_id, src, score, sim, price_dev, mismatch,
+             images, analyzed_at, title, price, city, reg, ptype, url) = row
+
+            if isinstance(mismatch, str):
+                try:
+                    mismatch = json.loads(mismatch)
+                except Exception:
+                    mismatch = []
+            elif mismatch is None:
+                mismatch = []
+
+            s = float(score or 0)
+            risk_label = "incoherent" if s < 0.31 else ("suspect" if s < 0.56 else "coherent")
+
+            results.append({
+                "property_id":        prop_id,
+                "source_name":        src or "",
+                "multimodal_score":   round(s, 3),
+                "risk_level":         risk_label,
+                "price_deviation_pct": round(float(price_dev or 0), 1),
+                "mismatch_types":     mismatch,
+                "images_analyzed":    images or 0,
+                "analyzed_at":        analyzed_at.isoformat() if analyzed_at else None,
+                "title":              title or "",
+                "price":              float(price) if price else None,
+                "city":               city or "",
+                "region":             reg or "",
+                "property_type":      ptype or "",
+                "url":                url or "",
+            })
+
+        return JsonResponse({
+            "count":   int(total),
+            "pages":   max(1, (int(total) + page_size - 1) // page_size),
+            "page":    page,
+            "results": results,
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@login_required
+def fraud_flags_api(request):
+    """GET /api/fraud/flags/ — distribution of mismatch flags for bar chart."""
+    try:
+        from django.db import connection as db_conn
+        with db_conn.cursor() as cur:
+            cur.execute("""
+                SELECT mismatch_types
+                FROM fraud_detection_results
+                WHERE mismatch_types IS NOT NULL
+            """)
+            rows = cur.fetchall()
+
+        flag_counts: dict = defaultdict(int)
+        for (mismatch,) in rows:
+            if isinstance(mismatch, list):
+                flags = mismatch
+            elif isinstance(mismatch, str):
+                try:
+                    flags = json.loads(mismatch)
+                except Exception:
+                    flags = []
+            else:
+                flags = []
+            for f in flags:
+                if f:
+                    flag_counts[f] += 1
+
+        sorted_flags = sorted(flag_counts.items(), key=lambda x: -x[1])[:12]
+        return JsonResponse({
+            "flags": [{"flag": f, "count": c} for f, c in sorted_flags]
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)

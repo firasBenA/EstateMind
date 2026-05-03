@@ -112,4 +112,10 @@ urlpatterns = [
     path('api/ai/base-prices/', get_base_prices, name='ai_base_prices'),
     path('api/ai/macro-forecast/', get_macro_forecast, name='ai_macro_forecast'),
     path('api/ai/status/', get_model_status, name='ai_status'),
+
+
+        # ── Fraud detection (DSO 2.2) ─────────────────────────────────────────────
+    path("api/fraud/summary/",  views.fraud_summary_api,  name="fraud_summary"),
+    path("api/fraud/listings/", views.fraud_listings_api, name="fraud_listings"),
+    path("api/fraud/flags/",    views.fraud_flags_api,    name="fraud_flags"),
 ]
