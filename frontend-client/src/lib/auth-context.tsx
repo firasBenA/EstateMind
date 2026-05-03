@@ -1,111 +1,250 @@
-/**
- * frontend-client/src/lib/auth-context.tsx
- *
- * AuthContext backed by the real Django REST API.
- * - Session is verified on mount via GET /api/session/
- * - Passwords are NEVER stored client-side
- * - User object comes directly from the server
- */
-import React, {
-  createContext, useContext, useState,
-  useEffect, useCallback,
-} from "react";
-import { authApi, type SessionUser, type RegisterPayload, ApiError } from "./api";
+// frontend-client/src/lib/auth-context.tsx
 
-export type UserRole = "particular" | "agency" | "analyst" | "admin";
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
-export interface AuthUser {
-  id:          number;
-  username:    string;
-  email:       string;
-  name:        string;
-  role:        UserRole;
-  is_superuser: boolean;
+interface User {
+  id?: number;
+  username: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  is_superuser?: boolean;
+  last_login?: string;
+}
+
+interface RegisterData {
+  name: string;
+  email: string;
+  password: string;
+  role: "particular" | "agency";
+  date_of_birth: string;
+  phone?: string;
+  agency_name?: string;
+  matricule_fiscale?: string;
+}
+
+interface RegisterResult {
+  ok: boolean;
+  errors?: string[];
+}
+
+interface LoginResult {
+  ok: boolean;
+  error?: string;
 }
 
 interface AuthContextType {
-  user:            AuthUser | null;
-  loading:         boolean;           // true while checking session on mount
   isAuthenticated: boolean;
-  login:    (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  register: (payload: RegisterPayload) => Promise<{ ok: boolean; errors?: string[] }>;
-  logout:   () => Promise<void>;
+  user: User | null;
+  loading: boolean;
+  login: (email: string, password: string) => Promise<LoginResult>;
+  register: (data: RegisterData) => Promise<RegisterResult>;
+  logout: () => Promise<void>;
+  getAccessToken: () => Promise<string | null>;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-function sessionToUser(s: SessionUser): AuthUser {
-  return {
-    id:          s.id,
-    username:    s.username,
-    email:       s.email,
-    name:        s.name,
-    role:        s.role,
-    is_superuser: s.is_superuser,
-  };
-}
+// Session check interval (5 minutes)
+const SESSION_CHECK_INTERVAL = 5 * 60 * 1000;
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser]       = useState<AuthUser | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Verify session on mount (handles page refresh)
-  useEffect(() => {
-    authApi.session()
-      .then(s => setUser(sessionToUser(s)))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
-  }, []);
-
-  const login = useCallback(async (
-    email: string,
-    password: string,
-  ): Promise<{ ok: boolean; error?: string }> => {
+  // Check session function
+  const checkSession = useCallback(async () => {
     try {
-      const s = await authApi.login(email, password);
-      setUser(sessionToUser(s));
-      return { ok: true };
-    } catch (err) {
-      const msg = err instanceof ApiError ? err.message : "Erreur réseau.";
-      return { ok: false, error: msg };
-    }
-  }, []);
-
-  const register = useCallback(async (
-    payload: RegisterPayload,
-  ): Promise<{ ok: boolean; errors?: string[] }> => {
-    try {
-      const s = await authApi.register(payload);
-      setUser(sessionToUser(s));
-      return { ok: true };
-    } catch (err) {
-      if (err instanceof ApiError) {
-        const body = err.body as { errors?: string[]; error?: string };
-        return {
-          ok: false,
-          errors: body.errors ?? [body.error ?? err.message],
-        };
+      const response = await fetch('/api/session/', {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data.is_authenticated) {
+          setIsAuthenticated(true);
+          setUser({
+            id: data.id,
+            username: data.username,
+            email: data.email,
+            name: data.name,
+            role: data.role,
+            is_superuser: data.is_superuser,
+            last_login: data.last_login,
+          });
+          return true;
+        }
       }
-      return { ok: false, errors: ["Erreur réseau. Veuillez réessayer."] };
+      
+      setIsAuthenticated(false);
+      setUser(null);
+      return false;
+      
+    } catch (error) {
+      console.error('Session check failed:', error);
+      setIsAuthenticated(false);
+      setUser(null);
+      return false;
     }
   }, []);
 
-  const logout = useCallback(async () => {
-    await authApi.logout().catch(() => {});
+  // Initial session check
+  useEffect(() => {
+    const initAuth = async () => {
+      setLoading(true);
+      await checkSession();
+      setLoading(false);
+    };
+    initAuth();
+  }, [checkSession]);
+
+  // Periodic session check (every 5 minutes)
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    const intervalId = setInterval(async () => {
+      const stillValid = await checkSession();
+      if (!stillValid) {
+        window.location.href = '/login';
+      }
+    }, SESSION_CHECK_INTERVAL);
+    
+    return () => clearInterval(intervalId);
+  }, [isAuthenticated, checkSession]);
+
+  // Activity tracker
+  useEffect(() => {
+    let activityTimeout: NodeJS.Timeout;
+    
+    const resetActivityTimer = () => {
+      if (activityTimeout) clearTimeout(activityTimeout);
+      activityTimeout = setTimeout(async () => {
+        await checkSession();
+      }, 30 * 60 * 1000);
+    };
+    
+    const events = ['mousedown', 'keydown', 'scroll', 'touchstart'];
+    events.forEach(event => {
+      window.addEventListener(event, resetActivityTimer);
+    });
+    
+    resetActivityTimer();
+    
+    return () => {
+      events.forEach(event => {
+        window.removeEventListener(event, resetActivityTimer);
+      });
+      if (activityTimeout) clearTimeout(activityTimeout);
+    };
+  }, [checkSession]);
+
+  const login = async (email: string, password: string): Promise<LoginResult> => {
+    try {
+      const response = await fetch('/api/login/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email, password }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        return { ok: false, error: data.error || 'Email ou mot de passe incorrect' };
+      }
+      
+      setIsAuthenticated(true);
+      setUser({
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        is_superuser: data.is_superuser,
+      });
+      
+      return { ok: true };
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      return { ok: false, error: 'Erreur réseau. Veuillez réessayer.' };
+    }
+  };
+
+  const register = async (userData: RegisterData): Promise<RegisterResult> => {
+    try {
+      const response = await fetch('/api/register/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(userData),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (data.errors) {
+          return { ok: false, errors: data.errors };
+        }
+        return { ok: false, errors: [data.error || "Registration failed"] };
+      }
+      
+      setIsAuthenticated(true);
+      setUser({
+        id: data.id,
+        username: data.username,
+        email: data.email,
+        name: data.name,
+        role: data.role,
+        is_superuser: data.is_superuser,
+      });
+      
+      return { ok: true };
+      
+    } catch (error) {
+      console.error('Registration error:', error);
+      return { ok: false, errors: ["Network error. Please try again."] };
+    }
+  };
+
+  const logout = async () => {
+    await fetch('/api/logout/', {
+      method: 'POST',
+      credentials: 'include',
+    });
+    setIsAuthenticated(false);
     setUser(null);
-  }, []);
+    window.location.href = '/';
+  };
+
+  const getAccessToken = async () => {
+    const isValid = await checkSession();
+    return isValid ? 'session-valid' : null;
+  };
 
   return (
-    <AuthContext.Provider
-      value={{ user, loading, isAuthenticated: !!user, login, register, logout }}
-    >
+    <AuthContext.Provider value={{ 
+      isAuthenticated, 
+      user, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      getAccessToken 
+    }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

@@ -1,5 +1,5 @@
 import os, django, json
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "estate_admin.settings")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 django.setup()
  
 from django.db import connection

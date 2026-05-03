@@ -1,0 +1,482 @@
+{
+  "run_id": "20260418_154630",
+  "generated_at": "2026-04-18T16:46:30.075294",
+  "model_version": "xlm_roberta_mdeberta_v1",
+  "pipeline": "DSO 2.1 — Sentiment Analysis",
+  "global_metrics": {
+    "total_listings": 100,
+    "fraud_high_count": 0,
+    "fraud_likely_count": 1,
+    "suspect_count": 59,
+    "normal_count": 40,
+    "fraud_rate_pct": 1.0,
+    "avg_fraud_score": 25.53,
+    "avg_sentiment_score": 0.1904,
+    "avg_zero_shot_score": 0.2141,
+    "avg_linguistic_score": 0.417,
+    "sentiment_distribution": {
+      "negative": 46,
+      "positive": 44,
+      "neutral": 10
+    },
+    "top_flags": [
+      [
+        "urgency_detected",
+        66
+      ],
+      [
+        "external_contact",
+        63
+      ],
+      [
+        "no_images_suspicious",
+        26
+      ],
+      [
+        "description_too_short",
+        2
+      ],
+      [
+        "information_incomplete",
+        2
+      ],
+      [
+        "strong_negative_sentiment",
+        1
+      ],
+      [
+        "vague_description",
+        1
+      ]
+    ],
+    "risk_distribution": {
+      "suspect": 59,
+      "normal": 40,
+      "fraud_likely": 1
+    }
+  },
+  "regional_metrics": [
+    {
+      "region": "ARIANA",
+      "total": 19,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 25.57
+    },
+    {
+      "region": "BEN AROUS",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 7.45
+    },
+    {
+      "region": "BIZERTE",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 16.48
+    },
+    {
+      "region": "MONASTIR",
+      "total": 4,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 18.26
+    },
+    {
+      "region": "NABEUL",
+      "total": 6,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 26.92
+    },
+    {
+      "region": "SFAX",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 15.06
+    },
+    {
+      "region": "SOUSSE",
+      "total": 9,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 37.66
+    },
+    {
+      "region": "TUNIS",
+      "total": 11,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 19.56
+    },
+    {
+      "region": "Tunis",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 11.73
+    },
+    {
+      "region": "ZAGHOUAN",
+      "total": 4,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 28.17
+    }
+  ],
+  "top_suspicious": [
+    {
+      "property_id": "affare_257950",
+      "source_name": "affare",
+      "fraud_score": 55.64,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6432,
+      "zero_shot_fraud_score": 0.4619,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": "DescriptionMahjoub met en vente┬ámaison 2 ├®tages ├á zarzouna BizerteDocuments Fournis :┬átitre individuelPrix de vente "
+    },
+    {
+      "property_id": "affare_257932",
+      "source_name": "affare",
+      "fraud_score": 49.4,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.806,
+      "zero_shot_fraud_score": 0.2761,
+      "linguistic_score": 0.3,
+      "fraud_flags": [
+        "urgency_detected",
+        "strong_negative_sentiment"
+      ],
+      "region": "ARIANA",
+      "price": null,
+      "description_preview": "Description­ƒÅó ├Ç Vendre ÔÇô D├®p├┤t 70 m┬▓ ├á EnnasrOpportunit├® ├á saisir ! D├®p├┤t de 70 m┬▓ au sous-sol dÔÇÖune r├®"
+    },
+    {
+      "property_id": "affare_259175",
+      "source_name": "affare",
+      "fraud_score": 44.59,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4072,
+      "zero_shot_fraud_score": 0.2729,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "SOUSSE",
+      "price": 450000.0,
+      "description_preview": "DescriptionÔ£àFrais d'enregistrement 1% (Directe Promoteur)Ô£àSitu├® dans une prestigieuse adresse ├á sahloul 4Ô£àAppart"
+    },
+    {
+      "property_id": "affare_254771",
+      "source_name": "affare",
+      "fraud_score": 44.48,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4722,
+      "zero_shot_fraud_score": 0.1956,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 340000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬áterrain┬"
+    },
+    {
+      "property_id": "affare_235663",
+      "source_name": "affare",
+      "fraud_score": 43.97,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3855,
+      "zero_shot_fraud_score": 0.2799,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 950000.0,
+      "description_preview": "DescriptionMahjoub met en vente Une villa en phase finale de construction est disponible ├á la vente, situ├®e sur la rou"
+    },
+    {
+      "property_id": "affare_257808",
+      "source_name": "affare",
+      "fraud_score": 43.34,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4389,
+      "zero_shot_fraud_score": 0.201,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 850000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬áterrain┬"
+    },
+    {
+      "property_id": "tunisieannonce_afe994372718",
+      "source_name": "tunisieannonce",
+      "fraud_score": 42.95,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6435,
+      "zero_shot_fraud_score": 0.3131,
+      "linguistic_score": 0.25,
+      "fraud_flags": [
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 2500.0,
+      "description_preview": "├á vendre 136 hectares zitoun ├á tastour titre bleu,  prix 2 millar et demi n├®gociable pour plus d'informations contact"
+    },
+    {
+      "property_id": "affare_257453",
+      "source_name": "affare",
+      "fraud_score": 42.32,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4127,
+      "zero_shot_fraud_score": 0.2019,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 930000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammamet┬ázone┬ábesbasiaElle┬ásÔÇÖ├®tend┬ás"
+    },
+    {
+      "property_id": "affare_257455",
+      "source_name": "affare",
+      "fraud_score": 42.29,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3903,
+      "zero_shot_fraud_score": 0.2265,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 300000.0,
+      "description_preview": "Descriptionvendre┬áchez┬áGreenImmobili├¿re,┬áune┬ádemeure┬áde┬áprestige┬ásitu├®e┬á├á┬áHammamet┬ázonemoncharElle┬ás'├®ten"
+    },
+    {
+      "property_id": "affare_257803",
+      "source_name": "affare",
+      "fraud_score": 41.76,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3892,
+      "zero_shot_fraud_score": 0.2127,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "NABEUL",
+      "price": 830000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammamet┬ác├┤t├®┬ásudElle┬ásÔÇÖ├®tend┬ásur┬"
+    },
+    {
+      "property_id": "affare_243701",
+      "source_name": "affare",
+      "fraud_score": 41.57,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4713,
+      "zero_shot_fraud_score": 0.2561,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": null,
+      "price": 450.0,
+      "description_preview": "DescriptionMahjoub met ├á la vente un terrain constructible┬ásitu├®e ├á Borj Ghammez pr├®s residence soltana bizerteVue "
+    },
+    {
+      "property_id": "affare_257804",
+      "source_name": "affare",
+      "fraud_score": 41.46,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.405,
+      "zero_shot_fraud_score": 0.1859,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 580000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áYasmine┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬"
+    },
+    {
+      "property_id": "affare_259189",
+      "source_name": "affare",
+      "fraud_score": 40.87,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3491,
+      "zero_shot_fraud_score": 0.2331,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "SOUSSE",
+      "price": 248000.0,
+      "description_preview": "Description├Ç Vendre - Appartement S+2 de 90m┬▓, situ├® au 1e ├®tage avec ascenseur dans une r├®sidence s├®curis├®e en 2"
+    },
+    {
+      "property_id": "mubawab_8309582",
+      "source_name": "mubawab",
+      "fraud_score": 40.83,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.2002,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_8320001",
+      "source_name": "mubawab",
+      "fraud_score": 40.83,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.2002,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "ARIANA",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "affare_259184",
+      "source_name": "affare",
+      "fraud_score": 40.55,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.344,
+      "zero_shot_fraud_score": 0.2296,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "NABEUL",
+      "price": 250000.0,
+      "description_preview": "DescriptionL'agence immobili├¿re Le Boulevard vous propose┬á:A #VENDRE┬á┬á┬á┬á┬á┬á┬á#R├®f├®rence : 1423aUne villa S+3 ├á"
+    },
+    {
+      "property_id": "affare_259177",
+      "source_name": "affare",
+      "fraud_score": 40.52,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4335,
+      "zero_shot_fraud_score": 0.2695,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "SOUSSE",
+      "price": 174000.0,
+      "description_preview": "DescriptionÔ£àAppartement (S+2) ├á Cit├® Rayhanne.Ô£àFrais d'enregistrement 1% (Directe Promoteur)Ô£àAppartement b├®n├®f"
+    },
+    {
+      "property_id": "affare_255449",
+      "source_name": "affare",
+      "fraud_score": 40.48,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4153,
+      "zero_shot_fraud_score": 0.2891,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": "DescriptionMahjoub┬ámet┬áen┬ávente┬áun┬áAppartement┬á┬áse┬ácompose┬áde┬áquatre┬á├®tages┬ásitu├®e├á┬áZarzouna,┬áGouvernor"
+    },
+    {
+      "property_id": "affare_257460",
+      "source_name": "affare",
+      "fraud_score": 40.48,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3661,
+      "zero_shot_fraud_score": 0.2025,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 750000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬áterrain┬"
+    },
+    {
+      "property_id": "affare_220450",
+      "source_name": "affare",
+      "fraud_score": 39.19,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.433,
+      "zero_shot_fraud_score": 0.232,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "ZAGHOUAN",
+      "price": 155000.0,
+      "description_preview": "DescriptionA vendre, 2 hectares┬á┬ánu, plat,┬á┬áun terrain ├á 36 km de Tunis a Ain El Asker,┬ásur route goudronn├®e, ├á "
+    }
+  ]
+}

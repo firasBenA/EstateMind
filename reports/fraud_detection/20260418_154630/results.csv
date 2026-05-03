@@ -1,0 +1,101 @@
+property_id,source_name,sentiment_score,sentiment_label,zero_shot_fraud_score,linguistic_score,fraud_score,risk_level,fraud_flags,tabular_model_version
+affare_136985,affare,0.0,positive,0.2161,0.3,15.06,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_164918,affare,0.0,positive,0.2189,0.55,21.41,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_226648,affare,0.0,positive,0.2386,0.3,15.85,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+mubawab_8309582,mubawab,0.6269,negative,0.2002,0.35,40.83,suspect,"['description_too_short', 'information_incomplete']",xlm_roberta_mdeberta_v1
+affare_1700,affare,0.0759,neutral,0.225,0.55,24.66,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_226855,affare,0.076,neutral,0.2448,0.55,25.36,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_237007,affare,0.0,positive,0.1604,0.55,19.36,normal,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_2400,affare,0.3535,negative,0.2608,0.55,37.02,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_228981,affare,0.0,positive,0.2432,0.3,16.01,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_239822,affare,0.0,positive,0.2544,0.55,22.65,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_2300,affare,0.2939,negative,0.2209,0.55,33.24,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_235663,affare,0.3855,negative,0.2799,0.75,43.97,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_236234,affare,0.0,positive,0.1862,0.2,11.52,normal,['no_images_suspicious'],xlm_roberta_mdeberta_v1
+affare_236238,affare,0.0,positive,0.1945,0.0,6.81,normal,[],xlm_roberta_mdeberta_v1
+affare_256718,affare,0.0,positive,0.1694,0.75,24.68,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_247788,affare,0.0898,neutral,0.2481,0.0,12.28,normal,[],xlm_roberta_mdeberta_v1
+affare_246872,affare,0.0,positive,0.1985,0.0,6.95,normal,[],xlm_roberta_mdeberta_v1
+affare_241047,affare,0.0,positive,0.2495,0.3,16.23,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_245971,affare,0.0,positive,0.1437,0.0,5.03,normal,[],xlm_roberta_mdeberta_v1
+affare_243701,affare,0.4713,negative,0.2561,0.55,41.57,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257950,affare,0.6432,negative,0.4619,0.55,55.64,fraud_likely,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_246565,affare,0.0,positive,0.2337,0.25,14.43,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_241651,affare,0.0,positive,0.2039,0.75,25.89,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_248366,affare,0.0,positive,0.2124,0.75,26.18,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+mubawab_8320001,mubawab,0.6269,negative,0.2002,0.35,40.83,suspect,"['description_too_short', 'information_incomplete']",xlm_roberta_mdeberta_v1
+affare_248970,affare,0.0,positive,0.2084,0.55,21.04,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_252013,affare,0.0,positive,0.1521,0.75,24.07,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_249844,affare,0.0,positive,0.2565,0.3,16.48,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_248967,affare,0.0,positive,0.176,0.55,19.91,normal,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_250291,affare,0.4655,negative,0.1228,0.55,36.67,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_250596,affare,0.0723,neutral,0.172,0.75,27.66,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_249009,affare,0.0,positive,0.213,0.0,7.45,normal,[],xlm_roberta_mdeberta_v1
+affare_254271,affare,0.0,positive,0.2597,0.0,9.09,normal,[],xlm_roberta_mdeberta_v1
+affare_255365,affare,0.3495,negative,0.198,0.55,34.66,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_254550,affare,0.0,positive,0.153,0.75,24.1,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_254771,affare,0.4722,negative,0.1956,0.75,44.48,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_256520,affare,0.3207,negative,0.2212,0.55,34.32,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_253269,affare,0.0,positive,0.2023,0.2,12.08,normal,['no_images_suspicious'],xlm_roberta_mdeberta_v1
+affare_253769,affare,0.3066,negative,0.1725,0.0,18.3,normal,[],xlm_roberta_mdeberta_v1
+affare_254124,affare,0.2767,negative,0.1395,0.25,22.2,suspect,['external_contact'],xlm_roberta_mdeberta_v1
+affare_254459,affare,0.3698,negative,0.1763,0.55,34.71,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_256388,affare,0.0,positive,0.1672,0.55,19.6,normal,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_255524,affare,0.0,positive,0.2145,0.55,21.26,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_255747,affare,0.0,positive,0.1397,0.75,23.64,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_255449,affare,0.4153,negative,0.2891,0.55,40.48,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257892,affare,0.0,positive,0.209,0.0,7.31,normal,[],xlm_roberta_mdeberta_v1
+tunisieannonce_afe994372718,tunisieannonce,0.6435,negative,0.3131,0.25,42.95,suspect,['external_contact'],xlm_roberta_mdeberta_v1
+affare_256408,affare,0.4547,negative,0.2562,0.3,34.66,suspect,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_257357,affare,0.0,positive,0.134,0.0,4.69,normal,[],xlm_roberta_mdeberta_v1
+affare_257444,affare,0.3323,negative,0.0627,0.55,29.24,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257450,affare,0.3998,negative,0.2062,0.55,36.96,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257282,affare,0.3844,negative,0.2052,0.55,36.31,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+tunisieannonce_a77853c45490,tunisieannonce,0.0697,neutral,0.2847,0.55,26.5,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257369,affare,0.0,positive,0.194,0.25,13.04,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_257399,affare,0.0,positive,0.1808,0.55,20.08,normal,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_256795,affare,0.2306,negative,0.2028,0.0,16.32,normal,[],xlm_roberta_mdeberta_v1
+affare_259199,affare,0.0761,neutral,0.3011,0.25,19.83,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_257791,affare,0.3538,negative,0.2127,0.3,29.1,suspect,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_257455,affare,0.3903,negative,0.2265,0.75,42.29,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+tunisieannonce_a594db9e20d5,tunisieannonce,0.0,positive,0.1969,0.25,13.14,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_257460,affare,0.3661,negative,0.2025,0.75,40.48,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_257803,affare,0.3892,negative,0.2127,0.75,41.76,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_257804,affare,0.405,negative,0.1859,0.75,41.46,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_257453,affare,0.4127,negative,0.2019,0.75,42.32,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_257543,affare,0.4313,negative,0.2425,0.5,38.24,suspect,"['urgency_detected', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_257799,affare,0.0,positive,0.2062,0.2,12.22,normal,['no_images_suspicious'],xlm_roberta_mdeberta_v1
+affare_257683,affare,0.0,positive,0.1977,0.25,13.17,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_257942,affare,0.0,positive,0.178,0.55,19.98,normal,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_259236,affare,0.0,positive,0.2703,0.25,15.71,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_257940,affare,0.0,positive,0.1712,0.55,19.74,normal,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257932,affare,0.806,negative,0.2761,0.3,49.4,suspect,"['urgency_detected', 'strong_negative_sentiment']",xlm_roberta_mdeberta_v1
+affare_257805,affare,0.3894,negative,0.2084,0.55,36.62,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_257808,affare,0.4389,negative,0.201,0.75,43.34,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_258727,affare,0.3698,negative,0.2577,0.0,23.81,suspect,[],xlm_roberta_mdeberta_v1
+affare_258672,affare,0.1048,neutral,0.1736,0.3,17.77,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_258751,affare,0.0784,neutral,0.1895,0.55,23.52,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_258568,affare,0.2426,negative,0.1966,0.55,30.34,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_258480,affare,0.0,positive,0.1629,0.3,13.2,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+affare_258612,affare,0.0,positive,0.2121,0.3,14.92,normal,['urgency_detected'],xlm_roberta_mdeberta_v1
+century21_a1a09a825273,century21,0.0,positive,0.1923,0.2,11.73,normal,['no_images_suspicious'],xlm_roberta_mdeberta_v1
+affare_258700,affare,0.3448,negative,0.2208,0.0,21.52,suspect,[],xlm_roberta_mdeberta_v1
+affare_259178,affare,0.2837,negative,0.2495,0.75,38.83,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_259200,affare,0.0805,neutral,0.2774,0.25,19.18,normal,['external_contact'],xlm_roberta_mdeberta_v1
+affare_259176,affare,0.258,negative,0.2809,0.25,26.4,suspect,['vague_description'],xlm_roberta_mdeberta_v1
+affare_259174,affare,0.2664,negative,0.2705,0.75,38.87,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+tunisieannonce_0ff7ae1b5e1e,tunisieannonce,0.0,positive,0.1226,0.0,4.29,normal,[],xlm_roberta_mdeberta_v1
+affare_259177,affare,0.4335,negative,0.2695,0.55,40.52,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_258985,affare,0.0753,neutral,0.1474,0.55,21.92,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_258966,affare,0.3105,negative,0.269,0.55,35.59,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_259181,affare,0.3596,negative,0.3001,0.0,24.89,suspect,[],xlm_roberta_mdeberta_v1
+affare_259175,affare,0.4072,negative,0.2729,0.75,44.59,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_259186,affare,0.3568,negative,0.2805,0.55,37.84,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_259185,affare,0.0,positive,0.1767,0.0,6.18,normal,[],xlm_roberta_mdeberta_v1
+affare_259183,affare,0.2758,negative,0.2634,0.55,34.0,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
+affare_259184,affare,0.344,negative,0.2296,0.75,40.55,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_259194,affare,0.0,positive,0.0497,0.0,1.74,normal,[],xlm_roberta_mdeberta_v1
+affare_259193,affare,0.0,positive,0.1912,0.0,6.69,normal,[],xlm_roberta_mdeberta_v1
+affare_259189,affare,0.3491,negative,0.2331,0.75,40.87,suspect,"['urgency_detected', 'external_contact', 'no_images_suspicious']",xlm_roberta_mdeberta_v1
+affare_259192,affare,0.0,positive,0.1946,0.2,11.81,normal,['no_images_suspicious'],xlm_roberta_mdeberta_v1
+affare_220450,affare,0.433,negative,0.232,0.55,39.19,suspect,"['urgency_detected', 'external_contact']",xlm_roberta_mdeberta_v1
