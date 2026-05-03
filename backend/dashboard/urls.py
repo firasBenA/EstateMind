@@ -18,4 +18,9 @@ urlpatterns = [
     path("api/metrics/",  views.metrics_api,       name="metrics_api"),
     path("api/eda/",      views.eda_metrics,       name="eda_metrics"),
     path("api/quality/",  views.data_quality_api,  name="data_quality_api"),
+
+    # ── Fraud detection (DSO 2.2) ─────────────────────────────────────────────
+    path("api/fraud/summary/",  views.fraud_summary_api,  name="fraud_summary"),
+    path("api/fraud/listings/", views.fraud_listings_api, name="fraud_listings"),
+    path("api/fraud/flags/",    views.fraud_flags_api,    name="fraud_flags"),
 ]

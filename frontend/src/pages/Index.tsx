@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { MetricsGrid } from "@/components/MetricsGrid";
 import { DashboardTabs } from "@/components/DashboardTabs";
 import { EDADashboard } from "@/components/EDADashboard";
+import { FraudDashboard } from "@/components/FraudDashboard";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -29,6 +30,7 @@ const Index = () => {
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           <MetricsGrid />
           <EDADashboard />
+          <FraudDashboard />
           <DashboardTabs />
         </main>
       </div>
