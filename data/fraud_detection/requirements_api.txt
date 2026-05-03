@@ -1,0 +1,23 @@
+# EstateMind — Dépendances du microservice FastAPI (DSO 2.2)
+# Installation : pip install -r requirements_api.txt
+
+# API
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pydantic==2.7.1
+
+# ML / CLIP
+torch>=2.0.0
+transformers>=4.30.0
+Pillow>=10.0.0
+numpy>=1.24.0
+
+# HTTP (téléchargement images)
+requests>=2.31.0
+
+# Base de données
+psycopg2-binary>=2.9.0
+
+# Utilitaires
+python-dotenv>=1.0.0
+loguru>=0.7.0
