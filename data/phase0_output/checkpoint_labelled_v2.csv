@@ -1,0 +1,51 @@
+label,score,raison,erreur,id
+neutre_negatif,0.62,"Frais de visite, plusieurs contacts, prix négociable",,2
+positif,0.95,"Description detaillee, emplacement precis, caracteristiques",,3
+positif,0.98,"Agence identifiee, details precis, superficie et prix implicite",,4
+positif,0.98,"Agence identifiee, contact multiple, details precis",,6
+positif,0.95,"Description detaillee, prix clair, localisation precisee",,1
+positif,0.95,"Agence, prix clair, statut juridique, superficie",,9
+positif,0.95,"Agence identifiee, description detaillee, equipements",,11
+positif,0.98,"Description complete, prix clair, statut juridique",,12
+neutre_positif,0.85,"Description detaillee, mais sans prix ni contact agence",,20
+positif,0.98,"Agence identifiee, reference, contact complet et professionnel",,14
+positif,0.95,"Description detaillee, prix et superficie clairs",,15
+positif,0.98,"Description detaillee, statut juridique mentionne",,16
+positif,0.95,"Agence identifiee, details sur la villa",,17
+positif,0.95,"Agence identifiee, description detaillee, superficie precisee",,18
+positif,0.95,"Agence identifiee, description detaillee",,52
+positif,0.98,"Description detaillee, superficie et equipements",,22
+negatif,0.85,"Ciblage etrangers, pas d'agence, pas de prix",,23
+positif,0.98,"Agence identifiee, details complets, reference disponible",,24
+negatif,0.85,"Ciblage etrangers, pas d'agence, pas de prix",,25
+neutre_negatif,0.68,"Plusieurs numeros, WhatsApp, mais prix et docs clairs",,26
+neutre_negatif,0.65,"Double contact WhatsApp, prix negociable",,89
+positif,0.85,"Prix clair, superficie, localisation, negociable",,28
+neutre_positif,0.85,"Description detaillee, mais sans prix ni contact agence",,29
+negatif,0.85,"Urgence suspecte, prix bas, visite sur RDV",,31
+positif,0.95,"Description detaillee, superficie precisee",,33
+positif,0.98,"Agence identifiee, details complets, prix implicite",,34
+positif,0.95,"Prix clair, statut juridique, superficie et contact",,35
+positif,0.95,"Agence identifiee, description detaillee",,36
+positif,0.98,"Agence identifiee, prix clair, statut juridique mentionne",,37
+positif,0.95,"Agence identifiee, description detaillee",,38
+positif,0.98,"Agence identifiee, description detaillee, superficie precisee",,40
+positif,0.95,"Description complete, prix clair, emplacement precise",,41
+positif,0.95,"Agence identifiee, details sur propriete",,42
+positif,0.95,"Agence identifiee, description detaillee, superficie",,43
+positif,0.95,"Agence identifiee, prix clair, details sur le bien",,44
+positif,0.98,"Agence identifiee, prix clair, details complets",,51
+positif,0.95,"Agence identifiee, description detaillee",,46
+positif,0.98,"Agence identifiee, details complets, contact multiple",,48
+positif,0.98,"Agence identifiee, description detaillee, caracteristiques completes",,49
+positif,0.95,"Agence identifiee, description detaillee, statut clair",,50
+positif,0.95,"Description detaillee, superficie, localisation",,54
+positif,0.95,"Agence identifiee, description detaillee",,55
+positif,0.98,"Agence identifiee, details sur appartement",,56
+positif,0.98,"Description complete, statut juridique et prix clair",,57
+positif,0.98,"Agence identifiee, prix clair, details complet",,90
+neutre_positif,0.8,"Prix et statut juridique, mais pas d'agence",,3921
+positif,0.95,"Exclusivite, details, prix clair, contact unique",,59
+negatif,0.85,"Ciblage etrangers, absence de prix et d'agence",,61
+positif,0.95,"Description detaillee, localisation precisee",,62
+positif,0.95,"Agence identifiee, details sur propriete",,64

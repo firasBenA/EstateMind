@@ -1,0 +1,51 @@
+label,score,raison,erreur,id
+neutre_negatif,0.6,"Frais de visite, numeros multiples, pas d'agence",,2
+neutre_positif,0.8,"Description detaillee, mais sans prix ni agence",,3
+positif,0.95,"Agence identifiee, statut clair, details sur le bien",,4
+positif,0.98,"Agence identifiee, contact multiple, details sur bien",,6
+positif,0.95,"Prix, superficie, details, agence implicite",,1
+positif,0.95,"Prix, statut, superficie, agence et contact clairs",,9
+neutre_positif,0.85,"Agence identifiee, details sur bien, mais pas de prix",,11
+positif,0.98,"Prix clair, statut juridique, details terrain",,12
+neutre_positif,0.8,Description detaillee mais sans prix ni agence,,20
+positif,0.95,"Agence identifiee, email, telephone, reference",,14
+neutre_positif,0.8,"Description detaillee, mais pas d'agence ni de statut juridique",,15
+positif,0.95,"Description detaillee, statut juridique clair",,16
+neutre_positif,0.8,"Agence identifiee, details sur le bien, mais pas de prix",,17
+positif,0.95,"Agence identifiee, description detaillee, statut clair",,18
+neutre_positif,0.85,"Agence identifiee, mais sans prix ni statut juridique",,52
+neutre_positif,0.8,"Description detaillee, mais sans prix ni agence",,22
+neutre_negatif,0.6,"Ciblage etrangers, pas de prix ni d'agence",,23
+positif,0.98,"Agence identifiee, email, ref unique, details",,24
+neutre_negatif,0.6,"Ciblage etranger, pas de prix ni d'agence",,25
+neutre_negatif,0.65,"2 numeros WhatsApp, prix negociable",,26
+neutre_positif,0.85,"Prix et statut clairs, mais 2 numeros similaires",,89
+neutre_positif,0.8,Prix et details mais pas d'agence ni statut juridique,,28
+neutre_negatif,0.6,"Prix absent, pas d'agence, description trop idyllique",,29
+neutre_negatif,0.68,"Prix present, mais template copier-coller et hashtags",,31
+neutre_positif,0.8,"Description detaillee, mais sans prix ni agence",,33
+positif,0.95,"Agence identifiee, prix implicite, details sur biens",,34
+neutre_positif,0.85,"Prix et statut clairs, mais pas d'agence identifiee",,35
+neutre_positif,0.85,"Agence identifiee, composition detaillee, mais sans prix",,36
+positif,0.98,"Agence, prix, statut juridique, details",,37
+neutre_positif,0.85,Agence et details mais sans prix ni statut juridique,,38
+positif,0.98,"Agence identifiee, details complet, statut clair",,40
+neutre_positif,0.85,"Description detaillee, prix clair, mais pas d'agence",,41
+positif,0.95,"Agence identifiee, details sur le bien",,42
+positif,0.95,"Agence identifiee, prix absent mais details etat",,43
+neutre_positif,0.85,"Agence, prix, details mais seul numero WhatsApp",,44
+positif,0.95,"Agence identifiee, prix clair, details sur le bien",,51
+neutre_positif,0.85,"Agence identifiee, details sur bien, mais sans prix",,46
+positif,0.98,"Agence identifiee, details complets, contact multiple",,48
+positif,0.95,"Agence identifiee, prix absent mais details sur bien",,49
+neutre_positif,0.85,"Agence identifiee, mais sans prix ni statut juridique",,50
+neutre_negatif,0.6,"Prix absent, template copier-coller, pas d'agence",,54
+neutre_positif,0.85,"Agence mentionnee, mais pas de prix ni statut",,55
+neutre_positif,0.85,"Agence identifiee, mais pas de prix ni statut juridique",,56
+positif,0.98,"Description detaillee, statut juridique, prix clair",,57
+positif,0.98,"Agence, prix, statut et details clairs",,90
+neutre_positif,0.8,Prix et statut clairs mais sans agence ni email,,3921
+neutre_positif,0.85,"Prix et composition, mais pas d'agence ni statut juridique",,59
+neutre_negatif,0.6,"Ciblage etranger, pas de prix ni d'agence",,61
+neutre_positif,0.8,"Description detaillee, mais sans prix ni contact agence",,62
+positif,0.95,"Agence identifiee, details sur le bien",,64
