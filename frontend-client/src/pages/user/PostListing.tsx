@@ -102,51 +102,51 @@ export default function PostListing() {
 
   // Load governorates on mount
   useEffect(() => {
-  const loadGovernorates = async () => {
-    try {
-      const data = await locationsApi.getGovernorates();
-      // The backend now returns latitude/longitude
-      setGovernorates(data);
-    } catch (error) {
-      console.error("Failed to load governorates:", error);
-      toast.error("Could not load governorates list");
-    }
-  };
-  loadGovernorates();
-}, []);
+    const loadGovernorates = async () => {
+      try {
+        const data = await locationsApi.getGovernorates();
+        // The backend now returns latitude/longitude
+        setGovernorates(data);
+      } catch (error) {
+        console.error("Failed to load governorates:", error);
+        toast.error("Could not load governorates list");
+      }
+    };
+    loadGovernorates();
+  }, []);
 
   // Load delegations when governorate changes
   useEffect(() => {
-  if (selectedGovernorateId) {
-    const loadDelegations = async () => {
-      try {
-        console.log(`🔍 Loading delegations for governorate ID: ${selectedGovernorateId}`);
-        const data = await locationsApi.getDelegations(selectedGovernorateId);
-        console.log(`✅ Received ${data.length} delegations:`, data);
-        
-        // Important: Set the delegations state
-        setDelegations(data);
-        
-        // Also check what's in the state after setting
-        console.log(`📊 Delegations state updated with ${data.length} items`);
-        
-        if (data.length === 0) {
-          console.warn(`⚠️ No delegations found for governorate ${selectedGovernorateId}`);
-          setShowCustomDelegation(true);
-        } else {
-          // Log the first delegation to see structure
-          console.log("First delegation sample:", data[0]);
+    if (selectedGovernorateId) {
+      const loadDelegations = async () => {
+        try {
+          console.log(`🔍 Loading delegations for governorate ID: ${selectedGovernorateId}`);
+          const data = await locationsApi.getDelegations(selectedGovernorateId);
+          console.log(`✅ Received ${data.length} delegations:`, data);
+
+          // Important: Set the delegations state
+          setDelegations(data);
+
+          // Also check what's in the state after setting
+          console.log(`📊 Delegations state updated with ${data.length} items`);
+
+          if (data.length === 0) {
+            console.warn(`⚠️ No delegations found for governorate ${selectedGovernorateId}`);
+            setShowCustomDelegation(true);
+          } else {
+            // Log the first delegation to see structure
+            console.log("First delegation sample:", data[0]);
+          }
+        } catch (error) {
+          console.error("Failed to load delegations:", error);
+          toast.error("Could not load delegations for this governorate");
         }
-      } catch (error) {
-        console.error("Failed to load delegations:", error);
-        toast.error("Could not load delegations for this governorate");
-      }
-    };
-    loadDelegations();
-  } else {
-    setDelegations([]);
-  }
-}, [selectedGovernorateId]);
+      };
+      loadDelegations();
+    } else {
+      setDelegations([]);
+    }
+  }, [selectedGovernorateId]);
 
   // Validate title on change (debounced)
   useEffect(() => {
@@ -247,37 +247,37 @@ export default function PostListing() {
 
   // Handle governorate selection
   const handleGovernorateChange = (value: string) => {
-  const govId = parseInt(value);
-  const gov = governorates.find((g) => g.id === govId);
-  
-  setSelectedGovernorateId(govId);
-  setSelectedGovernorateName(gov?.name || "");
-  setForm((f) => ({ ...f, region: gov?.name || "" }));
-  setSelectedDelegationId(null);
-  setShowCustomDelegation(false);
-  setCustomDelegation("");
-  setAutoCorrectInfo(null);
-  
-  // 🗺️ Fly map to governorate coordinates if available
-  if (gov?.latitude && gov?.longitude && mapRef.current) {
-    mapRef.current.flyTo(gov.latitude, gov.longitude, 11);
-    // Also set the location pin at governorate center
-    setForm((f) => ({ 
-      ...f, 
-      latitude: gov.latitude, 
-      longitude: gov.longitude 
-    }));
-  } else if (delegations.length > 0 && delegations[0]?.latitude && delegations[0]?.longitude && mapRef.current) {
-    // Fallback: use first delegation's coordinates
-    const firstDel = delegations[0];
-    mapRef.current.flyTo(firstDel.latitude, firstDel.longitude, 12);
-    setForm((f) => ({ 
-      ...f, 
-      latitude: firstDel.latitude, 
-      longitude: firstDel.longitude 
-    }));
-  }
-};
+    const govId = parseInt(value);
+    const gov = governorates.find((g) => g.id === govId);
+
+    setSelectedGovernorateId(govId);
+    setSelectedGovernorateName(gov?.name || "");
+    setForm((f) => ({ ...f, region: gov?.name || "" }));
+    setSelectedDelegationId(null);
+    setShowCustomDelegation(false);
+    setCustomDelegation("");
+    setAutoCorrectInfo(null);
+
+    // 🗺️ Fly map to governorate coordinates if available
+    if (gov?.latitude && gov?.longitude && mapRef.current) {
+      mapRef.current.flyTo(gov.latitude, gov.longitude, 11);
+      // Also set the location pin at governorate center
+      setForm((f) => ({
+        ...f,
+        latitude: gov.latitude,
+        longitude: gov.longitude
+      }));
+    } else if (delegations.length > 0 && delegations[0]?.latitude && delegations[0]?.longitude && mapRef.current) {
+      // Fallback: use first delegation's coordinates
+      const firstDel = delegations[0];
+      mapRef.current.flyTo(firstDel.latitude, firstDel.longitude, 12);
+      setForm((f) => ({
+        ...f,
+        latitude: firstDel.latitude,
+        longitude: firstDel.longitude
+      }));
+    }
+  };
 
   // Handle delegation selection from dropdown
   const handleDelegationChange = (value: string) => {
@@ -345,6 +345,7 @@ export default function PostListing() {
   };
 
   const generateAIDescription = async () => {
+    // 🔹 Validate inputs
     if (tempFiles.length === 0) {
       toast.error("Please upload at least one image to generate a description.");
       return;
@@ -355,72 +356,119 @@ export default function PostListing() {
     }
 
     setGenerating(true);
+
     try {
+      console.log('🚀 Starting description generation...', {
+        images: tempFiles.length,
+        metadata: form,
+      });
+
       const result = await listingsApi.generateDescription({
+        // 🔹 FIX: Use 'metadata' with colon
         metadata: {
           property_type: form.type,
           transaction: form.transaction,
           city: form.city,
-          surface_m2: form.surface,
-          rooms: form.rooms,
-          price: form.price,
+          surface_m2: form.surface || undefined,
+          rooms: form.rooms === "Studio" ? "1" : form.rooms,
+          price: form.price || undefined,
         },
         files: tempFiles,
       });
-      const fullDesc = result.description || result.highlights?.join(". ") || "";
-      setForm((prev) => ({ ...prev, description: fullDesc }));
-      toast.success("AI Description generated!");
+
+      // 🔹 Debug: Log what we received
+      console.log('✅ API Response:', {
+        description_preview: result.description?.slice(0, 100) + '...',
+        highlights: result.highlights,
+        used_fallback: result.used_fallback,
+      });
+
+      // 🔹 Use the FULL description (not just highlights!)
+      const fullDesc = result.description?.trim() || '';
+
+      if (!fullDesc) {
+        // Fallback to highlights if description is empty
+        const fallbackDesc = result.highlights?.join('\n') || 'Description générée par IA';
+        console.warn('⚠️ Description empty, using highlights fallback');
+        setForm((prev) => ({ ...prev, description: fallbackDesc }));
+      } else {
+        // ✅ Set the full description
+        setForm((prev) => ({ ...prev, description: fullDesc }));
+        console.log('📝 Description set in form:', fullDesc.slice(0, 50) + '...');
+      }
+
+      // 🔹 Show success with context
+      if (result.used_fallback) {
+        toast.success("✅ Description generated (fallback method)", {
+          description: "Qwen2-VL unavailable, used LLM instead",
+          duration: 4000,
+        });
+      } else {
+        toast.success("✅ AI Description generated!", {
+          description: `${result.highlights?.length || 0} highlights extracted`,
+          duration: 3000,
+        });
+      }
+
     } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Failed to generate description.");
+      console.error('❌ Description generation failed:', error);
+
+      // 🔹 Show detailed error
+      const errorMessage = error.message || 'Failed to generate description';
+      toast.error(`❌ ${errorMessage}`, {
+        description: "Check console for details",
+        duration: 5000,
+      });
+
     } finally {
       setGenerating(false);
+      console.log('🏁 Description generation complete');
     }
   };
 
-const publishListing = async () => {
-  setPublishing(true);
-  try {
-    const payload: CreateListingPayload = {
-      title: form.title,
-      type: form.type as "apartment" | "house" | "land" | "commercial",
-      transaction: form.transaction as "sale" | "rent",
-      city: showCustomDelegation ? customDelegation : (delegations.find(d => d.id === selectedDelegationId)?.name || form.city),
-      rooms: form.rooms === "Studio" ? 1 : parseInt(form.rooms),
-      surface: parseFloat(form.surface) || 0,
-      price: parseFloat(form.price) || 0,
-      description: form.description,
-      images: form.images,
-      features: [],
-      poi: [],
-      latitude: form.latitude,
-      longitude: form.longitude,
-      governorate: selectedGovernorateName,
-      region: selectedGovernorateName,  // You can map this based on governorate
-      zone: "",  // You can derive this (North/South/Center) based on governorate
-      municipality: selectedGovernorateName,
-    };
+  const publishListing = async () => {
+    setPublishing(true);
+    try {
+      const payload: CreateListingPayload = {
+        title: form.title,
+        type: form.type as "apartment" | "house" | "land" | "commercial",
+        transaction: form.transaction as "sale" | "rent",
+        city: showCustomDelegation ? customDelegation : (delegations.find(d => d.id === selectedDelegationId)?.name || form.city),
+        rooms: form.rooms === "Studio" ? 1 : parseInt(form.rooms),
+        surface: parseFloat(form.surface) || 0,
+        price: parseFloat(form.price) || 0,
+        description: form.description,
+        images: form.images,
+        features: [],
+        poi: [],
+        latitude: form.latitude,
+        longitude: form.longitude,
+        governorate: selectedGovernorateName,
+        region: selectedGovernorateName,  // You can map this based on governorate
+        zone: "",  // You can derive this (North/South/Center) based on governorate
+        municipality: selectedGovernorateName,
+      };
 
-    const result = await listingsApi.create(payload);
-    
-    if (result.auto_corrected && result.auto_correct_info?.message) {
-      toast.info(result.auto_correct_info.message);
+      const result = await listingsApi.create(payload);
+
+      if (result.auto_corrected && result.auto_correct_info?.message) {
+        toast.info(result.auto_correct_info.message);
+      }
+
+      toast.success("✅ Listing published successfully!");
+      // Optionally redirect to the listing page
+      // navigate(`/listings/${result.listing_id}`);
+    } catch (error) {
+      console.error("Publish error:", error);
+      if (error instanceof ApiError) {
+        toast.error(error.message);
+      } else {
+        toast.error("Failed to publish listing. Please try again.");
+      }
+    } finally {
+      setPublishing(false);
     }
-    
-    toast.success("✅ Listing published successfully!");
-    // Optionally redirect to the listing page
-    // navigate(`/listings/${result.listing_id}`);
-  } catch (error) {
-    console.error("Publish error:", error);
-    if (error instanceof ApiError) {
-      toast.error(error.message);
-    } else {
-      toast.error("Failed to publish listing. Please try again.");
-    }
-  } finally {
-    setPublishing(false);
-  }
-};
+  };
 
   const [prediction, setPrediction] = useState<{
     predicted_price: number;
@@ -470,14 +518,14 @@ const publishListing = async () => {
     priceNum === 0
       ? "none"
       : isBeyondCeiling
-      ? "blocked"
-      : prediction && priceNum > prediction.predicted_price * 1.1
-      ? "warning"
-      : prediction && priceNum >= prediction.price_low
-      ? "good"
-      : priceNum > 0
-      ? "low"
-      : "none";
+        ? "blocked"
+        : prediction && priceNum > prediction.predicted_price * 1.1
+          ? "warning"
+          : prediction && priceNum >= prediction.price_low
+            ? "good"
+            : priceNum > 0
+              ? "low"
+              : "none";
 
   const handleLocationSelect = (lat: number, lng: number) => {
     setForm((f) => ({ ...f, latitude: lat, longitude: lng }));
@@ -503,8 +551,8 @@ const publishListing = async () => {
                   i === step
                     ? "text-primary font-semibold"
                     : i < step
-                    ? "text-green-600"
-                    : "text-muted-foreground"
+                      ? "text-green-600"
+                      : "text-muted-foreground"
                 }
               >
                 {i < step ? "✓ " : ""}
@@ -540,8 +588,8 @@ const publishListing = async () => {
                       titleValid === false
                         ? "border-red-500"
                         : titleValid === true
-                        ? "border-green-500"
-                        : ""
+                          ? "border-green-500"
+                          : ""
                     }
                   />
                   {titleValidating && (
@@ -816,9 +864,8 @@ const publishListing = async () => {
                   className="hidden"
                 />
                 <div
-                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer hover:border-primary/50 hover:bg-accent/50 ${
-                    uploading ? "opacity-50 pointer-events-none" : ""
-                  }`}
+                  className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer hover:border-primary/50 hover:bg-accent/50 ${uploading ? "opacity-50 pointer-events-none" : ""
+                    }`}
                   onClick={() => fileInputRef.current?.click()}
                 >
                   {uploading ? (
@@ -946,14 +993,13 @@ const publishListing = async () => {
                   <div className="relative h-2 rounded-full bg-gradient-to-r from-green-300 via-blue-400 to-red-400">
                     {priceNum > 0 && hardCeiling && (
                       <div
-                        className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-white shadow transition-all ${
-                          isBeyondCeiling ? "bg-red-600" : "bg-primary"
-                        }`}
+                        className={`absolute top-1/2 -translate-y-1/2 h-4 w-4 rounded-full border-2 border-white shadow transition-all ${isBeyondCeiling ? "bg-red-600" : "bg-primary"
+                          }`}
                         style={{
                           left: `${Math.min(
                             ((priceNum - prediction.price_low) /
                               (hardCeiling - prediction.price_low)) *
-                              100,
+                            100,
                             100
                           )}%`,
                         }}
@@ -978,11 +1024,10 @@ const publishListing = async () => {
                     setForm((f) => ({ ...f, price: e.target.value }))
                   }
                   placeholder="Enter your price"
-                  className={`text-lg ${
-                    isBeyondCeiling
-                      ? "border-red-500 focus-visible:ring-red-500"
-                      : ""
-                  }`}
+                  className={`text-lg ${isBeyondCeiling
+                    ? "border-red-500 focus-visible:ring-red-500"
+                    : ""
+                    }`}
                 />
                 {hardCeiling && (
                   <p className="text-xs text-muted-foreground">
