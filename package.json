@@ -5,5 +5,14 @@
     "react-leaflet": "^5.0.0",
     "supabase": "^2.92.1",
     "supabase-js": "^0.0.1-security"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.1",
+    "vite": "^8.0.10"
+  },
+  "scripts": {
+    "dev": "vite --port 8081",
+    "build": "vite build",
+    "preview": "vite preview"
   }
 }

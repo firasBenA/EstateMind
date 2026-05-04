@@ -16,7 +16,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import ListingsManager from "./pages/dashboard/ListingsManager";
-import FraudCenter from "./pages/dashboard/FraudCenter";
+import { FraudDashboard as FraudCenter } from "./pages/dashboard/FraudCenter";
 import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import PipelinePage from "./pages/dashboard/PipelinePage";
 import SettingsPage from "./pages/dashboard/SettingsPage";

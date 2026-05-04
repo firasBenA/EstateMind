@@ -6,7 +6,7 @@ from . import similarity_views
 from . import contract
 from .recommendation_views import get_similar_listings, get_personalized_recommendations
 from .recommendation.behavior_tracker import BehaviorTracker
-from .views_ai import generate_description, predict_price, get_model_status, compare_scenarios, get_base_prices, get_macro_forecast,predict_property
+from .views_ai import generate_description, predict_price, get_model_status, compare_scenarios, get_base_prices, get_macro_forecast, predict_property, forecast_listing
 from .recommendation_views import (
     get_similar_listings, 
     get_personalized_recommendations,
@@ -107,6 +107,7 @@ urlpatterns = [
     path("api/pusher/auth/", views.pusher_auth, name="pusher_auth"),
 
     # ── Forecasting endpoints ───────────────────────────────────────────────
+    path('api/listings/<str:pk>/forecast/', forecast_listing, name='listing_forecast'),
     path('api/ai/predict/', predict_property, name='ai_predict'),
     path('api/ai/compare/', compare_scenarios, name='ai_compare'),
     path('api/ai/base-prices/', get_base_prices, name='ai_base_prices'),

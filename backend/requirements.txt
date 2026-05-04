@@ -46,11 +46,6 @@ mypy==1.7.1
 # Production
 sentry-sdk==1.39.1
 
-# Core Django
-Django==6.0.4
-django-cors-headers==4.9.0
-django-extensions==4.1
-djangorestframework==3.17.1
 
 # Database
 psycopg2-binary==2.9.12
@@ -70,7 +65,7 @@ scikit-learn==1.8.0
 scipy==1.17.1
 xgboost==3.2.0
 lightgbm==4.6.0
-category-encoders==2.7.1
+category-encoders>=2.7.0,<3.0
 joblib==1.5.3
 
 # Image & Document Processing

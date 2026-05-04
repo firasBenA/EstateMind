@@ -41,7 +41,11 @@ except (ImportError, OSError) as e:
 
 from data.preprocessing.steps.scorer import compute_score
 from .models import Listing
-from models.prediction_models.predictor import get_predictor
+try:
+    from models.prediction_models.predictor import get_predictor
+except ModuleNotFoundError:
+    def get_predictor(*args, **kwargs):
+        return None
 
 # Import UserProfile at the bottom to avoid circular imports
 from .models import UserProfile, AgentMetrics
@@ -51,7 +55,6 @@ try:
 except ImportError:
     compute_score = None
 
-from models.prediction_models.predictor import get_predictor
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────

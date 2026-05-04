@@ -23,6 +23,7 @@ import {
   AlertTriangle, Copy, Cpu, SlidersHorizontal,
   Heart, Share2, Bookmark, Loader2, MessageCircle,
 } from "lucide-react";
+import { ForecastingButton } from "@/components/ForecastingButton";
 import { useState, useEffect, useCallback } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -435,6 +436,10 @@ export default function ListingDetailPage() {
                 : `Contacter ${isUserSubmission(listing.source_name) ? "le propriétaire" : "l'agence"}`}
             </Button>
 
+            {listing.transaction_type !== "rent" && (
+              <ForecastingButton listing={listing} variant="detail" />
+            )}
+
             {features.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2 text-sm">Caractéristiques</h3>
@@ -545,6 +550,7 @@ export default function ListingDetailPage() {
             onSend={handleSendMessage}
           />
         )}
+
       </div>
     </PublicLayout>
   );
