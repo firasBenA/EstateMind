@@ -128,6 +128,7 @@ class ModelRegistry:
                 device_map="auto" if self.device == "cuda" else "cpu",
                 trust_remote_code=True,
                 low_cpu_mem_usage=True, # Helps with memory
+                offload_folder="offload"
             )
             self._vl_model.eval()
             logger.info("✅ Qwen2-VL loaded successfully")
