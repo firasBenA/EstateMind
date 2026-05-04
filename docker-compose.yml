@@ -28,18 +28,20 @@ services:
       - OLLAMA_BASE_URL=http://ollama:11434
       - OLLAMA_REPORT_MODEL=gemma3:4b
       # Override OTEL endpoint to use Docker service name
-      - OTEL_EXPORTER_OTLP_ENDPOINT=host.docker.internal:4317
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://signoz-otel-collector:4318
+      
       - SIGNOZ_ENABLED=True
       - OTEL_SERVICE_NAME=estatemind-django
       - DEBUG=True   
     volumes:
       # Mount data folder (Prophet PKLs + RAG models) without baking into image
       - ./data:/data:ro
-    depends_on:
-      - ollama
+    
     restart: unless-stopped
     networks:
       - estatemind_network
+      - signoz-net 
+    command: gunicorn config.wsgi:application --bind 0.0.0.0:8000 --timeout 300 --workers 3
 
   # ── Ollama ──────────────────────────────────────────────────────────────────
   ollama:
@@ -59,3 +61,6 @@ volumes:
 networks:
   estatemind_network:
     driver: bridge
+  signoz-net:
+    external: true
+    name: signoz-net

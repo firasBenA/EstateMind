@@ -765,7 +765,7 @@ def _stream_ollama(prompt: str, temperature: float = 0.3) -> Generator[str, None
         "options": {
             "temperature": temperature,
             "num_predict": MAX_TOKENS,
-            "num_ctx":     8192,
+            "num_ctx":     2048,
         },
     }
     with httpx.stream(
