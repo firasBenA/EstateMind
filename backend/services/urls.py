@@ -16,12 +16,16 @@ from .recommendation_views import (
     mark_notification_read,
     save_search_preferences
 )
+
+from .macro_view import macro_impact_api, macro_summary_api, prophet_forecast_api, model_metrics_api
 from .view_validation import (
     validate_title_api,
     get_governorates,
     get_delegations,
     auto_correct_delegation
 )
+
+
 
 urlpatterns = [
     # ── Public: listings ────────────────────────────────────────────────────
@@ -112,11 +116,25 @@ urlpatterns = [
     path('api/ai/compare/', compare_scenarios, name='ai_compare'),
     path('api/ai/base-prices/', get_base_prices, name='ai_base_prices'),
     path('api/ai/macro-forecast/', get_macro_forecast, name='ai_macro_forecast'),
+    
     path('api/ai/status/', get_model_status, name='ai_status'),
+
+
+      # ── Macroeconomic endpoints ────────────────────────────────────────────
+    path('api/macro/impact/', macro_impact_api, name='macro_impact'),
+    path('api/macro/summary/', macro_summary_api, name='macro_summary'),
+    path('api/macro/prophet-forecast/', prophet_forecast_api, name='macro_prophet_forecast'),
+    path('api/macro/model-metrics/', model_metrics_api, name='macro_model_metrics'),
 
 
         # ── Fraud detection (DSO 2.2) ─────────────────────────────────────────────
     path("api/fraud/summary/",  views.fraud_summary_api,  name="fraud_summary"),
     path("api/fraud/listings/", views.fraud_listings_api, name="fraud_listings"),
     path("api/fraud/flags/",    views.fraud_flags_api,    name="fraud_flags"),
+    path('api/listing/fraud-score/<str:listing_id>/', views.get_listing_fraud_score, name='listing_fraud_score'),
+    path('api/listing/fraud-description/<str:listing_id>/', views.get_listing_fraud_desc, name='listing_fraud_description'),
+    path("api/fraud/text-summary/", views.text_fraud_summary, name="text_fraud_summary"),
+    path("api/fraud/text-listings/", views.text_fraud_listings, name="text_fraud_listings"),  
+    path("api/fraud/text-rules/", views.text_fraud_rules, name="text_fraud_rules"),
+ 
 ]

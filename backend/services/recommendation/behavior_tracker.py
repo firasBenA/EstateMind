@@ -40,7 +40,7 @@ class BehaviorTracker:
     def track_search_click(user, request, listing_id, search_query, filters):
         """Track when a user clicks a listing from search results"""
         try:
-            from services.models import listings as Listing
+            from services.models import Listing as Listing
             
             listing = Listing.objects.get(id=listing_id)
             
@@ -75,7 +75,7 @@ class BehaviorTracker:
     def track_save(user, request, listing_id):
         """Track when a user saves a listing to favorites"""
         try:
-            from services.models import listings as Listing
+            from services.models import Listing as Listing
             
             listing = Listing.objects.get(id=listing_id)
             
@@ -98,7 +98,7 @@ class BehaviorTracker:
     def track_contact(user, request, listing_id):
         """Track when a user contacts an agency about a listing"""
         try:
-            from services.models import listings as Listing
+            from services.models import Listing as Listing
             
             listing = Listing.objects.get(id=listing_id)
             

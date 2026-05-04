@@ -16,7 +16,6 @@ const navItems = [
   { label: "Dashboard", path: "/user", icon: LayoutDashboard },
   { label: "My Listings", path: "/user/listings", icon: List },
   { label: "Post Listing", path: "/user/post-listing", icon: PlusCircle },
-  { label: "Profitability", path: "/user/profitability", icon: TrendingUp },
   { label: "Reports", path: "/user/reports", icon: FileText },
   { label: "Contracts", path: "/user/contracts", icon: FileSignature },
   { label: "Recommendations", path: "/user/recommendations", icon: Sparkles },

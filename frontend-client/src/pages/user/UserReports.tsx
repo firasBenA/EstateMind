@@ -9,9 +9,9 @@
  * - Copy to clipboard / basic PDF export
  * - SELECT MONTH/YEAR for reports
  */
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { UserDashboardLayout } from "@/components/UserDashboardLayout";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button }   from "@/components/ui/button";
 import { Input }    from "@/components/ui/input";
 import { Label }    from "@/components/ui/label";
@@ -85,8 +85,10 @@ const REPORT_TYPES = [
 
 const PROP_TYPES = ["Apartment", "Villa", "Land", "Commercial"];
 const PROP_LABELS: Record<string, string> = {
-  Apartment: "Appartement", Villa: "Villa / Maison",
-  Land: "Terrain", Commercial: "Commercial",
+  Apartment: "Apartment",
+  Villa: "Villa",
+  Land: "Land",
+  Commercial: "Commercial",
 };
 
 // ── Helper to build period payload ────────────────────────────────────────────
@@ -96,7 +98,6 @@ function getPeriodPayload(period: PeriodConfig): { start_date: string; end_date:
   const year = period.year || 2026;
   
   if (period.type === "latest") {
-    // Dernier mois avec données (Mars 2026)
     return { start_date: "2026-03-01", end_date: "2026-03-31", report_type: "monthly" };
   }
   
@@ -141,21 +142,21 @@ function getPeriodPayload(period: PeriodConfig): { start_date: string; end_date:
 }
 
 function formatPeriodLabel(period: PeriodConfig): string {
-  if (period.type === "latest") return "Dernier mois (Mars 2026)";
+  if (period.type === "latest") return "Latest month (March 2026)";
   if (period.type === "monthly" && period.month) {
-    const months = ["Janvier", "Février", "Mars", "Avril", "Mai", "Juin", 
-                    "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre"];
+    const months = ["January", "February", "March", "April", "May", "June", 
+                    "July", "August", "September", "October", "November", "December"];
     return `${months[period.month - 1]} ${period.year}`;
   }
   if (period.type === "quarterly" && period.quarter) {
-    return `T${period.quarter} ${period.year}`;
+    return `Q${period.quarter} ${period.year}`;
   }
-  if (period.type === "annual") return `Année ${period.year}`;
-  if (period.type === "ytd") return `Début ${period.year} à aujourd'hui`;
-  return "Période personnalisée";
+  if (period.type === "annual") return `Year ${period.year}`;
+  if (period.type === "ytd") return `Year-to-Date ${period.year}`;
+  return "Custom period";
 }
 
-// ── Composant de sélection de période ─────────────────────────────────────────
+// ── Period selector component ─────────────────────────────────────────────────
 
 function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p: PeriodConfig) => void }) {
   const currentYear = new Date().getFullYear();
@@ -164,14 +165,14 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
     <div className="space-y-3">
       <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-2">
         <Calendar className="h-3.5 w-3.5" />
-        Période d'analyse
+        Analysis Period
       </Label>
       <Tabs value={value.type} onValueChange={(v) => onChange({ type: v as PeriodType, year: value.year })}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="latest" className="text-xs">Dernier mois</TabsTrigger>
-          <TabsTrigger value="monthly" className="text-xs">Mensuel</TabsTrigger>
-          <TabsTrigger value="quarterly" className="text-xs">Trimestriel</TabsTrigger>
-          <TabsTrigger value="annual" className="text-xs">Annuel</TabsTrigger>
+          <TabsTrigger value="latest" className="text-xs">Latest</TabsTrigger>
+          <TabsTrigger value="monthly" className="text-xs">Monthly</TabsTrigger>
+          <TabsTrigger value="quarterly" className="text-xs">Quarterly</TabsTrigger>
+          <TabsTrigger value="annual" className="text-xs">Annual</TabsTrigger>
           <TabsTrigger value="ytd" className="text-xs">YTD</TabsTrigger>
         </TabsList>
         
@@ -179,7 +180,7 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
           <div className="flex gap-3">
             <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
               <SelectTrigger className="w-28">
-                <SelectValue placeholder="Année" />
+                <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="2025">2025</SelectItem>
@@ -188,21 +189,21 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
             </Select>
             <Select value={String(value.month || 3)} onValueChange={(v) => onChange({ ...value, month: parseInt(v) })}>
               <SelectTrigger className="w-36">
-                <SelectValue placeholder="Mois" />
+                <SelectValue placeholder="Month" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">Janvier</SelectItem>
-                <SelectItem value="2">Février</SelectItem>
-                <SelectItem value="3">Mars</SelectItem>
-                <SelectItem value="4">Avril</SelectItem>
-                <SelectItem value="5">Mai</SelectItem>
-                <SelectItem value="6">Juin</SelectItem>
-                <SelectItem value="7">Juillet</SelectItem>
-                <SelectItem value="8">Août</SelectItem>
-                <SelectItem value="9">Septembre</SelectItem>
-                <SelectItem value="10">Octobre</SelectItem>
-                <SelectItem value="11">Novembre</SelectItem>
-                <SelectItem value="12">Décembre</SelectItem>
+                <SelectItem value="1">January</SelectItem>
+                <SelectItem value="2">February</SelectItem>
+                <SelectItem value="3">March</SelectItem>
+                <SelectItem value="4">April</SelectItem>
+                <SelectItem value="5">May</SelectItem>
+                <SelectItem value="6">June</SelectItem>
+                <SelectItem value="7">July</SelectItem>
+                <SelectItem value="8">August</SelectItem>
+                <SelectItem value="9">September</SelectItem>
+                <SelectItem value="10">October</SelectItem>
+                <SelectItem value="11">November</SelectItem>
+                <SelectItem value="12">December</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -212,7 +213,7 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
           <div className="flex gap-3">
             <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
               <SelectTrigger className="w-28">
-                <SelectValue placeholder="Année" />
+                <SelectValue placeholder="Year" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="2025">2025</SelectItem>
@@ -221,13 +222,13 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
             </Select>
             <Select value={String(value.quarter || 1)} onValueChange={(v) => onChange({ ...value, quarter: parseInt(v) })}>
               <SelectTrigger className="w-32">
-                <SelectValue placeholder="Trimestre" />
+                <SelectValue placeholder="Quarter" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">T1 (Jan-Mar)</SelectItem>
-                <SelectItem value="2">T2 (Avr-Juin)</SelectItem>
-                <SelectItem value="3">T3 (Jul-Sep)</SelectItem>
-                <SelectItem value="4">T4 (Oct-Déc)</SelectItem>
+                <SelectItem value="1">Q1 (Jan-Mar)</SelectItem>
+                <SelectItem value="2">Q2 (Apr-Jun)</SelectItem>
+                <SelectItem value="3">Q3 (Jul-Sep)</SelectItem>
+                <SelectItem value="4">Q4 (Oct-Dec)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -236,11 +237,11 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
         <TabsContent value="annual" className="mt-3">
           <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="Année" />
+              <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="2025">Année 2025</SelectItem>
-              <SelectItem value="2026">Année 2026</SelectItem>
+              <SelectItem value="2025">Year 2025</SelectItem>
+              <SelectItem value="2026">Year 2026</SelectItem>
             </SelectContent>
           </Select>
         </TabsContent>
@@ -248,7 +249,7 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
         <TabsContent value="ytd" className="mt-3">
           <Select value={String(value.year || currentYear)} onValueChange={(v) => onChange({ ...value, year: parseInt(v) })}>
             <SelectTrigger className="w-32">
-              <SelectValue placeholder="Année" />
+              <SelectValue placeholder="Year" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="2025">2025 (YTD)</SelectItem>
@@ -256,13 +257,13 @@ function PeriodSelector({ value, onChange }: { value: PeriodConfig; onChange: (p
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground mt-2">
-            Du 1er janvier à la date actuelle
+            From January 1st to current date
           </p>
         </TabsContent>
         
         <TabsContent value="latest" className="mt-3">
           <p className="text-xs text-muted-foreground bg-muted/30 p-2 rounded">
-            Analyse basée sur les données les plus récentes disponibles (Mars 2026)
+            Analysis based on most recent available data (March 2026)
           </p>
         </TabsContent>
       </Tabs>
@@ -308,9 +309,14 @@ function MarkdownBlock({ text }: { text: string }) {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function UserReports() {
-  const { user }                  = useAuth();
-  const { meta }                  = useListingsMeta();
-  const CITIES                    = meta?.cities ?? [];
+  const { user } = useAuth();
+  const { meta } = useListingsMeta();
+  
+  // ✅ CORRECTION: Remove duplicate cities using Set
+  const uniqueCities = useMemo(() => {
+    if (!meta?.cities) return [];
+    return [...new Set(meta.cities)];
+  }, [meta?.cities]);
 
   const [selectedType, setSelectedType] = useState<ReportType | null>(null);
 
@@ -544,7 +550,9 @@ export default function UserReports() {
                           <SelectTrigger><SelectValue placeholder="All Tunisia" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Tunisia</SelectItem>
-                            {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            {uniqueCities.map(c => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
@@ -576,7 +584,9 @@ export default function UserReports() {
                           <SelectTrigger><SelectValue placeholder="All Tunisia" /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="all">All Tunisia</SelectItem>
-                            {CITIES.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+                            {uniqueCities.map(c => (
+                              <SelectItem key={c} value={c}>{c}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>

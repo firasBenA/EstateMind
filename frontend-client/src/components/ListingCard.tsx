@@ -10,6 +10,7 @@ import { Badge }       from "@/components/ui/badge";
 import { type Listing } from "@/lib/api";
 import { ReliabilityBadge, TypeBadge, TransactionBadge } from "./Badges";
 import { BedDouble, Maximize } from "lucide-react";
+import { ReliabilityScoreBadge } from "@/components/ReliabilityScoreBadge";
 import { ForecastingButton } from "./ForecastingButton";
 
 function formatPrice(price: number | null): string {
@@ -79,9 +80,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
             <h3 className="font-semibold text-sm line-clamp-2 group-hover:text-primary transition-colors">
               {listing.title}
             </h3>
-            {listing.reliability_level && (
-              <ReliabilityBadge level={listing.reliability_level} />
-            )}
+            <ReliabilityScoreBadge listingId={listing.id} size="sm" showLabel={false} />
           </div>
 
           <p className="text-xs text-muted-foreground">

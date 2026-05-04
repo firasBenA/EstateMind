@@ -28,6 +28,17 @@ from reportlab.lib.units import inch
 from .models import UserProfile, SavedReport
 
 
+
+from functools import wraps
+from django.http import JsonResponse
+
+def api_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Authentication required"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
 # ── RAG engine path resolution ─────────────────────────────────────────────────
 
 def _get_engine():
@@ -83,7 +94,7 @@ def _stream_report(report_type: str, params: dict):
 # ── Views ──────────────────────────────────────────────────────────────────────
 
 @csrf_exempt
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def generate_report(request):
     """
@@ -132,7 +143,7 @@ def generate_report(request):
     return response
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_reports(request):
     """GET /api/reports/ — returns user's saved reports."""
@@ -151,7 +162,7 @@ def list_reports(request):
 
 
 @csrf_exempt
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def save_report(request):
     """POST /api/reports/save/ — saves a generated report."""
@@ -178,7 +189,7 @@ def save_report(request):
     return JsonResponse({"id": report.id, "created_at": report.created_at.isoformat()}, status=201)
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def get_report(request, pk: int):
     """GET /api/reports/<pk>/ — returns full report content."""
@@ -197,7 +208,7 @@ def get_report(request, pk: int):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def export_report_pdf(request, pk: int):
     """GET /api/reports/<pk>/pdf/ — generates a professional PDF and downloads it."""

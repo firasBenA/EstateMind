@@ -37,6 +37,20 @@ from reportlab.lib.units import inch
 from .models import UserProfile, SavedReport
 
 
+from functools import wraps
+from django.http import JsonResponse
+
+def api_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Authentication required"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
+
+
 # ── RAG engine path resolution ─────────────────────────────────────────────────
 
 def _get_contract_engine():
@@ -113,7 +127,7 @@ def _get_db_connection():
 # ── Contract Views ─────────────────────────────────────────────────────────────
 
 @csrf_exempt
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def generate_contract(request):
     """
@@ -145,7 +159,7 @@ def generate_contract(request):
     return response
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def get_listing_for_contract(request, listing_id):
     """
@@ -181,7 +195,7 @@ def get_listing_for_contract(request, listing_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def list_contracts(request):
     """GET /api/contracts/ — returns user's saved contracts."""
@@ -212,7 +226,7 @@ def list_contracts(request):
 
 
 @csrf_exempt
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def save_contract(request):
     """POST /api/contracts/save/ — saves a generated contract."""
@@ -260,7 +274,7 @@ def save_contract(request):
         return JsonResponse({"error": f"Failed to save contract: {str(e)}"}, status=500)
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def get_contract(request, pk: int):
     """GET /api/contracts/<pk>/ — returns full contract content."""
@@ -286,7 +300,7 @@ def get_contract(request, pk: int):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["POST"])
 def send_contract_for_signature(request, pk: int):
     """POST /api/contracts/<pk>/send/ — sends contract for signature."""
@@ -316,7 +330,7 @@ def send_contract_for_signature(request, pk: int):
     })
 
 
-@login_required
+@api_login_required
 @require_http_methods(["GET"])
 def export_contract_pdf(request, pk: int):
     """GET /api/contracts/<pk>/pdf/ — exports contract as PDF."""

@@ -27,7 +27,7 @@ export function PublicLayout({ children }: { children: ReactNode }) {
               <h4 className="font-semibold mb-3 text-sm">Resources</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
                 <li>Market Analytics</li>
-                <li>Profitability Planner</li>
+                
                 <li>Price Trends</li>
               </ul>
             </div>

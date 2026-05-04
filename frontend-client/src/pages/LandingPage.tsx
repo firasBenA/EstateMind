@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { PublicLayout }   from "@/components/PublicLayout";
 import { HeroScene }      from "@/components/HeroScene";
-import { ListingCard }    from "@/components/ListingCard";
+import  {ListingCard}    from "@/components/ListingCard";
 import { Button }         from "@/components/ui/button";
 import { Skeleton }       from "@/components/ui/skeleton";
 import Recommendations from "@/components/recommendation";

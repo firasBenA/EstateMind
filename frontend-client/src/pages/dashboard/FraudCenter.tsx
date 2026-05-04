@@ -1,3 +1,7 @@
+/**
+ * frontend-client/src/pages/dashboard/FraudCenter.tsx
+ * Dashboard pour l'analyse multimodale (sans DashboardLayout)
+ */
 import { useEffect, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -8,12 +12,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, ShieldAlert, ShieldCheck, AlertTriangle, Eye } from "lucide-react";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, ChevronUp } from "lucide-react";
+import { RefreshCw, ShieldAlert, ShieldCheck, AlertTriangle, Eye, Loader2 } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────────────────────
-
+// ── Types (identiques à avant) ──
 interface FraudSummary {
   total: number;
   incoherent: number;
@@ -52,8 +53,6 @@ interface FlagStat {
   count: number;
 }
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
-
 const RISK_COLORS: Record<string, string> = {
   incoherent: "#ef4444",
   suspect:    "#f97316",
@@ -63,18 +62,13 @@ const RISK_COLORS: Record<string, string> = {
 const PIE_COLORS = ["#ef4444", "#f97316", "#22c55e"];
 
 function riskBadge(level: string) {
-  const map: Record<string, string> = {
-    incoherent: "destructive",
-    suspect:    "secondary",
-    coherent:   "outline",
-  };
   const label: Record<string, string> = {
-    incoherent: "Incohérent",
+    incoherent: "Incoherent",
     suspect:    "Suspect",
-    coherent:   "Cohérent",
+    coherent:   "Coherent",
   };
   return (
-    <Badge variant={map[level] as any} className={
+    <Badge variant="outline" className={
       level === "incoherent" ? "bg-red-100 text-red-700 border-red-200" :
       level === "suspect"    ? "bg-orange-100 text-orange-700 border-orange-200" :
                                "bg-green-100 text-green-700 border-green-200"
@@ -101,11 +95,7 @@ function flagLabel(flag: string): string {
   return map[flag] ?? flag;
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
-
-function KpiCard({
-  title, value, sub, icon, color,
-}: {
+function KpiCard({ title, value, sub, icon, color }: {
   title: string; value: string | number; sub?: string;
   icon: React.ReactNode; color: string;
 }) {
@@ -172,19 +162,17 @@ function ListingRow({ listing }: { listing: FraudListing }) {
   );
 }
 
-// ── Main component ─────────────────────────────────────────────────────────────
-
-export function FraudDashboard() {
-  const [open, setOpen] = useState(false);
-  const [summary, setSummary]       = useState<FraudSummary | null>(null);
-  const [flags, setFlags]           = useState<FlagStat[]>([]);
-  const [listings, setListings]     = useState<FraudListingsResponse | null>(null);
+export default function FraudCenter() {
+  const [summary, setSummary] = useState<FraudSummary | null>(null);
+  const [flags, setFlags] = useState<FlagStat[]>([]);
+  const [listings, setListings] = useState<FraudListingsResponse | null>(null);
   const [riskFilter, setRiskFilter] = useState<string>("incoherent");
-  const [page, setPage]             = useState(1);
-  const [loading, setLoading]       = useState(false);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchAll = async () => {
-    setLoading(true);
+    setRefreshing(true);
     try {
       const [sumRes, flagRes] = await Promise.all([
         fetch("/api/fraud/summary/", { credentials: "include" }),
@@ -192,7 +180,10 @@ export function FraudDashboard() {
       ]);
       if (sumRes.ok)  setSummary(await sumRes.json());
       if (flagRes.ok) setFlags((await flagRes.json()).flags ?? []);
+    } catch (error) {
+      console.error("Failed to fetch fraud data:", error);
     } finally {
+      setRefreshing(false);
       setLoading(false);
     }
   };
@@ -204,210 +195,208 @@ export function FraudDashboard() {
   };
 
   useEffect(() => {
-    if (open) fetchAll();
-  }, [open]);
+    fetchAll();
+  }, []);
 
   useEffect(() => {
-    if (open) fetchListings(riskFilter, page);
-  }, [open, riskFilter, page]);
+    fetchListings(riskFilter, page);
+  }, [riskFilter, page]);
 
   const pieData = summary ? [
-    { name: "Incohérent", value: summary.incoherent },
+    { name: "Incoherent", value: summary.incoherent },
     { name: "Suspect",    value: summary.suspect },
-    { name: "Cohérent",   value: summary.coherent },
+    { name: "Coherent",   value: summary.coherent },
   ] : [];
 
+  const isLoading = loading || refreshing;
+
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <CollapsibleTrigger asChild>
-        <button className="w-full flex items-center justify-between rounded-xl bg-card border border-border px-5 py-4 text-left shadow-sm hover:bg-muted/30 transition-colors">
-          <div className="flex items-center gap-3">
-            <ShieldAlert className="text-destructive" size={20} />
-            <div>
-              <p className="font-semibold text-foreground">Fraud Detection — DSO 2.2</p>
-              <p className="text-xs text-muted-foreground">CLIP Zero-Shot Semantic Analysis</p>
-            </div>
-            {summary && (
-              <Badge variant="destructive" className="ml-2">
-                {summary.incoherent} incohérents
-              </Badge>
-            )}
-          </div>
-          {open ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-      </CollapsibleTrigger>
+    <div className="space-y-6">
+      {/* Refresh button - compact */}
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={fetchAll} disabled={isLoading} className="gap-2">
+          {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+          Refresh
+        </Button>
+      </div>
 
-      <CollapsibleContent className="space-y-6 pt-4 animate-fade-in">
+      {/* KPI Cards */}
+      {summary && (
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+          <KpiCard title="Total Analyzed"  value={summary.total.toLocaleString()}
+            icon={<ShieldCheck size={16} className="text-blue-600" />}
+            color="bg-blue-50 dark:bg-blue-950" />
+          <KpiCard title="Incoherent"     value={summary.incoherent.toLocaleString()}
+            sub={`${summary.total ? Math.round(summary.incoherent / summary.total * 100) : 0}%`}
+            icon={<ShieldAlert size={16} className="text-red-600" />}
+            color="bg-red-50 dark:bg-red-950" />
+          <KpiCard title="Suspect"        value={summary.suspect.toLocaleString()}
+            sub={`${summary.total ? Math.round(summary.suspect / summary.total * 100) : 0}%`}
+            icon={<AlertTriangle size={16} className="text-orange-500" />}
+            color="bg-orange-50 dark:bg-orange-950" />
+          <KpiCard title="Coherent"       value={summary.coherent.toLocaleString()}
+            sub={`${summary.total ? Math.round(summary.coherent / summary.total * 100) : 0}%`}
+            icon={<ShieldCheck size={16} className="text-green-600" />}
+            color="bg-green-50 dark:bg-green-950" />
+          <KpiCard title="Avg Score"     value={summary.avg_score.toFixed(3)}
+            sub="multimodal [0–1]"
+            icon={<Eye size={16} className="text-purple-600" />}
+            color="bg-purple-50 dark:bg-purple-950" />
+          <KpiCard title="Avg Price Dev." value={`${summary.avg_price_deviation.toFixed(1)}%`}
+            sub="vs regional median"
+            icon={<AlertTriangle size={16} className="text-yellow-600" />}
+            color="bg-yellow-50 dark:bg-yellow-950" />
+        </div>
+      )}
 
-        {/* KPI cards */}
-        {summary && (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-            <KpiCard title="Total analysés"  value={summary.total.toLocaleString()}
-              icon={<ShieldCheck size={16} className="text-blue-600" />}
-              color="bg-blue-50 dark:bg-blue-950" />
-            <KpiCard title="Incohérents"     value={summary.incoherent.toLocaleString()}
-              sub={`${summary.total ? Math.round(summary.incoherent / summary.total * 100) : 0}%`}
-              icon={<ShieldAlert size={16} className="text-red-600" />}
-              color="bg-red-50 dark:bg-red-950" />
-            <KpiCard title="Suspects"        value={summary.suspect.toLocaleString()}
-              sub={`${summary.total ? Math.round(summary.suspect / summary.total * 100) : 0}%`}
-              icon={<AlertTriangle size={16} className="text-orange-500" />}
-              color="bg-orange-50 dark:bg-orange-950" />
-            <KpiCard title="Cohérents"       value={summary.coherent.toLocaleString()}
-              sub={`${summary.total ? Math.round(summary.coherent / summary.total * 100) : 0}%`}
-              icon={<ShieldCheck size={16} className="text-green-600" />}
-              color="bg-green-50 dark:bg-green-950" />
-            <KpiCard title="Score moyen"     value={summary.avg_score.toFixed(3)}
-              sub="multimodal [0–1]"
-              icon={<Eye size={16} className="text-purple-600" />}
-              color="bg-purple-50 dark:bg-purple-950" />
-            <KpiCard title="Écart prix moy." value={`${summary.avg_price_deviation.toFixed(1)}%`}
-              sub="vs médiane régionale"
-              icon={<AlertTriangle size={16} className="text-yellow-600" />}
-              color="bg-yellow-50 dark:bg-yellow-950" />
-          </div>
+      {/* Loading state for KPIs */}
+      {isLoading && !summary && (
+        <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+          {[1,2,3,4,5,6].map(i => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="h-16 bg-muted animate-pulse rounded" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Charts row */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        {summary && summary.total > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Risk Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name"
+                       cx="50%" cy="50%" outerRadius={80} label={
+                         ({ name, percent }) =>
+                           `${name} ${(percent * 100).toFixed(0)}%`
+                       }>
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={PIE_COLORS[i]} />
+                    ))}
+                  </Pie>
+                  <Legend />
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
         )}
 
-        {/* Charts row */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {/* Pie */}
-          {summary && summary.total > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Distribution des risques</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={pieData} dataKey="value" nameKey="name"
-                         cx="50%" cy="50%" outerRadius={80} label={
-                           ({ name, percent }) =>
-                             `${name} ${(percent * 100).toFixed(0)}%`
-                         }>
-                      {pieData.map((_, i) => (
-                        <Cell key={i} fill={PIE_COLORS[i]} />
-                      ))}
-                    </Pie>
-                    <Legend />
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
+        {flags.length > 0 && (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Top Detected Anomalies</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={flags.slice(0, 8)} layout="vertical"
+                          margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 11 }} />
+                  <YAxis type="category" dataKey="flag" width={140}
+                         tick={{ fontSize: 10 }}
+                         tickFormatter={flagLabel} />
+                  <Tooltip formatter={(v) => [v, "listings"]}
+                           labelFormatter={flagLabel} />
+                  <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        )}
+      </div>
 
-          {/* Flags bar chart */}
-          {flags.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm">Top anomalies détectées</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={flags.slice(0, 8)} layout="vertical"
-                            margin={{ left: 10, right: 20, top: 0, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" tick={{ fontSize: 11 }} />
-                    <YAxis type="category" dataKey="flag" width={140}
-                           tick={{ fontSize: 10 }}
-                           tickFormatter={flagLabel} />
-                    <Tooltip formatter={(v) => [v, "annonces"]}
-                             labelFormatter={flagLabel} />
-                    <Bar dataKey="count" fill="#ef4444" radius={[0, 4, 4, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Listings table */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <CardTitle className="text-sm">Annonces par niveau de risque</CardTitle>
-              <div className="flex gap-1">
-                {(["incoherent", "suspect", "coherent"] as const).map((r) => (
-                  <button key={r}
-                    onClick={() => { setRiskFilter(r); setPage(1); }}
-                    className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
-                      riskFilter === r
-                        ? r === "incoherent" ? "bg-red-500 text-white"
-                        : r === "suspect"    ? "bg-orange-500 text-white"
-                                             : "bg-green-500 text-white"
-                        : "bg-muted text-muted-foreground hover:text-foreground"
-                    }`}>
-                    {r === "incoherent" ? "Incohérents" :
-                     r === "suspect"    ? "Suspects"    : "Cohérents"}
-                  </button>
+      {/* Listings table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="text-sm">Listings by Risk Level</CardTitle>
+            <div className="flex gap-1">
+              {(["incoherent", "suspect", "coherent"] as const).map((r) => (
+                <button key={r}
+                  onClick={() => { setRiskFilter(r); setPage(1); }}
+                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                    riskFilter === r
+                      ? r === "incoherent" ? "bg-red-500 text-white"
+                      : r === "suspect"    ? "bg-orange-500 text-white"
+                                           : "bg-green-500 text-white"
+                      : "bg-muted text-muted-foreground hover:text-foreground"
+                  }`}>
+                  {r === "incoherent" ? "Incoherent" :
+                   r === "suspect"    ? "Suspect"    : "Coherent"}
+                </button>
+              ))}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
+                  <th className="px-4 py-2.5">Listing</th>
+                  <th className="px-3 py-2.5">Risk</th>
+                  <th className="px-3 py-2.5">Score</th>
+                  <th className="px-3 py-2.5">Price Dev.</th>
+                  <th className="px-3 py-2.5">Anomalies</th>
+                  <th className="px-3 py-2.5">Images</th>
+                  <th className="px-2 py-2.5"></th>
+                 </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {listings?.results.map((l) => (
+                  <ListingRow key={`${l.source_name}_${l.property_id}`} listing={l} />
                 ))}
-                <Button variant="ghost" size="sm" onClick={() => fetchListings(riskFilter, page)}
-                        className="h-7 px-2">
-                  <RefreshCw size={13} />
+                {listings?.results.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
+                      No listings in this category.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {listings && listings.pages > 1 && (
+            <div className="flex items-center justify-between border-t border-border px-4 py-3">
+              <p className="text-xs text-muted-foreground">
+                {listings.count.toLocaleString()} listing{listings.count !== 1 ? "s" : ""}
+              </p>
+              <div className="flex gap-1">
+                <Button variant="outline" size="sm" disabled={page <= 1}
+                        onClick={() => setPage((p) => p - 1)} className="h-7 px-3 text-xs">
+                  Previous
+                </Button>
+                <span className="flex items-center px-2 text-xs text-muted-foreground">
+                  {page} / {listings.pages}
+                </span>
+                <Button variant="outline" size="sm" disabled={page >= listings.pages}
+                        onClick={() => setPage((p) => p + 1)} className="h-7 px-3 text-xs">
+                  Next
                 </Button>
               </div>
             </div>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-border bg-muted/30 text-left text-xs uppercase tracking-wider text-muted-foreground">
-                    <th className="px-4 py-2.5">Annonce</th>
-                    <th className="px-3 py-2.5">Risque</th>
-                    <th className="px-3 py-2.5">Score</th>
-                    <th className="px-3 py-2.5">Écart prix</th>
-                    <th className="px-3 py-2.5">Anomalies</th>
-                    <th className="px-3 py-2.5">Images</th>
-                    <th className="px-2 py-2.5"></th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {listings?.results.map((l) => (
-                    <ListingRow key={`${l.source_name}_${l.property_id}`} listing={l} />
-                  ))}
-                  {listings?.results.length === 0 && (
-                    <tr>
-                      <td colSpan={7} className="py-8 text-center text-sm text-muted-foreground">
-                        Aucune annonce dans cette catégorie.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+          )}
+        </CardContent>
+      </Card>
 
-            {/* Pagination */}
-            {listings && listings.pages > 1 && (
-              <div className="flex items-center justify-between border-t border-border px-4 py-3">
-                <p className="text-xs text-muted-foreground">
-                  {listings.count.toLocaleString()} annonce{listings.count !== 1 ? "s" : ""}
-                </p>
-                <div className="flex gap-1">
-                  <Button variant="outline" size="sm" disabled={page <= 1}
-                          onClick={() => setPage((p) => p - 1)} className="h-7 px-3 text-xs">
-                    Préc.
-                  </Button>
-                  <span className="flex items-center px-2 text-xs text-muted-foreground">
-                    {page} / {listings.pages}
-                  </span>
-                  <Button variant="outline" size="sm" disabled={page >= listings.pages}
-                          onClick={() => setPage((p) => p + 1)} className="h-7 px-3 text-xs">
-                    Suiv.
-                  </Button>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {loading && (
-          <div className="flex justify-center py-4">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      {/* Loading overlay for refresh */}
+      {refreshing && (
+        <div className="fixed inset-0 bg-background/50 flex items-center justify-center z-50">
+          <div className="bg-card rounded-lg p-4 shadow-lg flex items-center gap-3">
+            <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            <span className="text-sm">Refreshing fraud data...</span>
           </div>
-        )}
-
-      </CollapsibleContent>
-    </Collapsible>
+        </div>
+      )}
+    </div>
   );
 }

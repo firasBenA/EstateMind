@@ -35,6 +35,22 @@ INSTALLED_APPS = [
     "django_extensions",
 ]
 
+
+# ── SigNoz / OpenTelemetry Configuration ──────────────────────────────────────
+SIGNOZ_ENABLED = os.getenv("SIGNOZ_ENABLED", "False") == "True"
+
+if SIGNOZ_ENABLED:
+    try:
+        from .otel_config import setup_telemetry
+        setup_telemetry()
+        print("✅ SigNoz telemetry enabled")
+    except ImportError:
+        print("⚠️ otel_config module not found")
+    except Exception as e:
+        print(f"⚠️ SigNoz setup failed: {e}")
+else:
+    print("ℹ️ SigNoz telemetry disabled")
+
 MIDDLEWARE = [
     "corsheaders.middleware.CorsMiddleware",
     "config.middleware.CloseOldConnectionsMiddleware",
@@ -88,11 +104,18 @@ DATABASES = {
 }
 
 # ── Sessions — cache-based to avoid consuming DB connections ──────────────────
-SESSION_ENGINE       = "django.contrib.sessions.backends.cache"
-SESSION_CACHE_ALIAS  = "default"
+SESSION_ENGINE       = "django.contrib.sessions.backends.db"
+#SESSION_CACHE_ALIAS  = "default"
 SESSION_COOKIE_AGE   = 7 * 24 * 60 * 60   # 7 days
 SESSION_SAVE_EVERY_REQUEST     = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
+
+
+SESSION_COOKIE_SAMESITE = "Lax"
+SESSION_COOKIE_SECURE = False
+SESSION_COOKIE_DOMAIN = None
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = False
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
 CACHES = {
@@ -173,3 +196,6 @@ class DisableCSRFOnAPI:
         if request.path.startswith("/api/"):
             setattr(request, "_dont_enforce_csrf_checks", True)
         return self.get_response(request)
+    
+
+LOGIN_URL = "/api/login/"

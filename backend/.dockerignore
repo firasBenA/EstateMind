@@ -1,0 +1,51 @@
+# .dockerignore — keep Docker image lean
+# Place this file at: backend/.dockerignore
+
+# Virtual environment — Docker installs its own
+venv/
+.venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Dev/test files
+.pytest_cache/
+.mypy_cache/
+*.egg-info/
+dist/
+build/
+htmlcov/
+.coverage
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log
+logs/
+
+# Local env files (secrets injected via docker-compose env_file)
+.env
+.env.local
+.env.*.local
+
+# Static files (collected at runtime)
+staticfiles/
+
+# Large data files — mounted as volume in docker-compose
+# data/ is excluded from the image and mounted at runtime
