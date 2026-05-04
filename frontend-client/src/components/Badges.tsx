@@ -1,3 +1,5 @@
+// frontend-client/src/components/Badges.tsx
+import { forwardRef } from "react";
 import { Badge } from "@/components/ui/badge";
 
 export function ReliabilityBadge({ level }: { level: "HIGH" | "MEDIUM" | "LOW" }) {
@@ -25,3 +27,13 @@ export function TransactionBadge({ type }: { type: string }) {
     </Badge>
   );
 }
+
+// Version corrigée avec forwardRef si nécessaire
+export const BadgeWithRef = forwardRef<HTMLDivElement, { children: React.ReactNode; className?: string }>(
+  ({ children, className }, ref) => (
+    <div ref={ref} className={className}>
+      {children}
+    </div>
+  )
+);
+BadgeWithRef.displayName = "BadgeWithRef";

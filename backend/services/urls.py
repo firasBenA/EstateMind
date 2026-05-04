@@ -6,7 +6,7 @@ from . import similarity_views
 from . import contract
 from .recommendation_views import get_similar_listings, get_personalized_recommendations
 from .recommendation.behavior_tracker import BehaviorTracker
-from .views_ai import generate_description, predict_price, get_model_status, compare_scenarios, get_base_prices, get_macro_forecast,predict_property
+from .views_ai import generate_description, predict_price, get_model_status, compare_scenarios, get_base_prices, get_macro_forecast, predict_property, forecast_listing
 from .recommendation_views import (
     get_similar_listings, 
     get_personalized_recommendations,
@@ -110,30 +110,21 @@ urlpatterns = [
     path("api/chat/messages/<int:conversation_id>/", views.get_messages, name="get_messages"),
     path("api/pusher/auth/", views.pusher_auth, name="pusher_auth"),
 
-#     # ── Forecasting endpoints ───────────────────────────────────────────────
-#     path('api/ai/predict/', predict_property, name='ai_predict'),
-#     path('api/ai/compare/', compare_scenarios, name='ai_compare'),
-#     path('api/ai/base-prices/', get_base_prices, name='ai_base_prices'),
-#     path('api/ai/macro-forecast/', get_macro_forecast, name='ai_macro_forecast'),
-#     path('api/ai/status/', get_model_status, name='ai_status'),
+    # ── Forecasting endpoints ───────────────────────────────────────────────
+    path('api/listings/<str:pk>/forecast/', forecast_listing, name='listing_forecast'),
+    path('api/ai/predict/', predict_property, name='ai_predict'),
+    path('api/ai/compare/', compare_scenarios, name='ai_compare'),
+    path('api/ai/base-prices/', get_base_prices, name='ai_base_prices'),
+    path('api/ai/macro-forecast/', get_macro_forecast, name='ai_macro_forecast'),
+    
+    path('api/ai/status/', get_model_status, name='ai_status'),
 
-    # ── Macroeconomic endpoints (NOUVEAU - pour les dashboards) ────────────────
+
+      # ── Macroeconomic endpoints ────────────────────────────────────────────
     path('api/macro/impact/', macro_impact_api, name='macro_impact'),
     path('api/macro/summary/', macro_summary_api, name='macro_summary'),
     path('api/macro/prophet-forecast/', prophet_forecast_api, name='macro_prophet_forecast'),
     path('api/macro/model-metrics/', model_metrics_api, name='macro_model_metrics'),
-
-    # ── DEPRECATED / À SUPPRIMER PROCHAINEMENT (garder pour compatibilité) ────
-    # Ces endpoints sont dépréciés. Utilisez /api/macro/impact/ à la place.
-    # path('api/ai/predict/', predict_property, name='ai_predict'),
-    # path('api/ai/compare/', compare_scenarios, name='ai_compare'),
-    # path('api/ai/base-prices/', get_base_prices, name='ai_base_prices'),
-    # path('api/ai/status/', get_model_status, name='ai_status'),
-    
-    # ⚠️ À GARDER (pour les rapports AI)
-    path('api/ai/macro-forecast/', get_macro_forecast, name='ai_macro_forecast'),
-    
-    path('api/ai/status/', get_model_status, name='ai_status'),
 
 
         # ── Fraud detection (DSO 2.2) ─────────────────────────────────────────────

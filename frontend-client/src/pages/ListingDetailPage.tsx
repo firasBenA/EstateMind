@@ -42,6 +42,7 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import { ForecastingButton } from "@/components/ForecastingButton";
 import { useState, useEffect, useCallback } from "react";
 import {
   LineChart,
@@ -458,6 +459,10 @@ export default function ListingDetailPage() {
               {authLoading ? "Chargement..." : `Contacter ${isUserSubmission(listing.source_name) ? "le propriétaire" : "l'agence"}`}
             </Button>
 
+            {listing.transaction_type !== "rent" && (
+              <ForecastingButton listing={listing} variant="detail" />
+            )}
+
             {features.length > 0 && (
               <div>
                 <h3 className="font-semibold mb-2 text-sm">Caractéristiques</h3>
@@ -635,6 +640,7 @@ export default function ListingDetailPage() {
         {showContactModal && (
           <ContactModal listing={listing} onClose={() => setShowContactModal(false)} onSend={handleSendMessage} />
         )}
+
       </div>
     </PublicLayout>
   );

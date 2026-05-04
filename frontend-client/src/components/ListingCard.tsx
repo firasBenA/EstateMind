@@ -11,6 +11,7 @@ import { type Listing } from "@/lib/api";
 import { ReliabilityBadge, TypeBadge, TransactionBadge } from "./Badges";
 import { BedDouble, Maximize } from "lucide-react";
 import { ReliabilityScoreBadge } from "@/components/ReliabilityScoreBadge";
+import { ForecastingButton } from "./ForecastingButton";
 
 function formatPrice(price: number | null): string {
   if (price == null) return "Prix sur demande";
@@ -123,6 +124,13 @@ export function ListingCard({ listing }: { listing: Listing }) {
                   Prix atypique
                 </Badge>
               )}
+            </div>
+          )}
+
+          {/* Forecasting — tout sauf location */}
+          {listing.transaction_type !== "rent" && (
+            <div className="pt-1">
+              <ForecastingButton listing={listing} variant="card" />
             </div>
           )}
         </CardContent>

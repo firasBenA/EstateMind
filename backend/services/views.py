@@ -29,6 +29,10 @@ from django.conf import settings
 import uuid
 from django.utils import timezone
 
+
+
+
+
 # Conditional import for sentence_transformers (handles Windows DLL error)
 try:
     from sentence_transformers import SentenceTransformer
@@ -41,7 +45,11 @@ except (ImportError, OSError) as e:
 
 from data.preprocessing.steps.scorer import compute_score
 from .models import Listing
-from models.prediction_models.predictor import get_predictor
+try:
+    from models.prediction_models.predictor import get_predictor
+except ModuleNotFoundError:
+    def get_predictor(*args, **kwargs):
+        return None
 
 # Import UserProfile at the bottom to avoid circular imports
 from .models import UserProfile, AgentMetrics
@@ -51,10 +59,11 @@ try:
 except ImportError:
     compute_score = None
 
-from models.prediction_models.predictor import get_predictor
+from services.fraud_service import (
+    get_fraud_score_for_listing, 
+    analyze_listing_description_by_id,
 
-
-from .fraud_service import get_fraud_score_for_listing, analyze_listing_description_by_id
+)
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -2261,3 +2270,5 @@ def text_fraud_rules(request):
     
     result = get_text_rule_stats()
     return JsonResponse({"rules": result})
+
+

@@ -31,6 +31,7 @@ services:
       - OTEL_EXPORTER_OTLP_ENDPOINT=host.docker.internal:4317
       - SIGNOZ_ENABLED=True
       - OTEL_SERVICE_NAME=estatemind-django
+      - DEBUG=True   
     volumes:
       # Mount data folder (Prophet PKLs + RAG models) without baking into image
       - ./data:/data:ro

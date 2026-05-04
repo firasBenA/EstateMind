@@ -320,6 +320,175 @@ def get_macro_forecast(request):
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
+def forecast_listing(request, pk):
+    """
+    GET /api/listings/<pk>/forecast/
+    Returns price forecasts 2027-2032 using hybrid_model.pkl.
+    The model was trained exclusively on sale (vente) data — rentals are rejected.
+    Primary: precomputed CSV lookup (covers all scraped sale listings).
+    Fallback: apply model's time-series growth factors to the listing's current price.
+    """
+    import pickle
+    import numpy as np
+    import pandas as pd
+    from pathlib import Path
+
+    # ── Guard: reject rental listings immediately ─────────────────────────────
+    from .models import Listing as _Listing
+    try:
+        _listing_check = _Listing.objects.only("transaction_type").get(pk=pk)
+        tt = (_listing_check.transaction_type or "").lower()
+        RENTAL_VALUES = {"rent", "location", "louer", "location-vente", "rental"}
+        if tt in RENTAL_VALUES:
+            return Response(
+                {"success": False, "error": "Le modèle de prévision est entraîné sur les ventes uniquement. Les locations ne sont pas prises en charge."},
+                status=400,
+            )
+    except _Listing.DoesNotExist:
+        return Response({"success": False, "error": "Annonce introuvable."}, status=404)
+    except Exception:
+        pass  # if the DB check fails, let the rest of the function handle it
+
+    cache_key = f"forecast_v1_{pk}"
+    cached = cache.get(cache_key)
+    if cached:
+        return Response({"success": True, "data": cached, "cached": True})
+
+    BASE_DIR = Path(__file__).resolve().parent.parent.parent
+    RESULTS_DIR = (
+        BASE_DIR
+        / "data"
+        / "Series_temporelles"
+        / "ipim"
+        / "outputs"
+        / "tunisia_final"
+        / "results"
+    )
+
+    # ── 1. Precomputed CSV (fastest path) ────────────────────────────────────
+    csv_path = RESULTS_DIR / "listings_avec_predictions_2032.csv"
+    if csv_path.exists():
+        try:
+            df = pd.read_csv(csv_path, dtype={"id": str})
+            rows = df[df["id"] == str(pk)]
+            if not rows.empty:
+                row = rows.iloc[0]
+                predictions = []
+                for year in [2027, 2028, 2029, 2030, 2031, 2032]:
+                    price_val = row.get(f"prix_pred_{year}", None)
+                    if price_val is not None and not pd.isna(price_val):
+                        low = row.get(f"prix_pred_{year}_low", float(price_val) * 0.9)
+                        high = row.get(f"prix_pred_{year}_high", float(price_val) * 1.1)
+                        m2 = row.get(f"prix_m2_pred_{year}", 0)
+                        predictions.append(
+                            {
+                                "year": year,
+                                "price": int(float(price_val)),
+                                "price_low": int(float(low) if not pd.isna(low) else float(price_val) * 0.9),
+                                "price_high": int(float(high) if not pd.isna(high) else float(price_val) * 1.1),
+                                "price_per_m2": round(float(m2) if not pd.isna(m2) else 0, 0),
+                            }
+                        )
+                if predictions:
+                    current_price = row.get("price", 0)
+                    result = {
+                        "current_price": int(float(current_price) if not pd.isna(current_price) else 0),
+                        "current_year": 2026,
+                        "predictions": predictions,
+                        "property_type": str(row.get("property_type", "")),
+                        "zone": str(row.get("zone_pred", "")),
+                        "source": "precomputed",
+                    }
+                    cache.set(cache_key, result, 3600)
+                    return Response({"success": True, "data": result})
+        except Exception as exc:
+            logger.warning(f"forecast CSV lookup failed for {pk}: {exc}")
+
+    # ── 2. Fetch listing from DB (reuse the already-fetched object) ──────────
+    try:
+        listing = _Listing.objects.get(pk=pk)
+    except _Listing.DoesNotExist:
+        return Response({"success": False, "error": "Annonce introuvable."}, status=404)
+
+    # ── 3. Use hybrid_model.pkl ───────────────────────────────────────────────
+    model_path = RESULTS_DIR / "hybrid_model.pkl"
+    if not model_path.exists():
+        return Response({"success": False, "error": "Forecast model not available"}, status=503)
+
+    try:
+        with open(model_path, "rb") as fh:
+            model = pickle.load(fh)
+
+        type_map = {
+            "apartment": "appartement",
+            "house": "maison",
+            "villa": "maison",
+            "land": "terrain",
+            "commercial": "appartement",
+        }
+        prop_type = (listing.property_type or "").lower()
+        ipim_type = type_map.get(prop_type, "appartement")
+        if ipim_type not in model["time_series"]:
+            ipim_type = "appartement"
+
+        ts = model["time_series"][ipim_type]
+        base_row = ts[ts["year"] == 2026].iloc[0]
+        base_m2 = float(base_row["prix_m2"])
+
+        # Use current price when available, otherwise estimate via hedonic model
+        surface = float(listing.surface) if listing.surface else 100.0
+        rooms = int(listing.rooms) if listing.rooms else 3
+        current_price = float(listing.price) if listing.price else None
+
+        if current_price is None:
+            hed = model["hedonic"][ipim_type]
+            city_lower = (listing.city or "").lower()
+            zone_key = model["zone_map"].get(city_lower, hed["ref_zone"])
+            zone_coef = hed["zone_coefs"].get(zone_key, 0.0)
+            log_price = (
+                hed["intercept"]
+                + hed["beta_log_surf"] * np.log(max(surface, 1))
+                + hed["beta_rooms"] * rooms
+                + zone_coef
+            )
+            current_price = round(np.exp(log_price) * surface)
+
+        predictions = []
+        for _, ts_row in ts.iterrows():
+            year = int(ts_row["year"])
+            if year < 2027:
+                continue
+            growth = float(ts_row["prix_m2"]) / base_m2
+            growth_low = float(ts_row["prix_m2_low"]) / base_m2
+            growth_high = float(ts_row["prix_m2_high"]) / base_m2
+            predictions.append(
+                {
+                    "year": year,
+                    "price": int(current_price * growth),
+                    "price_low": int(current_price * growth_low),
+                    "price_high": int(current_price * growth_high),
+                    "price_per_m2": round(float(ts_row["prix_m2"]), 0),
+                }
+            )
+
+        result = {
+            "current_price": int(current_price),
+            "current_year": 2026,
+            "predictions": predictions,
+            "property_type": listing.property_type or "",
+            "zone": listing.city or "",
+            "source": "hybrid_model",
+        }
+        cache.set(cache_key, result, 3600)
+        return Response({"success": True, "data": result})
+
+    except Exception as exc:
+        logger.error(f"forecast_listing hybrid model error for {pk}: {exc}")
+        return Response({"success": False, "error": str(exc)}, status=500)
+
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
 def get_model_status(request):
     """
     Vérifie le statut des modèles
