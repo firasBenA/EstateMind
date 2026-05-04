@@ -6,6 +6,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { list } from "postcss";
+import { qwenService, QwenDescriptionResponse } from './qwenService';
 
 export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL ?? "https://amxnojlfczwffvtwutrb.supabase.co",
@@ -270,6 +271,7 @@ export interface GenerateDescriptionResponse {
   highlights: string[];
   tone: "professional" | "friendly" | "concise";
   warnings?: string[];
+  used_fallback?: boolean; // 🔹 NEW: Track if fallback was used
 }
 
 // ── Image Upload Response ───────────────────────────────────────────────────
@@ -465,47 +467,167 @@ export const listingsApi = {
     return apiFetch(`/api/listings/${listingId}/like/`, { method: "POST" });
   },
 
+  /**
+   * Generate property description with fallback:
+   * 1. Try Qwen2-VL API (primary) on port 8001
+   * 2. Fallback to LLM-only with rule-based image tags
+   */
   async generateDescription(
     payload: GenerateDescriptionPayload & { files?: File[] }
   ): Promise<GenerateDescriptionResponse> {
+    const startTime = Date.now();
+    
+    // 🔹 TRY PRIMARY: Qwen2-VL API (if images provided)
     if (payload.files && payload.files.length > 0) {
-      const formData = new FormData();
-      payload.files.forEach(file => {
-        formData.append("images", file);
-      });
-      formData.append("metadata", JSON.stringify(payload.metadata));
-
-      const res = await fetch(`${BASE_URL}/api/generate-description/`, {
-        method: "POST",
-        credentials: "include",
-        body: formData,
-      });
-
-      if (!res.ok) {
-        const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.error || `AI Generation failed: ${res.status}`);
+      try {
+        // Quick health check (optional but recommended)
+        const isHealthy = await qwenService.isHealthy(2000); // 2 second timeout
+        
+        if (isHealthy) {
+          console.log('🎯 Using Qwen2-VL (primary) for description generation');
+          
+          const qwenResponse: QwenDescriptionResponse = await qwenService.generateDescription({
+            metadata: payload.metadata,
+            images: payload.files,
+            language: 'fr', // Tunisian market → French
+          });
+          
+          console.log('✅ Qwen2-VL succeeded in', Date.now() - startTime, 'ms');
+          
+          return {
+            description: qwenResponse.description,
+            highlights: qwenResponse.highlights,
+            tone: "professional",
+            used_fallback: false,
+          };
+        }
+      } catch (qwenError) {
+        console.warn('⚠️ Qwen2-VL failed, falling back to LLM-only:', qwenError);
+        // Continue to fallback
       }
-
-      return res.json();
     }
+    
+    // 🔹 FALLBACK: LLM-only with rule-based image tags (or mock if no images)
+    console.log('🔄 Falling back to LLM-only description generation');
+    
+    // Extract simple tags from filenames (rule-based heuristic)
+    const imageTags = payload.files?.map(file => {
+      const name = file.name.toLowerCase();
+      const tags: string[] = [];
+      
+      // French/English keyword matching for real estate
+      if (name.includes('kitchen') || name.includes('cuisine')) tags.push('cuisine équipée');
+      if (name.includes('bedroom') || name.includes('chambre')) tags.push('chambre spacieuse');
+      if (name.includes('bathroom') || name.includes('salle de bain')) tags.push('salle de bain moderne');
+      if (name.includes('living') || name.includes('salon')) tags.push('salon lumineux');
+      if (name.includes('balcony') || name.includes('balcon')) tags.push('balcon avec vue');
+      if (name.includes('parking') || name.includes('garage')) tags.push('parking privé');
+      if (name.includes('garden') || name.includes('jardin')) tags.push('jardin privatif');
+      if (name.includes('pool') || name.includes('piscine')) tags.push('piscine');
+      if (name.includes('terrace') || name.includes('terrasse')) tags.push('terrasse');
+      if (name.includes('view') || name.includes('vue')) tags.push('belle vue');
+      
+      return tags.length > 0 ? tags.join(', ') : 'photo du bien';
+    }) || [];
+    
+    // Build prompt for LLM (Together AI / Ollama via existing chat endpoint)
+    const prompt = `Génère une description immobilière professionnelle en français pour:
+- Type: ${payload.metadata.property_type}
+- Transaction: ${payload.metadata.transaction === 'sale' ? 'vente' : 'location'}
+- Ville: ${payload.metadata.city}
+- Surface: ${payload.metadata.surface_m2 || '?'} m²
+- Pièces: ${payload.metadata.rooms || '?'}
+- Prix: ${payload.metadata.price ? `${payload.metadata.price.toLocaleString()} TND` : 'à déterminer'}
 
-    console.warn("Using mock description generator (no images provided)");
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+Éléments visibles dans les images: ${imageTags.join('; ')}
 
-    const { metadata } = payload;
-    const type = metadata.property_type;
-    const city = metadata.city;
-    const surface = metadata.surface_m2 || "spacious";
-    const rooms = metadata.rooms || "multiple";
-    const transaction = metadata.transaction;
+Exigences:
+- Ton professionnel et persuasif
+- Maximum 150 mots
+- Mets en avant les points forts
+- Format: paragraphes courts avec puces pour les caractéristiques
+- Ne mentionne pas que c'est généré par IA
 
-    const description = `Beautiful ${type} located in ${city}. This ${surface} m² property features ${rooms} rooms with modern finishes. Perfect for ${transaction === "rent" ? "tenants" : "buyers"}.`;
+Description:`;
 
-    return {
-      description,
-      highlights: ["modern finishes", "great location"],
-      tone: "professional",
-    };
+    try {
+      // Call your existing LLM endpoint (adjust URL if needed)
+      const llmResponse = await fetch('/api/chat/', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCsrfToken(),
+        },
+        body: JSON.stringify({
+          message: prompt,
+          // Add session_id if your endpoint requires it
+          // session_id: sessionStorage.getItem('chatbot_session_id') || '',
+        }),
+        credentials: 'include',
+      });
+      
+      if (!llmResponse.ok) {
+        throw new Error(`LLM fallback failed: ${llmResponse.status}`);
+      }
+      
+      // Parse SSE stream (adapt to your existing SSE handler)
+      const reader = llmResponse.body?.getReader();
+      if (!reader) throw new Error('No response body');
+      
+      const decoder = new TextDecoder();
+      let description = '';
+      
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n\n');
+        
+        for (const line of lines) {
+          if (line.startsWith(' ')) {
+            try {
+              const event = JSON.parse(line.slice(6));
+              if (event.token) description += event.token;
+              if (event.done) break;
+            } catch {
+              // Ignore malformed lines
+            }
+          }
+        }
+      }
+      
+      console.log('✅ LLM fallback succeeded in', Date.now() - startTime, 'ms');
+      
+      return {
+        description: description.trim(),
+        highlights: imageTags.filter(t => t && t !== 'photo du bien').slice(0, 3),
+        tone: "professional",
+        used_fallback: true,
+      };
+      
+    } catch (llmError) {
+      console.error('❌ Both methods failed:', llmError);
+      
+      // 🔹 Last resort: simple mock description
+      console.warn('⚠️ Using mock description as last resort');
+      
+      const { metadata } = payload;
+      const type = metadata.property_type;
+      const city = metadata.city;
+      const surface = metadata.surface_m2 || "spacious";
+      const rooms = metadata.rooms || "multiple";
+      const transaction = metadata.transaction;
+
+      const description = `Beautiful ${type} located in ${city}. This ${surface} m² property features ${rooms} rooms with modern finishes. Perfect for ${transaction === "rent" ? "tenants" : "buyers"}.`;
+
+      return {
+        description,
+        highlights: ["modern finishes", "great location"],
+        tone: "professional",
+        used_fallback: true,
+      };
+    }
   },
 
   async predictPrice(payload: {

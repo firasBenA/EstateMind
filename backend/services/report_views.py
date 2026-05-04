@@ -96,6 +96,86 @@ def _stream_report(report_type: str, params: dict):
 @csrf_exempt
 @api_login_required
 @require_http_methods(["POST"])
+def contract_chat(request):
+    """
+    POST /api/contracts/chat/
+    Chat interface for contract generation.
+    
+    Body: {
+        "message": str,
+        "current_draft": dict (optional)
+    }
+    """
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        return JsonResponse({"error": "Invalid JSON"}, status=400)
+    
+    message = body.get("message", "")
+    current_draft = body.get("current_draft", {})
+    
+    if not message:
+        return JsonResponse({"error": "message is required"}, status=400)
+    
+    # Process through chat assistant
+    from .contract_chat import process_contract_chat
+    result = process_contract_chat(message, current_draft)
+    
+    return JsonResponse(result)
+
+@csrf_exempt
+@login_required
+@require_http_methods(["POST"])
+def save_contract(request):
+    """POST /api/contracts/save/ — saves a generated contract."""
+    from .models import Contract, UserProfile
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    try:
+        body = json.loads(request.body.decode("utf-8"))
+        logger.info(f"📥 Save contract request: {json.dumps(body, indent=2)[:500]}")  # ← Debug log
+    except Exception as e:
+        logger.error(f"❌ Failed to parse request body: {e}")
+        return JsonResponse({"error": f"Invalid JSON: {str(e)}"}, status=400)
+
+    contract_type = body.get("contract_type", "")
+    title = body.get("title", f"{contract_type} Contract")
+    params = body.get("params", {})
+    content = body.get("content", "")
+
+    if not content.strip():
+        logger.error("❌ Empty content received")
+        return JsonResponse({"error": "content is required"}, status=400)
+
+    try:
+        # Get or create UserProfile
+        user_profile, created = UserProfile.objects.get_or_create(user=request.user)
+        
+        # Create contract
+        contract = Contract.objects.create(
+            user=user_profile,
+            contract_type=contract_type,
+            title=title,
+            params=params,
+            content=content,
+            status="draft",
+        )
+        
+        logger.info(f"✅ Contract saved: ID={contract.id}")
+        return JsonResponse({
+            "id": contract.id, 
+            "created_at": contract.created_at.isoformat()
+        }, status=201)
+        
+    except Exception as e:
+        import traceback
+        logger.error(f"❌ Failed to save contract: {e}\n{traceback.format_exc()}")
+        return JsonResponse({"error": f"Failed to save contract: {str(e)}"}, status=500)
+
+@csrf_exempt
+@login_required
+@require_http_methods(["POST"])
 def generate_report(request):
     """
     POST /api/reports/generate/

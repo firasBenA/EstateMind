@@ -3,9 +3,12 @@ Price prediction tool - calls existing ML predictor.
 """
 from typing import Optional, Dict, Any
 import logging
-from unittest import result
+import os
 
 logger = logging.getLogger(__name__)
+
+# 🔹 Debug setting
+DEBUG_EXTRACTED_PARAMS = os.getenv("DEBUG_EXTRACTED_PARAMS", "false").lower() == "true"
 
 # Map reliability levels to numeric confidence scores
 RELIABILITY_TO_CONFIDENCE = {
@@ -30,6 +33,9 @@ def predict_price(
     has_description: bool = False,
     desc_length: int = 0,
     has_coords: bool = False,
+    # 🔹 NEW: Optional metadata parameters for debug display
+    _extraction_method: str = "regex",
+    _llm_provider: str = "unknown",
 ) -> Dict[str, Any]:
     """Predict property price using ML model."""
     try:
@@ -62,13 +68,11 @@ def predict_price(
         confidence_raw = result.get('confidence', 0.8)
         
         if isinstance(confidence_raw, str):
-            # Map reliability level string to numeric confidence
             confidence = RELIABILITY_TO_CONFIDENCE.get(
                 confidence_raw.strip().upper(),
-                0.80  # Default fallback
+                0.80
             )
         else:
-            # Already numeric
             confidence = min(1.0, max(0.0, float(confidence_raw)))
 
         # Create confidence-based range
@@ -82,13 +86,30 @@ def predict_price(
             f"Confidence: {confidence*100:.0f}%"
         )
 
-        return {
+        # 🔹 Build base response
+        response = {
             'predicted_price': round(predicted_price, 2),
             'min_estimate': round(min_estimate, 2),
             'max_estimate': round(max_estimate, 2),
-            'confidence': confidence,
+            'confidence': min(1.0, max(0.0, confidence)),
             'reasoning': reasoning,
         }
+
+        # 🔹 Add extraction metadata for debug display (only if enabled)
+        if DEBUG_EXTRACTED_PARAMS:
+            response.update({
+                '_extraction_method': _extraction_method,
+                '_llm_provider': _llm_provider,
+                '_extracted_params': {
+                    'property_type': property_type,
+                    'city': city,
+                    'surface': surface,
+                    'rooms': rooms,
+                    'transaction_type': transaction_type,
+                }
+            })
+
+        return response
 
     except ValueError as e:
         logger.error(f"Type conversion error: {str(e)}", exc_info=True)
