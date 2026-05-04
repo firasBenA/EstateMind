@@ -12,7 +12,7 @@ export const supabase = createClient(
   import.meta.env.VITE_SUPABASE_ANON_KEY ?? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFteG5vamxmY3p3ZmZ2dHd1dHJiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3MjE3NDMsImV4cCI6MjA5MTI5Nzc0M30.hxj1C-NiJ2DSWK1p_63OgYtwX2uzjSLS1osMuek9Ow0",
 );
 
-const BASE_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const BASE_URL = import.meta.env.VITE_API_URL ?? "";
 
 // ── CSRF helper ───────────────────────────────────────────────────────────────
 function getCsrfToken(): string {

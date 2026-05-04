@@ -1,0 +1,6 @@
+layer,model,accuracy,f1_macro,kappa,time_per_desc
+couche1,nlptown/bert-base-multilingual-uncased-sentiment,0.367,0.28,0.117,0.255
+couche1,lxyuan/distilbert-base-multilingual-cased-sentiments-student,0.167,0.076,0.009,0.161
+couche2,MoritzLaurer/mDeBERTa-v3-base-mnli-xnli,0.2,0.108,0.029,0.756
+couche2,cross-encoder/nli-MiniLM2-L6-H768,0.483,0.337,0.191,0.341
+couche2,facebook/bart-large-mnli,0.15,0.082,-0.037,3.2

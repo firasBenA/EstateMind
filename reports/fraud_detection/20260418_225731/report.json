@@ -1,0 +1,519 @@
+{
+  "run_id": "20260418_225731",
+  "generated_at": "2026-04-18T23:57:31.456706",
+  "model_version": "xlm_roberta_mdeberta_v1",
+  "pipeline": "DSO 2.1 — Sentiment Analysis",
+  "global_metrics": {
+    "total_listings": 1000,
+    "fraud_high_count": 0,
+    "fraud_likely_count": 3,
+    "suspect_count": 504,
+    "normal_count": 493,
+    "fraud_rate_pct": 0.3,
+    "avg_fraud_score": 27.29,
+    "avg_sentiment_score": 0.2131,
+    "avg_zero_shot_score": 0.3613,
+    "avg_linguistic_score": 0.2448,
+    "sentiment_distribution": {
+      "positive": 558,
+      "negative": 381,
+      "neutral": 61
+    },
+    "top_flags": [
+      [
+        "description_too_short",
+        266
+      ],
+      [
+        "information_incomplete",
+        266
+      ],
+      [
+        "external_contact",
+        208
+      ],
+      [
+        "no_images_suspicious",
+        205
+      ],
+      [
+        "urgency_detected",
+        193
+      ],
+      [
+        "vague_description",
+        3
+      ],
+      [
+        "strong_negative_sentiment",
+        1
+      ]
+    ],
+    "risk_distribution": {
+      "suspect": 504,
+      "normal": 493,
+      "fraud_likely": 3
+    }
+  },
+  "regional_metrics": [
+    {
+      "region": "ARIANA",
+      "total": 62,
+      "fraud_count": 1,
+      "fraud_rate_pct": 1.61,
+      "avg_fraud_score": 25.62
+    },
+    {
+      "region": "TUNIS",
+      "total": 210,
+      "fraud_count": 1,
+      "fraud_rate_pct": 0.48,
+      "avg_fraud_score": 33.04
+    },
+    {
+      "region": "Ariana",
+      "total": 30,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 20.67
+    },
+    {
+      "region": "BEN AROUS",
+      "total": 6,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 14.29
+    },
+    {
+      "region": "BIZERTE",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 21.94
+    },
+    {
+      "region": "Cap Bon",
+      "total": 2,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 18.81
+    },
+    {
+      "region": "MEDENINE",
+      "total": 2,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 16.86
+    },
+    {
+      "region": "MONASTIR",
+      "total": 5,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 24.07
+    },
+    {
+      "region": "Manouba",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 34.8
+    },
+    {
+      "region": "NABEUL",
+      "total": 16,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 21.09
+    },
+    {
+      "region": "Nabeul",
+      "total": 5,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 15.99
+    },
+    {
+      "region": "SFAX",
+      "total": 2,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 23.74
+    },
+    {
+      "region": "SOUSSE",
+      "total": 35,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 36.36
+    },
+    {
+      "region": "Sousse",
+      "total": 3,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 21.87
+    },
+    {
+      "region": "Tunis",
+      "total": 111,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 19.28
+    },
+    {
+      "region": "ZAGHOUAN",
+      "total": 4,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 32.94
+    }
+  ],
+  "top_suspicious": [
+    {
+      "property_id": "affare_257932",
+      "source_name": "affare",
+      "fraud_score": 55.28,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.806,
+      "zero_shot_fraud_score": 0.4441,
+      "linguistic_score": 0.3,
+      "fraud_flags": [
+        "urgency_detected",
+        "strong_negative_sentiment"
+      ],
+      "region": "ARIANA",
+      "price": null,
+      "description_preview": "Description­ƒÅó ├Ç Vendre ÔÇô D├®p├┤t 70 m┬▓ ├á EnnasrOpportunit├® ├á saisir ! D├®p├┤t de 70 m┬▓ au sous-sol dÔÇÖune r├®"
+    },
+    {
+      "property_id": "affare_257950",
+      "source_name": "affare",
+      "fraud_score": 53.44,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6432,
+      "zero_shot_fraud_score": 0.399,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": "DescriptionMahjoub met en vente┬ámaison 2 ├®tages ├á zarzouna BizerteDocuments Fournis :┬átitre individuelPrix de vente "
+    },
+    {
+      "property_id": "tunisieannonce_a6872469f2d2",
+      "source_name": "tunisieannonce",
+      "fraud_score": 52.17,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6059,
+      "zero_shot_fraud_score": 0.4054,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 600.0,
+      "description_preview": "├á louer un studio s1 meubl├® situ├® ├á rades ben arous son emplacement est r├®sidentiel. loyer 600 dt contacter le 53 3"
+    },
+    {
+      "property_id": "affare_254771",
+      "source_name": "affare",
+      "fraud_score": 50.79,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4722,
+      "zero_shot_fraud_score": 0.3759,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 340000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬áterrain┬"
+    },
+    {
+      "property_id": "affare_257808",
+      "source_name": "affare",
+      "fraud_score": 49.31,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4389,
+      "zero_shot_fraud_score": 0.3715,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 850000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬áterrain┬"
+    },
+    {
+      "property_id": "affare_257804",
+      "source_name": "affare",
+      "fraud_score": 48.87,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.405,
+      "zero_shot_fraud_score": 0.3977,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 580000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áYasmine┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬"
+    },
+    {
+      "property_id": "affare_235663",
+      "source_name": "affare",
+      "fraud_score": 48.24,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3855,
+      "zero_shot_fraud_score": 0.4021,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 950000.0,
+      "description_preview": "DescriptionMahjoub met en vente Une villa en phase finale de construction est disponible ├á la vente, situ├®e sur la rou"
+    },
+    {
+      "property_id": "affare_257803",
+      "source_name": "affare",
+      "fraud_score": 47.84,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.3892,
+      "zero_shot_fraud_score": 0.3862,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "NABEUL",
+      "price": 830000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammamet┬ác├┤t├®┬ásudElle┬ásÔÇÖ├®tend┬ásur┬"
+    },
+    {
+      "property_id": "mubawab_8309582",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_8320001",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "ARIANA",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_8323438",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_8106603",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_8134835",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_8105627",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_7477759",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_7120194",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_7531072",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_7451290",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_7731750",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": "TUNIS",
+      "price": null,
+      "description_preview": ""
+    },
+    {
+      "property_id": "mubawab_7600872",
+      "source_name": "mubawab",
+      "fraud_score": 47.73,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.35,
+      "fraud_flags": [
+        "description_too_short",
+        "information_incomplete"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": ""
+    }
+  ]
+}

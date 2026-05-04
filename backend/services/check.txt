@@ -1,0 +1,181 @@
+Request URL
+http://localhost:8081/api/session/
+Request Method
+GET
+Status Code
+500 Internal Server Error
+Remote Address
+[::1]:8081
+Referrer Policy
+strict-origin-when-cross-origin
+connection
+keep-alive
+content-type
+text/plain
+date
+Mon, 04 May 2026 08:52:51 GMT
+keep-alive
+timeout=5
+transfer-encoding
+chunked
+vary
+Origin
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,ar;q=0.6,id;q=0.5,es;q=0.4,de;q=0.3,tr;q=0.2,th;q=0.1
+connection
+keep-alive
+content-type
+application/json
+cookie
+csrftoken=FACmZkfddPAiWdbskzLeDQaigfG8pZR1
+host
+localhost:8081
+referer
+http://localhost:8081/login
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Opera GX";v="130"
+sec-ch-ua-mobile
+?1
+sec-ch-ua-platform
+"Android"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-origin
+user-agent
+Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36 this is the session call 
+Request URL
+http://localhost:8000/accounts/login/?next=/api/user/stats/
+Request Method
+GET
+Status Code
+500 Internal Server Error
+Remote Address
+[::1]:8000
+Referrer Policy
+same-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:8081
+connection
+close
+content-length
+145
+content-type
+text/html; charset=utf-8
+cross-origin-opener-policy
+same-origin
+date
+Mon, 04 May 2026 08:57:55 GMT
+referrer-policy
+same-origin
+server
+gunicorn
+vary
+origin
+x-content-type-options
+nosniff
+x-frame-options
+DENY
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,ar;q=0.6,id;q=0.5,es;q=0.4,de;q=0.3,tr;q=0.2,th;q=0.1
+connection
+keep-alive
+content-type
+application/json
+cookie
+csrftoken=BPgFofS4orpYnKpDyxZJQajlTwh5NqEN
+host
+localhost:8000
+origin
+http://localhost:8081
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Opera GX";v="130"
+sec-ch-ua-mobile
+?1
+sec-ch-ua-platform
+"Android"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-site
+user-agent
+Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36
+
+Request URL
+http://localhost:8000/accounts/login/?next=/api/user/activity/
+Request Method
+GET
+Status Code
+500 Internal Server Error
+Remote Address
+[::1]:8000
+Referrer Policy
+same-origin
+access-control-allow-credentials
+true
+access-control-allow-origin
+http://localhost:8081
+connection
+close
+content-length
+145
+content-type
+text/html; charset=utf-8
+cross-origin-opener-policy
+same-origin
+date
+Mon, 04 May 2026 08:57:55 GMT
+referrer-policy
+same-origin
+server
+gunicorn
+vary
+origin
+x-content-type-options
+nosniff
+x-frame-options
+DENY
+accept
+*/*
+accept-encoding
+gzip, deflate, br, zstd
+accept-language
+fr-FR,fr;q=0.9,en-US;q=0.8,en;q=0.7,ar;q=0.6,id;q=0.5,es;q=0.4,de;q=0.3,tr;q=0.2,th;q=0.1
+connection
+keep-alive
+content-type
+application/json
+cookie
+csrftoken=BPgFofS4orpYnKpDyxZJQajlTwh5NqEN
+host
+localhost:8000
+origin
+http://localhost:8081
+sec-ch-ua
+"Chromium";v="146", "Not-A.Brand";v="24", "Opera GX";v="130"
+sec-ch-ua-mobile
+?1
+sec-ch-ua-platform
+"Android"
+sec-fetch-dest
+empty
+sec-fetch-mode
+cors
+sec-fetch-site
+same-site
+user-agent
+Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36

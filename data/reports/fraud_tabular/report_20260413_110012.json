@@ -1,0 +1,398 @@
+{
+  "run_id": "20260413_110012",
+  "generated_at": "2026-04-13T11:00:12.193532",
+  "model": "IsolationForest v2 (sigmoid fraud_score, regional)",
+  "global_metrics": {
+    "total_listings": 5005,
+    "n_anomalies": 253,
+    "anomaly_rate_pct": 5.05,
+    "fraud_score_stats": {
+      "mean": 14.11,
+      "std": 16.41,
+      "min": 2.23,
+      "p25": 4.15,
+      "median": 7.42,
+      "p75": 16.87,
+      "max": 98.07
+    },
+    "risk_level_distribution": {
+      "normal": 3973,
+      "suspect": 730,
+      "fraud_likely": 169,
+      "fraud_high": 76
+    },
+    "top_fraud_flags": {
+      "no_images_high_price": 1323,
+      "description_too_short": 463,
+      "price_too_high_for_region": 106,
+      "extreme_price_per_m2": 55,
+      "rooms_surface_inconsistent": 16,
+      "suspected_test_price": 14
+    }
+  },
+  "regional_metrics": {
+    "medenine": {
+      "total": 2,
+      "n_anomalies": 1,
+      "anomaly_rate": 50.0,
+      "avg_fraud_score": 45.61,
+      "top_flags": {
+        "no_images_high_price": 2
+      }
+    },
+    "ben arous": {
+      "total": 8,
+      "n_anomalies": 1,
+      "anomaly_rate": 12.5,
+      "avg_fraud_score": 26.91,
+      "top_flags": {
+        "no_images_high_price": 1
+      }
+    },
+    "cap bon": {
+      "total": 48,
+      "n_anomalies": 3,
+      "anomaly_rate": 6.25,
+      "avg_fraud_score": 25.88,
+      "top_flags": {
+        "no_images_high_price": 6,
+        "price_too_high_for_region": 1,
+        "extreme_price_per_m2": 1
+      }
+    },
+    "sousse": {
+      "total": 54,
+      "n_anomalies": 3,
+      "anomaly_rate": 5.56,
+      "avg_fraud_score": 18.26,
+      "top_flags": {
+        "no_images_high_price": 21,
+        "description_too_short": 3
+      }
+    },
+    "nabeul": {
+      "total": 74,
+      "n_anomalies": 4,
+      "anomaly_rate": 5.41,
+      "avg_fraud_score": 17.47,
+      "top_flags": {
+        "no_images_high_price": 12,
+        "description_too_short": 1
+      }
+    },
+    "unknown": {
+      "total": 906,
+      "n_anomalies": 46,
+      "anomaly_rate": 5.08,
+      "avg_fraud_score": 15.06,
+      "top_flags": {
+        "no_images_high_price": 355,
+        "description_too_short": 335,
+        "extreme_price_per_m2": 14,
+        "rooms_surface_inconsistent": 3
+      }
+    },
+    "ariana": {
+      "total": 237,
+      "n_anomalies": 12,
+      "anomaly_rate": 5.06,
+      "avg_fraud_score": 20.8,
+      "top_flags": {
+        "no_images_high_price": 45,
+        "description_too_short": 9,
+        "price_too_high_for_region": 5,
+        "extreme_price_per_m2": 2
+      }
+    },
+    "tunis": {
+      "total": 3655,
+      "n_anomalies": 183,
+      "anomaly_rate": 5.01,
+      "avg_fraud_score": 13.11,
+      "top_flags": {
+        "no_images_high_price": 878,
+        "description_too_short": 115,
+        "price_too_high_for_region": 100,
+        "extreme_price_per_m2": 38,
+        "suspected_test_price": 14
+      }
+    },
+    "bizerte": {
+      "total": 1,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 11.68,
+      "top_flags": {}
+    },
+    "kasserine": {
+      "total": 1,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 4.69,
+      "top_flags": {}
+    },
+    "mannouba": {
+      "total": 3,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 19.01,
+      "top_flags": {}
+    },
+    "manouba": {
+      "total": 1,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 24.76,
+      "top_flags": {
+        "no_images_high_price": 1
+      }
+    },
+    "monastir": {
+      "total": 6,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 6.44,
+      "top_flags": {}
+    },
+    "sfax": {
+      "total": 3,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 36.69,
+      "top_flags": {}
+    },
+    "zaghouan": {
+      "total": 6,
+      "n_anomalies": 0,
+      "anomaly_rate": 0.0,
+      "avg_fraud_score": 10.49,
+      "top_flags": {
+        "rooms_surface_inconsistent": 6,
+        "no_images_high_price": 2
+      }
+    }
+  },
+  "top_20_suspicious": [
+    {
+      "property_id": "century21_fa23a476f621",
+      "source_name": "century21",
+      "fraud_score": 98.07,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "rooms_surface_inconsistent",
+        "extreme_price_per_m2"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1963
+    },
+    {
+      "property_id": "century21_f77de57bee4f",
+      "source_name": "century21",
+      "fraud_score": 97.8,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1898
+    },
+    {
+      "property_id": "century21_56323e22b752",
+      "source_name": "century21",
+      "fraud_score": 97.33,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1797
+    },
+    {
+      "property_id": "century21_e5b823de522f",
+      "source_name": "century21",
+      "fraud_score": 96.88,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1719
+    },
+    {
+      "property_id": "affare_259842",
+      "source_name": "affare",
+      "fraud_score": 96.5,
+      "is_anomaly": true,
+      "fraud_flags": [],
+      "region_norm": "unknown",
+      "anomaly_score": -0.1658
+    },
+    {
+      "property_id": "affare_8200",
+      "source_name": "affare",
+      "fraud_score": 95.96,
+      "is_anomaly": true,
+      "fraud_flags": [],
+      "region_norm": "unknown",
+      "anomaly_score": -0.1584
+    },
+    {
+      "property_id": "century21_ffd642e8de7d",
+      "source_name": "century21",
+      "fraud_score": 95.92,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "no_images_high_price",
+        "extreme_price_per_m2",
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1579
+    },
+    {
+      "property_id": "century21_915ad19ef558",
+      "source_name": "century21",
+      "fraud_score": 95.87,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1572
+    },
+    {
+      "property_id": "century21_67a436262ac3",
+      "source_name": "century21",
+      "fraud_score": 95.06,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1478
+    },
+    {
+      "property_id": "century21_b5c0f1ddb8d2",
+      "source_name": "century21",
+      "fraud_score": 94.72,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1444
+    },
+    {
+      "property_id": "century21_bd89dbaf14b8",
+      "source_name": "century21",
+      "fraud_score": 94.63,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1435
+    },
+    {
+      "property_id": "tunisieannonce_0c226ed4006a",
+      "source_name": "tunisieannonce",
+      "fraud_score": 94.14,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "extreme_price_per_m2",
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1388
+    },
+    {
+      "property_id": "affare_186134",
+      "source_name": "affare",
+      "fraud_score": 93.96,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "extreme_price_per_m2"
+      ],
+      "region_norm": "unknown",
+      "anomaly_score": -0.1373
+    },
+    {
+      "property_id": "century21_fc7f9af2fe34",
+      "source_name": "century21",
+      "fraud_score": 93.8,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1358
+    },
+    {
+      "property_id": "century21_66561502f479",
+      "source_name": "century21",
+      "fraud_score": 93.78,
+      "is_anomaly": true,
+      "fraud_flags": [],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1357
+    },
+    {
+      "property_id": "44855",
+      "source_name": "tecnocasa",
+      "fraud_score": 93.67,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "cap bon",
+      "anomaly_score": -0.1348
+    },
+    {
+      "property_id": "tunisieannonce_56fda5e89195",
+      "source_name": "tunisieannonce",
+      "fraud_score": 93.52,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "no_images_high_price",
+        "extreme_price_per_m2"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1335
+    },
+    {
+      "property_id": "century21_d189a1535ad2",
+      "source_name": "century21",
+      "fraud_score": 93.14,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1304
+    },
+    {
+      "property_id": "tunisieannonce_95d97f5d7d8f",
+      "source_name": "tunisieannonce",
+      "fraud_score": 92.99,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "no_images_high_price",
+        "rooms_surface_inconsistent",
+        "extreme_price_per_m2"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1293
+    },
+    {
+      "property_id": "century21_1c6168d6577f",
+      "source_name": "century21",
+      "fraud_score": 92.78,
+      "is_anomaly": true,
+      "fraud_flags": [
+        "price_too_high_for_region"
+      ],
+      "region_norm": "tunis",
+      "anomaly_score": -0.1277
+    }
+  ]
+}

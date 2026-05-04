@@ -1,0 +1,541 @@
+{
+  "run_id": "20260418_234328",
+  "generated_at": "2026-04-19T00:43:28.546979",
+  "model_version": "xlm_roberta_mdeberta_v1",
+  "pipeline": "DSO 2.1 — Sentiment Analysis",
+  "global_metrics": {
+    "total_listings": 5000,
+    "fraud_high_count": 0,
+    "fraud_likely_count": 11,
+    "suspect_count": 2118,
+    "normal_count": 2871,
+    "fraud_rate_pct": 0.22,
+    "avg_fraud_score": 22.73,
+    "avg_sentiment_score": 0.1098,
+    "avg_zero_shot_score": 0.3524,
+    "avg_linguistic_score": 0.2403,
+    "sentiment_distribution": {
+      "positive": 3573,
+      "negative": 1089,
+      "neutral": 338
+    },
+    "top_flags": [
+      [
+        "external_contact",
+        1551
+      ],
+      [
+        "no_images_suspicious",
+        1353
+      ],
+      [
+        "urgency_detected",
+        1239
+      ],
+      [
+        "information_incomplete",
+        466
+      ],
+      [
+        "description_too_short",
+        463
+      ],
+      [
+        "vague_description",
+        35
+      ],
+      [
+        "strong_negative_sentiment",
+        5
+      ]
+    ],
+    "risk_distribution": {
+      "normal": 2871,
+      "suspect": 2118,
+      "fraud_likely": 11
+    }
+  },
+  "regional_metrics": [
+    {
+      "region": "ARIANA",
+      "total": 91,
+      "fraud_count": 1,
+      "fraud_rate_pct": 1.1,
+      "avg_fraud_score": 24.15
+    },
+    {
+      "region": "TUNIS",
+      "total": 3319,
+      "fraud_count": 7,
+      "fraud_rate_pct": 0.21,
+      "avg_fraud_score": 21.09
+    },
+    {
+      "region": "Ariana",
+      "total": 146,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 22.05
+    },
+    {
+      "region": "BEN AROUS",
+      "total": 6,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 14.29
+    },
+    {
+      "region": "BIZERTE",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 21.94
+    },
+    {
+      "region": "Ben Arous",
+      "total": 2,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 22.42
+    },
+    {
+      "region": "Cap Bon",
+      "total": 48,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 16.48
+    },
+    {
+      "region": "KASSERINE",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 29.5
+    },
+    {
+      "region": "MEDENINE",
+      "total": 2,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 16.86
+    },
+    {
+      "region": "MONASTIR",
+      "total": 6,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 23.6
+    },
+    {
+      "region": "Mannouba",
+      "total": 3,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 21.32
+    },
+    {
+      "region": "Manouba",
+      "total": 1,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 34.8
+    },
+    {
+      "region": "NABEUL",
+      "total": 29,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 20.5
+    },
+    {
+      "region": "Nabeul",
+      "total": 45,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 18.69
+    },
+    {
+      "region": "SFAX",
+      "total": 3,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 22.85
+    },
+    {
+      "region": "SOUSSE",
+      "total": 47,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 36.11
+    },
+    {
+      "region": "Sousse",
+      "total": 7,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 22.29
+    },
+    {
+      "region": "Tunis",
+      "total": 336,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 20.3
+    },
+    {
+      "region": "ZAGHOUAN",
+      "total": 6,
+      "fraud_count": 0,
+      "fraud_rate_pct": 0.0,
+      "avg_fraud_score": 30.83
+    }
+  ],
+  "top_suspicious": [
+    {
+      "property_id": "affare_257932",
+      "source_name": "affare",
+      "fraud_score": 55.28,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.806,
+      "zero_shot_fraud_score": 0.4441,
+      "linguistic_score": 0.3,
+      "fraud_flags": [
+        "urgency_detected",
+        "strong_negative_sentiment"
+      ],
+      "region": "ARIANA",
+      "price": null,
+      "description_preview": "Description­ƒÅó ├Ç Vendre ÔÇô D├®p├┤t 70 m┬▓ ├á EnnasrOpportunit├® ├á saisir ! D├®p├┤t de 70 m┬▓ au sous-sol dÔÇÖune r├®"
+    },
+    {
+      "property_id": "tunisieannonce_c70d943ec3d5",
+      "source_name": "tunisieannonce",
+      "fraud_score": 54.24,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6618,
+      "zero_shot_fraud_score": 0.4004,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 800.0,
+      "description_preview": "├á louer une villa s4 situ├®e ├á el mourouj 4 ben arous son emplacement est r├®sidentiel loyer mensuel : 800dt contacter"
+    },
+    {
+      "property_id": "tunisieannonce_4efd6cf929c7",
+      "source_name": "tunisieannonce",
+      "fraud_score": 53.49,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.658,
+      "zero_shot_fraud_score": 0.3834,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 600.0,
+      "description_preview": "├á louer un studio s1 situ├® ├á megrine ben arous son emplacement est r├®sidentiel ├á proximit├® de toutes les n├®cessit"
+    },
+    {
+      "property_id": "affare_257950",
+      "source_name": "affare",
+      "fraud_score": 53.44,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6432,
+      "zero_shot_fraud_score": 0.399,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": null,
+      "price": null,
+      "description_preview": "DescriptionMahjoub met en vente┬ámaison 2 ├®tages ├á zarzouna BizerteDocuments Fournis :┬átitre individuelPrix de vente "
+    },
+    {
+      "property_id": "tunisieannonce_24e1fa8bb351",
+      "source_name": "tunisieannonce",
+      "fraud_score": 53.14,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6335,
+      "zero_shot_fraud_score": 0.4013,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 600.0,
+      "description_preview": "├á louer un un s+1 situ├® ├á rades ben arous son emplacement est r├®sidentiel loyer mensuel : 600 dt contacter le 53 33 "
+    },
+    {
+      "property_id": "verdar_91041",
+      "source_name": "verdar",
+      "fraud_score": 52.73,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6269,
+      "zero_shot_fraud_score": 0.3972,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "description_too_short",
+        "no_images_suspicious",
+        "information_incomplete"
+      ],
+      "region": null,
+      "price": 880000.0,
+      "description_preview": ""
+    },
+    {
+      "property_id": "affare_259831",
+      "source_name": "affare",
+      "fraud_score": 52.73,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6511,
+      "zero_shot_fraud_score": 0.3695,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": null,
+      "price": 700.0,
+      "description_preview": "DescriptionÔ£àStudio jamais habit├® richement meubl├® id├®alement situ├® ├á corniche pr├®s de la mer\nÔ£àproximit├® de to"
+    },
+    {
+      "property_id": "tunisieannonce_a6872469f2d2",
+      "source_name": "tunisieannonce",
+      "fraud_score": 52.17,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6059,
+      "zero_shot_fraud_score": 0.4054,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 600.0,
+      "description_preview": "├á louer un studio s1 meubl├® situ├® ├á rades ben arous son emplacement est r├®sidentiel. loyer 600 dt contacter le 53 3"
+    },
+    {
+      "property_id": "tunisieannonce_8e5ae426d5b1",
+      "source_name": "tunisieannonce",
+      "fraud_score": 51.58,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.5951,
+      "zero_shot_fraud_score": 0.4007,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 450.0,
+      "description_preview": "├á louer un studio s1 situ├® ├á mourouj 3 son emplacement est r├®sidentiel loyer 460! dt contacter le 53 33 85 15 le wha"
+    },
+    {
+      "property_id": "tunisieannonce_a152c7a31f67",
+      "source_name": "tunisieannonce",
+      "fraud_score": 51.47,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6257,
+      "zero_shot_fraud_score": 0.3625,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 750.0,
+      "description_preview": "├á louer une maison s2 situ├®e ├á rades ben arous son emplacement est r├®sidentiel ├á proximit├® de toutes les n├®cessit"
+    },
+    {
+      "property_id": "tunisieannonce_860b0b30da10",
+      "source_name": "tunisieannonce",
+      "fraud_score": 51.41,
+      "risk_level": "fraud_likely",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6311,
+      "zero_shot_fraud_score": 0.3548,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 550.0,
+      "description_preview": "a louer appartement s+2 au mourouj 1 au 3eme ├®tage a la cit├® errawtha pour planifier une visite veuillez appeler le 98"
+    },
+    {
+      "property_id": "tunisieannonce_5a7020f9b898",
+      "source_name": "tunisieannonce",
+      "fraud_score": 50.91,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.604,
+      "zero_shot_fraud_score": 0.3715,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 900.0,
+      "description_preview": "├á louer un appartement s3 situ├® ├á el mourouj 2 il est situ├® au 1 er ├®tage loyer mensuel 900 dt contacter le 53 33 8"
+    },
+    {
+      "property_id": "affare_254771",
+      "source_name": "affare",
+      "fraud_score": 50.79,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4722,
+      "zero_shot_fraud_score": 0.3759,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": null,
+      "price": 340000.0,
+      "description_preview": "Description├Ç┬ávendre┬áchez┬áGreenImmobilierune┬ádemeure┬ábien┬ásitu├®e┬á├á┬áHammametElle┬ásÔÇÖ├®tend┬ásur┬áun┬áterrain┬"
+    },
+    {
+      "property_id": "tunisieannonce_45d4cd751bb9",
+      "source_name": "tunisieannonce",
+      "fraud_score": 50.13,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4743,
+      "zero_shot_fraud_score": 0.3546,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "TUNIS",
+      "price": 520000.0,
+      "description_preview": "a vendre une villa ├á ariana sup├®rieur qui contient en rez de chauss├®e un un jardin d'enfant et un studio( un revenu m"
+    },
+    {
+      "property_id": "tunisieannonce_4bd7b4952bc9",
+      "source_name": "tunisieannonce",
+      "fraud_score": 50.08,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4461,
+      "zero_shot_fraud_score": 0.3853,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "TUNIS",
+      "price": 840000.0,
+      "description_preview": "particulier met en vente un terrain de 5567m┬▓ prix de m┬▓ 150d papier en r├¿gle tel et whatsapp 29 026 400 notre r├┤le "
+    },
+    {
+      "property_id": "tunisieannonce_69a3507e2f9e",
+      "source_name": "tunisieannonce",
+      "fraud_score": 50.07,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4909,
+      "zero_shot_fraud_score": 0.3339,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "TUNIS",
+      "price": 400000.0,
+      "description_preview": "a vendre  petit immeuble  inachev├®  r+2  zone  industrielle el bokri  avec autorisation de nature valable pour deux ans"
+    },
+    {
+      "property_id": "tunisieannonce_9c4c7ea49485",
+      "source_name": "tunisieannonce",
+      "fraud_score": 50.03,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.5661,
+      "zero_shot_fraud_score": 0.3895,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 550.0,
+      "description_preview": "├á louer un studio s1 situ├® ├á hammem lif ben arous son emplacement est r├®sidentiel loyer 550 dt contacter le 53 33 85"
+    },
+    {
+      "property_id": "tunisieannonce_2c49fbcbc845",
+      "source_name": "tunisieannonce",
+      "fraud_score": 49.85,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.6749,
+      "zero_shot_fraud_score": 0.3315,
+      "linguistic_score": 0.45,
+      "fraud_flags": [
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "TUNIS",
+      "price": 270000.0,
+      "description_preview": "votre agence vous propose a la vente maison rdc avec un 1ere ├®tage inachev├® a quelque minute de toutes commodit├® de v"
+    },
+    {
+      "property_id": "tunisieannonce_fbca2c33df75",
+      "source_name": "tunisieannonce",
+      "fraud_score": 49.69,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.5505,
+      "zero_shot_fraud_score": 0.3976,
+      "linguistic_score": 0.55,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact"
+      ],
+      "region": "TUNIS",
+      "price": 1200.0,
+      "description_preview": "├á louer une maison s3 situ├®e ├á megrine ben arous son emplacement est r├®sidentiel loyer 1200 dt contacter le 53 33 85"
+    },
+    {
+      "property_id": "tunisieannonce_67522c568828",
+      "source_name": "tunisieannonce",
+      "fraud_score": 49.68,
+      "risk_level": "suspect",
+      "sentiment_label": "negative",
+      "sentiment_score": 0.4278,
+      "zero_shot_fraud_score": 0.3948,
+      "linguistic_score": 0.75,
+      "fraud_flags": [
+        "urgency_detected",
+        "external_contact",
+        "no_images_suspicious"
+      ],
+      "region": "TUNIS",
+      "price": 853200.0,
+      "description_preview": "#la st├® akariet sarraj propose #a vendre #terrain constructible (#711m┬▓) de vocation (#r+2) avec #permis de b├ótir (9 "
+    }
+  ]
+}

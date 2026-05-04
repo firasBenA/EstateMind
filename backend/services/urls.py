@@ -25,6 +25,8 @@ from .view_validation import (
     auto_correct_delegation
 )
 
+
+
 urlpatterns = [
     # ── Public: listings ────────────────────────────────────────────────────
     # IMPORTANT: Place specific paths BEFORE generic ones
@@ -131,4 +133,17 @@ urlpatterns = [
     # ⚠️ À GARDER (pour les rapports AI)
     path('api/ai/macro-forecast/', get_macro_forecast, name='ai_macro_forecast'),
     
+    path('api/ai/status/', get_model_status, name='ai_status'),
+
+
+        # ── Fraud detection (DSO 2.2) ─────────────────────────────────────────────
+    path("api/fraud/summary/",  views.fraud_summary_api,  name="fraud_summary"),
+    path("api/fraud/listings/", views.fraud_listings_api, name="fraud_listings"),
+    path("api/fraud/flags/",    views.fraud_flags_api,    name="fraud_flags"),
+    path('api/listing/fraud-score/<str:listing_id>/', views.get_listing_fraud_score, name='listing_fraud_score'),
+    path('api/listing/fraud-description/<str:listing_id>/', views.get_listing_fraud_desc, name='listing_fraud_description'),
+    path("api/fraud/text-summary/", views.text_fraud_summary, name="text_fraud_summary"),
+    path("api/fraud/text-listings/", views.text_fraud_listings, name="text_fraud_listings"),  
+    path("api/fraud/text-rules/", views.text_fraud_rules, name="text_fraud_rules"),
+ 
 ]

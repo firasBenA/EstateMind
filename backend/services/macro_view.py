@@ -9,7 +9,18 @@ import numpy as np
 from datetime import datetime , timedelta
 
 
-@login_required
+from functools import wraps
+from django.http import JsonResponse
+
+def api_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Authentication required"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+@api_login_required
 def macro_impact_api(request):
     """
     API pour les graphiques macroéconomiques
@@ -60,7 +71,7 @@ def macro_impact_api(request):
     })
 
 
-@login_required
+@api_login_required
 def macro_summary_api(request):
     """Résumé des indicateurs macro pour les cartes du dashboard"""
     
@@ -92,7 +103,7 @@ def macro_summary_api(request):
 
 
 
-@login_required
+@api_login_required
 def prophet_forecast_api(request):
     """
     API pour récupérer les données des graphiques Prophet
@@ -167,7 +178,7 @@ def prophet_forecast_api(request):
     })
 
 
-@login_required
+@api_login_required
 def model_metrics_api(request):
     """
     API pour les métriques des modèles - 100% DYNAMIQUE

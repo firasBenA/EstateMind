@@ -16,7 +16,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import DashboardOverview from "./pages/dashboard/DashboardOverview";
 import ListingsManager from "./pages/dashboard/ListingsManager";
-import FraudCenter from "./pages/dashboard/FraudCenter";
+import FraudDash from "./pages/dashboard/FraudDashboard";
 import AnalyticsPage from "./pages/dashboard/AnalyticsPage";
 import PipelinePage from "./pages/dashboard/PipelinePage";
 import SettingsPage from "./pages/dashboard/SettingsPage";
@@ -91,7 +91,7 @@ const App = () => (
               {/* Admin Dashboard */}
               <Route path="/dashboard" element={<ProtectedRoute><DashboardOverview /></ProtectedRoute>} />
               <Route path="/dashboard/listings" element={<ProtectedRoute><ListingsManager /></ProtectedRoute>} />
-              <Route path="/dashboard/fraud" element={<ProtectedRoute><FraudCenter /></ProtectedRoute>} />
+              <Route path="/dashboard/fraud" element={<ProtectedRoute><FraudDash /></ProtectedRoute>} />
               <Route path="/dashboard/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/dashboard/pipeline" element={<ProtectedRoute><PipelinePage /></ProtectedRoute>} />
               <Route path="/dashboard/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />

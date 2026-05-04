@@ -5,7 +5,7 @@ Step 1: Public listings API (GET /api/listings/, GET /api/listings/<id>/)
 Step 2: Auth with UserProfile (register, login, logout, session)
         + existing EDA / metrics / quality endpoints → PostgreSQL via ORM
 """
-from asyncio.windows_events import NULL
+
 import json
 import re
 from datetime import date, timedelta
@@ -52,6 +52,9 @@ except ImportError:
     compute_score = None
 
 from models.prediction_models.predictor import get_predictor
+
+
+from .fraud_service import get_fraud_score_for_listing, analyze_listing_description_by_id
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
@@ -144,6 +147,17 @@ def _listing_to_dict(l: "Listing") -> dict:
 # ─────────────────────────────────────────────────────────────────────────────
 # Step 1 — Public listings endpoints
 # ─────────────────────────────────────────────────────────────────────────────
+
+from functools import wraps
+from django.http import JsonResponse
+
+def api_login_required(view_func):
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return JsonResponse({"error": "Authentication required"}, status=401)
+        return view_func(request, *args, **kwargs)
+    return wrapper
 
 def listings_list(request):
     """
@@ -433,12 +447,40 @@ def api_register(request):
     return JsonResponse(_session_payload(user), status=201)
 
 
+# @csrf_exempt
+# @require_http_methods(["POST"])
+# def api_login(request):
+#     """POST /api/login/  { email, password }"""
+#     data     = _json_body(request)
+#     email    = (data.get("email") or "").strip().lower()
+#     password = data.get("password") or ""
+
+#     if not email or not password:
+#         return JsonResponse({"error": "Email et mot de passe requis."}, status=400)
+
+#     try:
+#         user_obj = User.objects.get(email__iexact=email)
+#     except User.DoesNotExist:
+#         return JsonResponse({"error": "Identifiants invalides."}, status=400)
+
+#     user = authenticate(request, username=user_obj.username, password=password)
+#     if user is None:
+#         return JsonResponse({"error": "Identifiants invalides."}, status=400)
+#     if not user.is_active:
+#         return JsonResponse({"error": "Compte désactivé."}, status=403)
+
+#     login(request, user)
+#     return JsonResponse(_session_payload(user))
+
+
+# services/views.py - Replace your api_login function
+
 @csrf_exempt
 @require_http_methods(["POST"])
 def api_login(request):
-    """POST /api/login/  { email, password }"""
-    data     = _json_body(request)
-    email    = (data.get("email") or "").strip().lower()
+    """POST /api/login/ - Fixed for Docker cross-origin"""
+    data = _json_body(request)
+    email = (data.get("email") or "").strip().lower()
     password = data.get("password") or ""
 
     if not email or not password:
@@ -455,9 +497,46 @@ def api_login(request):
     if not user.is_active:
         return JsonResponse({"error": "Compte désactivé."}, status=403)
 
+    # Perform login
     login(request, user)
-    return JsonResponse(_session_payload(user))
-
+    
+    # CRITICAL: Save the session explicitly
+    request.session.save()
+    
+    # Create response
+    response = JsonResponse(_session_payload(user))
+    
+    # CRITICAL: Manually set session cookie with correct parameters for Docker
+    # This ensures the cookie works across ports (8081 -> 8000)
+    response.set_cookie(
+        'sessionid',
+        request.session.session_key,
+        max_age=7 * 24 * 60 * 60,  # 7 days
+        httponly=True,
+        samesite='Lax',  # 'Lax' works better for cross-port than 'None'
+        secure=False,     # Must be False for HTTP
+        path='/',
+        domain=None       # Allow localhost
+    )
+    
+    # Also set CSRF cookie
+    from django.middleware.csrf import get_token
+    csrf_token = get_token(request)
+    response.set_cookie(
+        'csrftoken',
+        csrf_token,
+        max_age=7 * 24 * 60 * 60,
+        httponly=False,   # Must be False for JavaScript to read
+        samesite='Lax',
+        secure=False,
+        path='/'
+    )
+    
+    print(f"[DEBUG] Login successful for {email}")
+    print(f"[DEBUG] Session key: {request.session.session_key}")
+    print(f"[DEBUG] Cookie set: sessionid={request.session.session_key[:20]}...")
+    
+    return response
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -467,11 +546,17 @@ def api_logout(request):
 
 
 def api_session(request):
-    """GET /api/session/ — returns current user or 401"""
+    """GET /api/session/ - Check authentication status"""
+    print(f"[DEBUG] Session check - Session key: {request.session.session_key}")
+    print(f"[DEBUG] User: {request.user}")
+    print(f"[DEBUG] Is authenticated: {request.user.is_authenticated}")
+    print(f"[DEBUG] Cookies in request: {request.COOKIES.keys()}")
+    
     if not request.user.is_authenticated:
-        return JsonResponse({"is_authenticated": False}, status=401)
+        # Return 200 with false instead of 401 to prevent frontend errors
+        return JsonResponse({"is_authenticated": False})
+    
     return JsonResponse(_session_payload(request.user))
-
 
 def _session_payload(user: User) -> dict:
     try:
@@ -496,14 +581,14 @@ def _session_payload(user: User) -> dict:
 # Dashboard (admin-only)
 # ─────────────────────────────────────────────────────────────────────────────
 
-# @login_required
+# @api_login_required
 # def dashboard(request):
 #     return render(request, "dashboard.html", {
 #         "total_listings": 0, "total_by_source": [], "latest_runs": [],
 #     })
 
 
-@login_required
+@api_login_required
 def metrics_api(request):
     try:
         total = Listing.objects.count()
@@ -570,7 +655,7 @@ def metrics_api(request):
             "error": str(e),
         })
 
-@login_required
+@api_login_required
 def data_quality_api(request):
     try:
         qs    = Listing.objects
@@ -643,7 +728,7 @@ def data_quality_api(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 def eda_metrics(request):
     try:
         qs    = Listing.objects
@@ -917,7 +1002,7 @@ def get_delegation_matcher():
 
 @csrf_exempt
 @require_http_methods(["POST"])
-@login_required
+@api_login_required
 def create_listing(request):
     """
     POST /api/listings/create/
@@ -1165,7 +1250,7 @@ def _empty_eda():
         "top_features": [],
     }
 
-@login_required
+@api_login_required
 def user_listings(request):
     """GET /api/user/listings/ - Get listings created by current user"""
     try:
@@ -1209,7 +1294,7 @@ def user_listings(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 def user_likes(request):
     """GET /api/user/likes/ - Get listings liked by current user"""
     try:
@@ -1247,7 +1332,7 @@ def user_likes(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 def user_stats(request):
     try:
         supabase = __get_supabase_client()
@@ -1395,7 +1480,7 @@ def user_stats(request):
             "reports_generated": 0, "reports_last": "Never", "roi_estimate": 8.2,  # ← Fixed: keep 8.2
         })
 
-@login_required
+@api_login_required
 def user_activity(request):
     """GET /api/user/activity/ - Get user's recent activity"""
     try:
@@ -1460,7 +1545,7 @@ def user_activity(request):
             ]
         })
 
-@login_required
+@api_login_required
 def toggle_like(request, listing_id):
     """POST /api/listings/<listing_id>/like/ - Toggle like on a listing"""
     try:
@@ -1526,9 +1611,9 @@ def toggle_like(request, listing_id):
         return JsonResponse({"error": str(e)}, status=500)
     
 
-@login_required
+@api_login_required
 
-@login_required
+@api_login_required
 def track_listing_view(request, listing_id):
     try:
         supabase = __get_supabase_client()
@@ -1606,7 +1691,7 @@ pusher_client = pusher.Pusher(
 
 from django.contrib.auth.models import User
 
-@login_required
+@api_login_required
 @require_http_methods(["GET", "POST"])
 def get_or_create_conversation(request, listing_id):
     """GET/POST /api/chat/conversation/<listing_id>/ - Get or create conversation"""
@@ -1701,7 +1786,7 @@ def get_or_create_conversation(request, listing_id):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 def send_chat_message(request):
     """POST /api/chat/send/ - Send a real-time message"""
     try:
@@ -1781,7 +1866,7 @@ def send_chat_message(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@login_required
+@api_login_required
 def get_conversations(request):
     """GET /api/chat/conversations/"""
     try:
@@ -1848,7 +1933,7 @@ def get_conversations(request):
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
 
-@login_required
+@api_login_required
 def get_messages(request, conversation_id):
     """GET /api/chat/messages/<conversation_id>/ - Get all messages in a conversation"""
     try:
@@ -1943,3 +2028,236 @@ def pusher_auth(request):
         import traceback
         traceback.print_exc()
         return JsonResponse({"error": str(e)}, status=500)
+    
+@api_login_required
+def fraud_summary_api(request):
+    """GET /api/fraud/summary/ — KPI cards for fraud detection dashboard."""
+    try:
+        from django.db import connection as db_conn
+        with db_conn.cursor() as cur:
+            cur.execute("""
+                SELECT
+                    COUNT(*)                                                                  AS total,
+                    SUM(CASE WHEN multimodal_score < 0.31 THEN 1 ELSE 0 END)                AS incoherent,
+                    SUM(CASE WHEN multimodal_score >= 0.31 AND multimodal_score < 0.56
+                             THEN 1 ELSE 0 END)                                             AS suspect,
+                    SUM(CASE WHEN multimodal_score >= 0.56 THEN 1 ELSE 0 END)               AS coherent,
+                    ROUND(AVG(multimodal_score)::numeric, 3)                                AS avg_score,
+                    ROUND(AVG(ABS(price_deviation_pct))::numeric, 1)                        AS avg_price_deviation
+                FROM fraud_detection_results
+            """)
+            row = cur.fetchone()
+        total, incoherent, suspect, coherent, avg_score, avg_price_dev = row
+        return JsonResponse({
+            "total":              int(total or 0),
+            "incoherent":         int(incoherent or 0),
+            "suspect":            int(suspect or 0),
+            "coherent":           int(coherent or 0),
+            "avg_score":          float(avg_score or 0),
+            "avg_price_deviation": float(avg_price_dev or 0),
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_login_required
+def fraud_listings_api(request):
+    """
+    GET /api/fraud/listings/
+    Params: page, page_size, risk (incoherent|suspect|coherent), region, flag
+    Returns suspicious listings joined with listing details.
+    """
+    try:
+        from django.db import connection as db_conn
+
+        risk     = request.GET.get("risk", "").strip()
+        region   = request.GET.get("region", "").strip()
+        flag     = request.GET.get("flag", "").strip()
+        try:
+            page      = max(int(request.GET.get("page", 1)), 1)
+            page_size = min(int(request.GET.get("page_size", 20)), 100)
+        except ValueError:
+            page, page_size = 1, 20
+        offset = (page - 1) * page_size
+
+        conditions, params = [], []
+        if risk == "incoherent":
+            conditions.append("f.multimodal_score < 0.31")
+        elif risk == "suspect":
+            conditions.append("f.multimodal_score >= 0.31 AND f.multimodal_score < 0.56")
+        elif risk == "coherent":
+            conditions.append("f.multimodal_score >= 0.56")
+        if region:
+            conditions.append("l.region ILIKE %s")
+            params.append(f"%{region}%")
+        if flag:
+            conditions.append("f.mismatch_types::text ILIKE %s")
+            params.append(f"%{flag}%")
+
+        where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+        base_join = """
+            FROM fraud_detection_results f
+            LEFT JOIN listings l
+                   ON COALESCE(l.source_id, l.id::text) = f.property_id
+        """
+
+        with db_conn.cursor() as cur:
+            cur.execute(f"SELECT COUNT(*) {base_join} {where}", params)
+            total = cur.fetchone()[0]
+
+            cur.execute(f"""
+                SELECT
+                    f.property_id,
+                    f.source_name,
+                    f.multimodal_score,
+                    f.image_text_similarity,
+                    f.price_deviation_pct,
+                    f.mismatch_types,
+                    f.images_analyzed,
+                    f.analyzed_at,
+                    l.title,
+                    l.price,
+                    l.city,
+                    l.region,
+                    l.property_type,
+                    l.url
+                {base_join}
+                {where}
+                ORDER BY f.multimodal_score ASC
+                LIMIT %s OFFSET %s
+            """, params + [page_size, offset])
+            rows = cur.fetchall()
+
+        results = []
+        for row in rows:
+            (prop_id, src, score, sim, price_dev, mismatch,
+             images, analyzed_at, title, price, city, reg, ptype, url) = row
+
+            if isinstance(mismatch, str):
+                try:
+                    mismatch = json.loads(mismatch)
+                except Exception:
+                    mismatch = []
+            elif mismatch is None:
+                mismatch = []
+
+            s = float(score or 0)
+            risk_label = "incoherent" if s < 0.31 else ("suspect" if s < 0.56 else "coherent")
+
+            results.append({
+                "property_id":        prop_id,
+                "source_name":        src or "",
+                "multimodal_score":   round(s, 3),
+                "risk_level":         risk_label,
+                "price_deviation_pct": round(float(price_dev or 0), 1),
+                "mismatch_types":     mismatch,
+                "images_analyzed":    images or 0,
+                "analyzed_at":        analyzed_at.isoformat() if analyzed_at else None,
+                "title":              title or "",
+                "price":              float(price) if price else None,
+                "city":               city or "",
+                "region":             reg or "",
+                "property_type":      ptype or "",
+                "url":                url or "",
+            })
+
+        return JsonResponse({
+            "count":   int(total),
+            "pages":   max(1, (int(total) + page_size - 1) // page_size),
+            "page":    page,
+            "results": results,
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_login_required
+def fraud_flags_api(request):
+    """GET /api/fraud/flags/ — distribution of mismatch flags for bar chart."""
+    try:
+        from django.db import connection as db_conn
+        with db_conn.cursor() as cur:
+            cur.execute("""
+                SELECT mismatch_types
+                FROM fraud_detection_results
+                WHERE mismatch_types IS NOT NULL
+            """)
+            rows = cur.fetchall()
+
+        flag_counts: dict = defaultdict(int)
+        for (mismatch,) in rows:
+            if isinstance(mismatch, list):
+                flags = mismatch
+            elif isinstance(mismatch, str):
+                try:
+                    flags = json.loads(mismatch)
+                except Exception:
+                    flags = []
+            else:
+                flags = []
+            for f in flags:
+                if f:
+                    flag_counts[f] += 1
+
+        sorted_flags = sorted(flag_counts.items(), key=lambda x: -x[1])[:12]
+        return JsonResponse({
+            "flags": [{"flag": f, "count": c} for f, c in sorted_flags]
+        })
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+
+
+@api_login_required
+def get_listing_fraud_score(request, listing_id):
+    """GET /api/listing/fraud-score/<listing_id>/"""
+    try:
+        result = get_fraud_score_for_listing(listing_id)
+        return JsonResponse({"success": True, "data": result})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+    
+
+@api_login_required
+def get_listing_fraud_desc(request, listing_id):
+    """GET /api/listing/fraud-score/<listing_id>/"""
+    try:
+        # Remplacer par la nouvelle fonction
+        result = analyze_listing_description_by_id(listing_id)
+        return JsonResponse({"success": True, "data": result})
+    except Exception as e:
+        return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+@api_login_required
+def text_fraud_summary(request):
+    """GET /api/fraud/text-summary/ - Résumé de l'analyse textuelle"""
+    from django.db import connection
+    from services.fraud_service import get_text_analysis_summary
+    
+    try:
+        result = get_text_analysis_summary()
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+@api_login_required
+def text_fraud_listings(request):
+    """GET /api/fraud/text-listings/ - Liste paginée des analyses textuelles"""
+    risk = request.GET.get("risk", "negatif")
+    page = int(request.GET.get("page", 1))
+    page_size = int(request.GET.get("page_size", 15))
+    
+    from services.fraud_service import get_text_analysis_listings
+    result = get_text_analysis_listings(risk, page, page_size)
+    return JsonResponse(result)
+
+
+@api_login_required
+def text_fraud_rules(request):
+    """GET /api/fraud/text-rules/ - Statistiques des règles déclenchées"""
+    from services.fraud_service import get_text_rule_stats
+    
+    result = get_text_rule_stats()
+    return JsonResponse({"rules": result})
