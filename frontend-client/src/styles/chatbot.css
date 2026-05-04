@@ -65,6 +65,7 @@
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -135,6 +136,7 @@
     opacity: 0;
     transform: translateY(10px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -270,10 +272,14 @@
 }
 
 @keyframes bounce {
-  0%, 60%, 100% {
+
+  0%,
+  60%,
+  100% {
     opacity: 0.3;
     transform: translateY(0);
   }
+
   30% {
     opacity: 1;
     transform: translateY(-8px);
@@ -413,6 +419,214 @@
 
 .chatbot-btn-secondary:hover {
   background: var(--border-color);
+}
+
+/* Contract message styling */
+.chatbot-contract-message {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin: 4px 0;
+  width: 100%;
+  max-width: 100%;
+}
+
+.chatbot-contract-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #e2e8f0;
+  color: #1e293b;
+  font-size: 0.875rem;
+}
+
+.chatbot-contract-body {
+  max-height: 400px;
+  overflow-y: auto;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #334155;
+  margin: 8px 0;
+}
+
+.chatbot-contract-body .prose {
+  font-family: 'Times New Roman', serif;
+}
+
+.chatbot-contract-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.chatbot-contract-btn {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: white;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  color: #334155;
+}
+
+.chatbot-contract-btn:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.chatbot-contract-btn-primary {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.chatbot-contract-btn-primary:hover {
+  background: #2563eb;
+}
+
+/* Modal styling */
+.chatbot-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.chatbot-modal {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.chatbot-modal-preview {
+  max-height: 200px;
+  overflow-y: auto;
+  font-family: monospace;
+  font-size: 0.75rem;
+}
+
+.chatbot-modal-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.chatbot-btn-primary {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.chatbot-btn-primary:hover {
+  background: #2563eb;
+}
+
+.chatbot-btn-secondary {
+  background: white;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.chatbot-btn-secondary:hover {
+  background: #f1f5f9;
+}
+
+/* Empty state */
+.chatbot-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #64748b;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Typing indicator */
+.chatbot-typing-indicator {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.chatbot-typing-indicator span {
+  width: 8px;
+  height: 8px;
+  background: #94a3b8;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+
+.chatbot-typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.chatbot-typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* Tool call output */
+.chatbot-tool-call {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 8px;
+  font-size: 0.75rem;
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+/* Blocked link styling */
+.chatbot-blocked-link {
+  color: #ef4444;
+  text-decoration: line-through;
+}
+
+/* Markdown content */
+.chatbot-markdown-content {
+  line-height: 1.6;
+}
+
+.chatbot-markdown-content strong {
+  font-weight: 600;
+}
+
+.chatbot-markdown-content em {
+  font-style: italic;
+}
+
+.chatbot-markdown-content a {
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.chatbot-markdown-content a:hover {
+  text-decoration: underline;
 }
 
 /* Responsive */

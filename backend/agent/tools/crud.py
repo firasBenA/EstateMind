@@ -3,7 +3,7 @@ CRUD operations tool - create, read, update, delete listings.
 Note: Create/Update/Delete require action_confirmation=True and explicit user confirmation.
 """
 from typing import Optional, Dict, Any
-from dashboard.models import Listing
+# from dashboard.models import Listing
 from agent.validators import InputValidator
 from django.utils import timezone
 import logging

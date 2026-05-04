@@ -180,6 +180,7 @@ def chat_endpoint(request):
     # Process message with agent (streaming)
     def response_generator():
         try:    
+            logger.info(f"📨 Chat: Processing message: '{user_message}'")
             agent_response_text = ""
 
             yield {
@@ -198,6 +199,7 @@ def chat_endpoint(request):
 
                 # Save assistant message on end
                 if chunk.get("type") == "end":
+                    logger.info(f"📨 Chat: Response complete, length: {len(agent_response_text)}")
                     try:
                         ChatMessage.objects.create(
                             session=session,
@@ -210,7 +212,7 @@ def chat_endpoint(request):
                 yield chunk
 
         except Exception as e:
-            logger.error(f"Stream processing error: {e}", exc_info=True)
+            logger.error(f"📨 Chat: Stream processing error: {e}", exc_info=True)
             yield {
                 "type": "error",
                 "content": f"Stream error: {str(e)}",

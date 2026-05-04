@@ -3,7 +3,7 @@ Analytics tool - aggregates market statistics and quality metrics.
 """
 from typing import Dict, Any
 from django.db.models import Avg, Count, Min, Max, Q
-from dashboard.models import Listing, AgentMetrics
+from services.models import Listing, AgentMetrics
 from django.utils import timezone
 from datetime import timedelta
 import logging
